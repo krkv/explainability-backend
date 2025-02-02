@@ -13,9 +13,9 @@ def get_response():
         app.logger.info("Generating a response...")
         try:
             data = json.loads(request.data)
-            user_input = data["userInput"]
-            app.logger.info(f"User input: {user_input}")
-            response = generate_assistant_response(user_input)
+            conversation = data["conversation"]
+            app.logger.info(f"Conversation: {conversation}")
+            response = generate_assistant_response(conversation)
             app.logger.info(f"Assistant response: {response}")
             return {
                 "assistantResponse": response
