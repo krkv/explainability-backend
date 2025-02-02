@@ -188,6 +188,9 @@ def get_prompt_claire(conversation):
 
     The user query is: {user_input}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
     
+def format_response(response):
+    return response.replace("\n", "<br>")
+    
     
 def generate_assistant_response(user_input):
     prompt_doorman = get_prompt_doorman(user_input)
@@ -200,10 +203,10 @@ def generate_assistant_response(user_input):
         if (response_caller == "[]"):
             prompt_claire = get_prompt_claire(user_input)
             response_claire = client.text_generation(prompt_claire).strip()
-            return response_claire
+            return format_response(response_claire)
         return response_caller
     else:
         prompt_claire = get_prompt_claire(user_input)
         response_claire = client.text_generation(prompt_claire).strip()
-        return response_claire
+        return format_response(response_claire)
     
