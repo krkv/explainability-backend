@@ -21,5 +21,5 @@ def get_response():
                 "assistantResponse": response
             }
         except Exception as ext:
-            app.logger.error("Failed to generate a response!")
+            app.logger.error("Failed to generate a response!", ext)
             return("Bad request", 400)

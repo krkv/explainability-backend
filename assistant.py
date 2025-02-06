@@ -1,5 +1,6 @@
 import os
 from huggingface_hub import InferenceClient
+from parser import parse_calls
 
 HF_TOKEN = os.getenv('HF_TOKEN')
 
@@ -204,7 +205,10 @@ def generate_assistant_response(user_input):
             prompt_claire = get_prompt_claire(user_input)
             response_claire = client.text_generation(prompt_claire).strip()
             return format_response(response_claire)
-        return response_caller
+        else:
+            response = parse_calls(response_caller)
+            print(response)
+            return response
     else:
         prompt_claire = get_prompt_claire(user_input)
         response_claire = client.text_generation(prompt_claire).strip()
