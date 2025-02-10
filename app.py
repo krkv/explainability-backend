@@ -14,9 +14,7 @@ def get_response():
         try:
             data = json.loads(request.data)
             conversation = data["conversation"]
-            app.logger.info(f"Conversation: {conversation}")
             response = generate_assistant_response(conversation)
-            app.logger.info(f"Assistant response: {response}")
             return {
                 "assistantResponse": response
             }

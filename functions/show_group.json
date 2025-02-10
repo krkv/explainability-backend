@@ -1,0 +1,36 @@
+{
+    "type": "function",
+    "function": {
+        "name": "show_group",
+        "description": "Show a group of original data points filtered by some features. Presents the original data points only. Can de used to display a sub-selection of the dataset.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "indoor_temperature_min": {
+                    "type": "float",
+                    "description": "Filter dataset by the minimum value of indoor temperature"
+                },
+                "indoor_temperature_max": {
+                    "type": "float",
+                    "description": "Filter dataset by the maximum value of outdoor temperature"
+                },
+                "outdoor_temperature_min": {
+                    "type": "float",
+                    "description": "Filter dataset by the minimum value of outdoor temperature"
+                },
+                "outdoor_temperature_max": {
+                    "type": "float",
+                    "description": "Filter dataset by the maximum value of outdoor temperature"
+                },
+                "past_electricity_min": {
+                    "type": "float",
+                    "description": "Filter dataset by the minimum value of past electricity"
+                },
+                "past_electricity_max": {
+                    "type": "float",
+                    "description": "Filter dataset by the maximum value of past electricity"
+                }
+            }
+        }
+    }
+}

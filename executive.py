@@ -6,15 +6,82 @@ y_values = dataset.pop('y')
 
 with open('energy_gp_model.pkl', 'rb') as file:
         model = pickle.load(file)
+        
+def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
+               outdoor_temperature_min=None, outdoor_temperature_max=None, 
+               past_electricity_min=None, past_electricity_max=None):
+    text = "<p>I am grouping the data as follows:<ul>"
+    if indoor_temperature_min:
+        text += f"<li>indoor temperature > {indoor_temperature_min}</li>"
+    if indoor_temperature_max:
+        text += f"<li>indoor temperature < {indoor_temperature_max}</li>"
+    if outdoor_temperature_min:
+        text += f"<li>outdoor temperature > {outdoor_temperature_min}</li>"
+    if outdoor_temperature_max:
+        text += f"<li>outdoor temperature < {outdoor_temperature_max}</li>"
+    if past_electricity_min:
+        text += f"<li>past electricity > {past_electricity_min}</li>"
+    if past_electricity_max:
+        text += f"<li>past electricity < {past_electricity_max}</li>"
+    text += "</ul></p>"
+    return text
 
-def show(id):
+def show_one(id):
     intro = f"<p>Showing data for ID {id}</p>"
-    table = f"<p>{dataset.loc[id].to_html()}</p>"
+    renamed = dataset.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
+    table = f"<p>{renamed.loc[id].to_html()}</p>"
     return intro + table
 
-def predict(id):
+def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
+               outdoor_temperature_min=None, outdoor_temperature_max=None, 
+               past_electricity_min=None, past_electricity_max=None):
+    intro = format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    result = dataset
+    if indoor_temperature_min:
+        result = result[result['indoor_temperature'] > indoor_temperature_min]
+    if indoor_temperature_max:
+        result = result[result['indoor_temperature'] < indoor_temperature_max]
+    if outdoor_temperature_min:
+        result = result[result['outdoor_temperature'] > outdoor_temperature_min]
+    if outdoor_temperature_max:
+        result = result[result['outdoor_temperature'] < outdoor_temperature_max]
+    if past_electricity_min:
+        result = result[result['past_electricity'] > past_electricity_min]
+    if past_electricity_max:
+        result = result[result['past_electricity'] < past_electricity_max]
+
+    renamed = result.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
+    table = f"<p>{renamed.to_html()}</p>"
+    return intro + table
+
+def predict_one(id):
     data = dataset.loc[id]
     prediction = model.predict(data)
     rounded = round(prediction[0], 2)
     text = f"<p>The prediction for ID {id} is {rounded}</p>"
     return text
+
+def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
+               outdoor_temperature_min=None, outdoor_temperature_max=None, 
+               past_electricity_min=None, past_electricity_max=None):
+    intro = format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    
+    data = dataset
+    if indoor_temperature_min:
+        data = data[data['indoor_temperature'] > indoor_temperature_min]
+    if indoor_temperature_max:
+        data = data[data['indoor_temperature'] < indoor_temperature_max]
+    if outdoor_temperature_min:
+        data = data[data['outdoor_temperature'] > outdoor_temperature_min]
+    if outdoor_temperature_max:
+        data = data[data['outdoor_temperature'] < outdoor_temperature_max]
+    if past_electricity_min:
+        data = data[data['past_electricity'] > past_electricity_min]
+    if past_electricity_max:
+        data = data[data['past_electricity'] < past_electricity_max]
+        
+    prediction = model.predict(data)
+    framed = pd.DataFrame(prediction, columns=['prediction'], index=data.index)
+
+    table = f"<p>{framed.to_html()}</p>"
+    return intro + table

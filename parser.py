@@ -1,12 +1,15 @@
-from executive import predict, show
+from executive import show_one, show_group, predict_one, predict_group
 
 def explain(id=None):
     return f"<p>explain({id})</p>"
 
-def parse_calls(calls):
-    results = ['<p>This is what I found.</p>']
+def is_list_of_calls(calls):
+    return calls.startswith('[') and calls.endswith(']')
 
-    calls = calls.strip('[]').split(',')
+def parse_calls(calls):
+    results = []
+
+    calls = calls.strip('[]').split(';')
     if len(calls) == 0:
         raise Exception("No calls found")
     for call in calls:

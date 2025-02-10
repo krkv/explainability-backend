@@ -1,0 +1,19 @@
+{
+    "type": "function",
+    "function": {
+        "name": "show_one",
+        "description": "Show the original data features of one data sample. Presents the original data points only. Can de used to display a data sample from the dataset.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "description": "The id of the single data sample requested"
+                }
+            },
+            "required": [
+                "id"
+            ]
+        }
+    }
+}

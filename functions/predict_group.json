@@ -1,0 +1,36 @@
+{
+    "type": "function",
+    "function": {
+        "name": "predict_group",
+        "description": "Get a prediction of a group of data points. It calls an ML prediction function with given data point to obtain predictions and return them to the user.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "indoor_temperature_min": {
+                    "type": "float",
+                    "description": "Filter dataset by the minimum value of indoor temperature"
+                },
+                "indoor_temperature_max": {
+                    "type": "float",
+                    "description": "Filter dataset by the maximum value of outdoor temperature"
+                },
+                "outdoor_temperature_min": {
+                    "type": "float",
+                    "description": "Filter dataset by the minimum value of outdoor temperature"
+                },
+                "outdoor_temperature_max": {
+                    "type": "float",
+                    "description": "Filter dataset by the maximum value of outdoor temperature"
+                },
+                "past_electricity_min": {
+                    "type": "float",
+                    "description": "Filter dataset by the minimum value of past electricity"
+                },
+                "past_electricity_max": {
+                    "type": "float",
+                    "description": "Filter dataset by the maximum value of past electricity"
+                }
+            }
+        }
+    }
+}
