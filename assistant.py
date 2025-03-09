@@ -1,7 +1,10 @@
 import os
+import json
 from huggingface_hub import InferenceClient
 from parser import parse_calls, is_list_of_calls
-import functions
+
+with open('functions.json') as f:
+    functions = json.load(f)
 
 HF_TOKEN = os.getenv('HF_TOKEN')
 
@@ -29,12 +32,7 @@ def get_prompt(conversation):
 
     Here is a list of functions in JSON format that can be invoked:
 
-    [
-        {functions.show_one},
-        {functions.show_group},
-        {functions.predict_one},
-        {functions.predict_group}
-    ]
+    {functions}
     
     You are also given the conversation history between the user and the assistant.
     Use this to understand the context of the user query, for example, infer id or filtering from the previous user queries.
@@ -47,12 +45,12 @@ def get_prompt(conversation):
     {user_input}<|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
     
     
-def generate_assistant_response(user_input):
-        prompt = get_prompt(user_input)
+def generate_assistant_response(conversation):
+        prompt = get_prompt(conversation)
         
         # to save the prompt:
-        # with open("prompt.txt", "w") as f:
-        #     f.write(prompt)
+        with open("prompt.txt", "w") as f:
+            f.write(prompt)
             
         response = client.text_generation(prompt).strip()
         

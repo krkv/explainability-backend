@@ -1,4 +1,4 @@
-from executive import show_one, show_group, predict_one, predict_group
+from executive import *
 
 def explain(id=None):
     return f"<p>explain({id})</p>"

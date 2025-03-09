@@ -1,11 +1,19 @@
 import pandas as pd
 import pickle
+import shap
+import copy
 
 dataset = pd.read_csv('energy_test_data.csv', index_col=[0,1])
 y_values = dataset.pop('y')
 
+explanation_dataset = copy.deepcopy(dataset)
+explanation_dataset = explanation_dataset.to_numpy()
+explanation_data = shap.kmeans(explanation_dataset, 25)
+
 with open('energy_gp_model.pkl', 'rb') as file:
         model = pickle.load(file)
+        
+explainer = shap.KernelExplainer(model.predict, explanation_data, link="identity")
         
 def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
@@ -85,3 +93,10 @@ def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
 
     table = f"<p>{framed.to_html()}</p>"
     return intro + table
+
+def explain_one(id):
+    data = dataset.loc[id]
+    shap_values = explainer.shap_values(data, nsamples=10_000, silent=True)
+    print(shap_values)
+    text = f"<p>For the instance with id <b>{id}<b> the feature importances are:</p>"
+    return text
