@@ -8,12 +8,12 @@ y_values = dataset.pop('y')
 
 explanation_dataset = copy.deepcopy(dataset)
 explanation_dataset = explanation_dataset.to_numpy()
-explanation_data = shap.kmeans(explanation_dataset, 25)
+explanation_dataset = shap.kmeans(explanation_dataset, 25)
 
 with open('energy_gp_model.pkl', 'rb') as file:
         model = pickle.load(file)
         
-explainer = shap.KernelExplainer(model.predict, explanation_data, link="identity")
+explainer = shap.KernelExplainer(model.predict, explanation_dataset, link="identity")
         
 def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
@@ -97,6 +97,7 @@ def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
 def explain_one(id):
     data = dataset.loc[id]
     shap_values = explainer.shap_values(data, nsamples=10_000, silent=True)
-    print(shap_values)
-    text = f"<p>For the instance with id <b>{id}<b> the feature importances are:</p>"
+    influences = shap_values.squeeze()
+    result = pd.DataFrame(influences, columns=['influence'], index=dataset.columns).sort_values(by='influence', key=abs, ascending=False)
+    text = f"<p>For the instance with id <b>{id}</b> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
     return text
