@@ -59,6 +59,7 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
         result = result[result['past_electricity'] < past_electricity_max]
 
     renamed = result.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
+    renamed.sort_index(inplace=True)
     table = f"<p>{renamed.to_html()}</p>"
     return intro + table
 
@@ -90,6 +91,7 @@ def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
         
     prediction = model.predict(data)
     framed = pd.DataFrame(prediction, columns=['prediction'], index=data.index)
+    framed.sort_index(inplace=True)
 
     table = f"<p>{framed.to_html()}</p>"
     return intro + table
@@ -101,3 +103,37 @@ def explain_one(id):
     result = pd.DataFrame(influences, columns=['influence'], index=dataset.columns).sort_values(by='influence', key=abs, ascending=False)
     text = f"<p>For the instance with id <b>{id}</b> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
     return text
+
+def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
+               outdoor_temperature_min=None, outdoor_temperature_max=None, 
+               past_electricity_min=None, past_electricity_max=None):
+    intro = format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    
+    data = dataset
+    if indoor_temperature_min:
+        data = data[data['indoor_temperature'] > indoor_temperature_min]
+    if indoor_temperature_max:
+        data = data[data['indoor_temperature'] < indoor_temperature_max]
+    if outdoor_temperature_min:
+        data = data[data['outdoor_temperature'] > outdoor_temperature_min]
+    if outdoor_temperature_max:
+        data = data[data['outdoor_temperature'] < outdoor_temperature_max]
+    if past_electricity_min:
+        data = data[data['past_electricity'] > past_electricity_min]
+    if past_electricity_max:
+        data = data[data['past_electricity'] < past_electricity_max]
+        
+    result = pd.DataFrame(index=data.index, columns=[])
+        
+    for id in data.index:
+        shap_values = explainer.shap_values(data.loc[id], nsamples=10_000, silent=True)
+        influences = shap_values.squeeze()
+        influences = pd.DataFrame(influences, columns=['influence'], index=dataset.columns).sort_values(by='influence', key=abs, ascending=False)
+        for feature in influences.index:
+            result.loc[id, f"influence of {feature}"] = influences.loc[feature, 'influence']
+    
+    result.sort_index(inplace=True)
+    
+    table = f"<p>{result.to_html()}</p>"
+        
+    return intro + table

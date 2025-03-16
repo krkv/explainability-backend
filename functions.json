@@ -3,7 +3,7 @@
         "type": "function",
         "function": {
             "name": "show_one",
-            "description": "Show a data sample. Presents the original data points. Can de used to display a sample from the dataset.",
+            "description": "Show a data sample identified by an ID. Presents the original data points. Can de used to display a sample from the dataset.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -22,7 +22,7 @@
         "type": "function",
         "function": {
             "name": "show_group",
-            "description": "Show a group of original data points filtered by some features. Presents the original data points only. Can de used to display a sub-selection of the dataset.",
+            "description": "Show a group of original data points specified by filtering of the dataset. Presents the original data points only. Can de used to display a sub-selection of the dataset.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -58,7 +58,7 @@
         "type": "function",
         "function": {
             "name": "predict_one",
-            "description": "Get a prediction of one data sample. It calls an ML prediction function on given data point to obtain a prediction and return it to the user.",
+            "description": "Get a prediction of one data sample identified by an ID. It calls an ML prediction function on given data point to obtain a prediction and return it to the user.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -77,7 +77,7 @@
         "type": "function",
         "function": {
             "name": "predict_group",
-            "description": "Get a prediction of a group of data points. It calls an ML prediction function with given data point to obtain predictions and return them to the user.",
+            "description": "Get a prediction of a group of data points specified by filtering of the dataset. It calls an ML prediction function with given data point to obtain predictions and return them to the user.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -113,7 +113,7 @@
         "type": "function",
         "function": {
             "name": "explain_one",
-            "description": "Get an explanation of prediction for one data sample. It calls SHAP module with given data point to determine what features are most important for the prediction.",
+            "description": "Get an explanation of prediction for one data sample identified by an ID. It calls SHAP module with given data point to determine what features are most important for the prediction, and returns the explanations.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -125,6 +125,42 @@
                 "required": [
                     "id"
                 ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "explain_group",
+            "description": "Get an explanation of prediction for a group of data instances specified by filtering of the dataset. It calls SHAP module with given data points to determine what features are most important for the prediction, and returns the explanations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "indoor_temperature_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of indoor temperature"
+                    },
+                    "indoor_temperature_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of outdoor temperature"
+                    },
+                    "outdoor_temperature_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of outdoor temperature"
+                    },
+                    "outdoor_temperature_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of outdoor temperature"
+                    },
+                    "past_electricity_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of past electricity"
+                    },
+                    "past_electricity_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of past electricity"
+                    }
+                }
             }
         }
     }
