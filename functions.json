@@ -2,6 +2,13 @@
     {
         "type": "function",
         "function": {
+            "name": "show_ids",
+            "description": "Show the IDs of all data samples in the dataset. Can be used to list IDs of all data samples in the dataset."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "show_one",
             "description": "Show a data sample identified by an ID. Presents the original data points. Can de used to display a sample from the dataset.",
             "parameters": {

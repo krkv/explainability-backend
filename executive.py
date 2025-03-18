@@ -35,22 +35,25 @@ def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
                past_electricity_min=None, past_electricity_max=None):
     text = "<p>I am grouping the data as follows:<ul>"
     if indoor_temperature_min:
-        text += f"<li>indoor temperature > {indoor_temperature_min}</li>"
+        text += f"<li><code>indoor temperature</code> is more than <var>{indoor_temperature_min}</var></li>"
     if indoor_temperature_max:
-        text += f"<li>indoor temperature < {indoor_temperature_max}</li>"
+        text += f"<li><code>indoor temperature</code> is less than <var>{indoor_temperature_max}</var></li>"
     if outdoor_temperature_min:
-        text += f"<li>outdoor temperature > {outdoor_temperature_min}</li>"
+        text += f"<li><code>outdoor temperature</code> is more than <var>{outdoor_temperature_min}</var></li>"
     if outdoor_temperature_max:
-        text += f"<li>outdoor temperature < {outdoor_temperature_max}</li>"
+        text += f"<li><code>outdoor temperature</code> is less than <var>{outdoor_temperature_max}</var></li>"
     if past_electricity_min:
-        text += f"<li>past electricity > {past_electricity_min}</li>"
+        text += f"<li><code>past electricity</code> is more than <var>{past_electricity_min}</var></li>"
     if past_electricity_max:
-        text += f"<li>past electricity < {past_electricity_max}</li>"
+        text += f"<li><code>past electricity</code> is less than <var>{past_electricity_max}</var></li>"
     text += "</ul></p>"
     return text
 
+def show_ids():
+    return f"<p>Available <code>ID</code> values are: {', '.join([f'<var>{id}</var>' for id in dataset.index.get_level_values(0).unique().sort_values()])}.</p>"
+
 def show_one(id):
-    intro = f"<p>Showing data for ID {id}</p>"
+    intro = f"<p>Here is the data for <code>ID</code> <var>{id}</var>:</p>"
     renamed = dataset.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
     table = f"<p>{renamed.loc[id].to_html()}</p>"
     return intro + table
@@ -72,6 +75,8 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
         result = result[result['past_electricity'] > past_electricity_min]
     if past_electricity_max:
         result = result[result['past_electricity'] < past_electricity_max]
+    
+    intro += f"<p>Showing the data for the selected group.</p>"
 
     renamed = result.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
     renamed.sort_index(inplace=True)
@@ -82,7 +87,7 @@ def predict_one(id):
     data = dataset.loc[id]
     prediction = model.predict(data)
     rounded = round(prediction[0], 2)
-    text = f"<p>The prediction for ID {id} is {rounded}</p>"
+    text = f"<p>The prediction for <code>ID</code> <var>{id}</var> is <samp>{rounded}</samp>.</p>"
     return text
 
 def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
@@ -104,6 +109,8 @@ def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
     if past_electricity_max:
         data = data[data['past_electricity'] < past_electricity_max]
         
+    intro += "<p>Here are the predictions for the selected group.</p>"
+        
     prediction = model.predict(data)
     framed = pd.DataFrame(prediction, columns=['prediction'], index=data.index)
     framed.sort_index(inplace=True)
@@ -116,7 +123,7 @@ def explain_one(id):
     shap_values = explainer.shap_values(data, nsamples=10_000, silent=True)
     influences = shap_values.squeeze()
     result = pd.DataFrame(influences, columns=['influence'], index=dataset.columns).sort_values(by='influence', key=abs, ascending=False)
-    text = f"<p>For the instance with id <b>{id}</b> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
+    text = f"<p>For the instance with <code>ID</code> <var>{id}</var> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
     return text
 
 def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
@@ -137,6 +144,8 @@ def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
         data = data[data['past_electricity'] > past_electricity_min]
     if past_electricity_max:
         data = data[data['past_electricity'] < past_electricity_max]
+        
+    intro += "<p>Here are the feature importances for the selected group.</p>"
         
     result = pd.DataFrame(index=data.index, columns=[])
         
@@ -168,22 +177,19 @@ def cfes_one(id):
     
     original_instance = dice_dataset.loc[[id]]
     
-    output_string = f"<p>The original prediction for the data sample with ID <b>{id}</b> is <b>{str(round(original_prediction, 2))}</b>.</p>"
-    output_string += "<p>Here are some options to change the prediction of this instance:"
-    output_string += "<ul>"
+    output_string = f"<p>The original prediction for the data sample with <code>ID</code> <var>{id}</var> is <samp>{str(round(original_prediction, 2))}</samp>.</p>"
+    output_string += "<p>Here are some options to change the prediction of this instance."
     
-    output_string += "<li>First, if you"
+    output_string += "<p>First, if you"
     transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
     
     for i, c_id in enumerate(final_cfe_ids):
         if i < 3:
             if i != 0:
-                output_string += f"<li>{np.random.choice(transition_words)} if you"
+                output_string += f"<p>{np.random.choice(transition_words)} if you"
             output_string += _get_change_string(final_cfes.loc[[c_id]], original_instance)
             new_prediction = str(round(new_predictions[i], 2))
-            output_string += f"</em>, the model will predict <b>{new_prediction}</b>.</li>"
-    
-    output_string += "</ul>"
+            output_string += f", the model will predict <samp>{new_prediction}</samp>.</p>"
 
     return output_string
 
@@ -204,10 +210,10 @@ def _get_change_string(cfe, original_instance):
 
         if orig_f != cfe_f:
             if cfe_f > orig_f:
-                inc_dec = " <em>increase</em>"
+                inc_dec = " increase"
             else:
-                inc_dec = " <em>decrease</em>"
-            change_string += f"{inc_dec} {feature} to {str(round(cfe_f, 2))}"
+                inc_dec = " decrease"
+            change_string += f"{inc_dec} <code>{feature}</code> to <var>{str(round(cfe_f, 2))}</var>"
             change_string += " and "
     # Strip off last and
     change_string = change_string[:-5]
