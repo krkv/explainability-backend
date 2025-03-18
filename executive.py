@@ -2,6 +2,8 @@ import pandas as pd
 import pickle
 import shap
 import copy
+import dice_ml
+import numpy as np
 
 dataset = pd.read_csv('energy_test_data.csv', index_col=[0,1])
 y_values = dataset.pop('y')
@@ -14,6 +16,19 @@ with open('energy_gp_model.pkl', 'rb') as file:
         model = pickle.load(file)
         
 explainer = shap.KernelExplainer(model.predict, explanation_dataset, link="identity")
+
+dice_dataset = copy.deepcopy(dataset)
+dice_dataset['prediction'] = model.predict(dice_dataset.to_numpy())
+
+dice_data = dice_ml.Data(dataframe=dice_dataset, 
+                         continuous_features=['outdoor_temperature', 'indoor_temperature', 'past_electricity'], 
+                         outcome_name='prediction')
+
+dice_model = dice_ml.Model(model=model, backend="sklearn", model_type="regressor")
+
+dice_exp = dice_ml.Dice(dice_data, dice_model, method="random")
+
+dice_dataset.pop('prediction')
         
 def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
@@ -137,3 +152,63 @@ def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
     table = f"<p>{result.to_html()}</p>"
         
     return intro + table
+
+def cfes_one(id):
+    cfe = dice_exp.generate_counterfactuals(dice_dataset.loc[[id]],
+                                            total_CFs=10,
+                                            desired_range=[22, 8714])
+    final_cfes = cfe.cf_examples_list[0].final_cfs_df
+    final_cfe_ids = list(final_cfes.index)
+    
+    if 'prediction' in final_cfes.columns:
+            final_cfes.pop('prediction')
+    
+    original_prediction = model.predict(dice_dataset.loc[[id]])[0]
+    new_predictions = model.predict(final_cfes)
+    
+    original_instance = dice_dataset.loc[[id]]
+    
+    output_string = f"<p>The original prediction for the data sample with ID <b>{id}</b> is <b>{str(round(original_prediction, 2))}</b>.</p>"
+    output_string += "<p>Here are some options to change the prediction of this instance:"
+    output_string += "<ul>"
+    
+    output_string += "<li>First, if you"
+    transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
+    
+    for i, c_id in enumerate(final_cfe_ids):
+        if i < 3:
+            if i != 0:
+                output_string += f"<li>{np.random.choice(transition_words)} if you"
+            output_string += _get_change_string(final_cfes.loc[[c_id]], original_instance)
+            new_prediction = str(round(new_predictions[i], 2))
+            output_string += f"</em>, the model will predict <b>{new_prediction}</b>.</li>"
+    
+    output_string += "</ul>"
+
+    return output_string
+
+def _get_change_string(cfe, original_instance):
+    """Builds a string describing the changes between the cfe and original instance."""
+    cfe_features = list(cfe.columns)
+    original_features = list(original_instance.columns)
+    message = "CFE features and Original Instance features are different!"
+    assert set(cfe_features) == set(original_features), message
+
+    change_string = ""
+    for feature in cfe_features:
+        orig_f = original_instance[feature].values[0]
+        cfe_f = cfe[feature].values[0]
+
+        if isinstance(cfe_f, str):
+            cfe_f = float(cfe_f)
+
+        if orig_f != cfe_f:
+            if cfe_f > orig_f:
+                inc_dec = " <em>increase</em>"
+            else:
+                inc_dec = " <em>decrease</em>"
+            change_string += f"{inc_dec} {feature} to {str(round(cfe_f, 2))}"
+            change_string += " and "
+    # Strip off last and
+    change_string = change_string[:-5]
+    return change_string

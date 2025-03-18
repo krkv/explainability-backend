@@ -1,8 +1,5 @@
 from executive import *
 
-def explain(id=None):
-    return f"<p>explain({id})</p>"
-
 def is_list_of_calls(calls):
     return calls.startswith('[') and calls.endswith(']')
 

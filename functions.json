@@ -163,5 +163,24 @@
                 }
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cfes_one",
+            "description": "Get counterfactual explanation examples for one data sample identified by an ID. It calls DICE ML module with given data point to generate counterfactual explanations, and returns how user could manipulate the data for the model to predict a different outcome.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the single data sample to generate counterfactual explanations for"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
     }
 ]
