@@ -29,7 +29,7 @@ dice_model = dice_ml.Model(model=model, backend="sklearn", model_type="regressor
 dice_exp = dice_ml.Dice(dice_data, dice_model, method="random")
 
 dice_dataset.pop('prediction')
-        
+     
 def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
                past_electricity_min=None, past_electricity_max=None):
@@ -51,6 +51,32 @@ def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
 
 def show_ids():
     return f"<p>Available <code>ID</code> values are: {', '.join([f'<var>{id}</var>' for id in dataset.index.get_level_values(0).unique().sort_values()])}.</p>"
+
+def about_dataset():
+    text = "<p>The dataset contains information about energy consumption in a building.</p>"
+    text += f"<p>It has <var>{len(dataset)}</var> instances and <var>{len(dataset.columns)}</var> features.</p>"
+    text += f"<p>The features are: {', '.join([f'<code>{feature}</code>' for feature in dataset.columns])}.</p>"
+    text += "<p>I can also give you the more in depth statistics of the dataset. Would you like to see it?</p>"
+    return text
+
+def about_dataset_in_depth():
+    text = "Here are the statistics of each feature in the dataset:"
+    text += f"<p>{dataset.describe().round(2).to_html()}</p>"
+    return text
+
+def about_model():
+    text = "<p>The model is a <b>genetic programming symbolic regressor</b>.</p>"
+    text += "<p>It was trained on the dataset features to predict energy consumption.</p>"
+    text += "<p>Symbolic regression is a machine learning technique that aims to identify an underlying mathematical expression that best describes a relationship.</p>"
+    text += "<p>It begins by building a population of naive random formulas to represent a relationship between known independent variables and their dependent variable targets in order to predict new data.</p>"
+    text += "<p>Each successive generation of programs is then evolved from the one that came before it by selecting the fittest individuals from the population to undergo genetic operations.<p>"
+    return text
+
+def about_explainer():
+    text = "<p>The explainer is a SHAP Kernel Explainer.</p>"
+    text += "<p>SHAP (SHapley Additive exPlanations) is a game theoretic approach to explain the output of any machine learning model. \
+        It connects optimal credit allocation with local explanations using the classic Shapley values from game theory and their related extensions.</p>"
+    return text
 
 def show_one(id):
     intro = f"<p>Here is the data for <code>ID</code> <var>{id}</var>:</p>"

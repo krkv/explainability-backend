@@ -2,6 +2,34 @@
     {
         "type": "function",
         "function": {
+            "name": "about_dataset",
+            "description": "Get information about the dataset. It can tell the user the number of data samples in the dataset, the number of features, and the feature names."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "about_dataset_in_depth",
+            "description": "Get information about the dataset features in depth. It can tell the user the statistics of the features in the dataset: mean, standard deviation, min, max, etc."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "about_model",
+            "description": "Get information about the model. It can tell the user the model type and information about the model architecture."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "about_explainer",
+            "description": "Get information about the explainer. It can tell the user more about the SHAP explainer used in the model."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "show_ids",
             "description": "Show the IDs of all data samples in the dataset. Can be used to list IDs of all data samples in the dataset."
         }
