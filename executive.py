@@ -189,16 +189,19 @@ def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
     return intro + table
 
 def cfes_one(id):
+    original_prediction = model.predict(dice_dataset.loc[[id]])[0]
+    
     cfe = dice_exp.generate_counterfactuals(dice_dataset.loc[[id]],
                                             total_CFs=10,
-                                            desired_range=[22, 8714])
+                                            desired_range=[0, original_prediction],
+                                            features_to_vary=['indoor_temperature','outdoor_temperature'])
+    
     final_cfes = cfe.cf_examples_list[0].final_cfs_df
     final_cfe_ids = list(final_cfes.index)
-    
     if 'prediction' in final_cfes.columns:
             final_cfes.pop('prediction')
     
-    original_prediction = model.predict(dice_dataset.loc[[id]])[0]
+    
     new_predictions = model.predict(final_cfes)
     
     original_instance = dice_dataset.loc[[id]]
@@ -210,7 +213,7 @@ def cfes_one(id):
     transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
     
     for i, c_id in enumerate(final_cfe_ids):
-        if i < 3:
+        if i < 3 and i < len(final_cfe_ids):
             if i != 0:
                 output_string += f"<p>{np.random.choice(transition_words)} if you"
             output_string += _get_change_string(final_cfes.loc[[c_id]], original_instance)
@@ -218,6 +221,34 @@ def cfes_one(id):
             output_string += f", the model will predict <samp>{new_prediction}</samp>.</p>"
 
     return output_string
+
+def what_if_one(id, indoor_temperature=None, outdoor_temperature=None, past_electricity=None):
+    original_instance = dice_dataset.loc[[id]]
+    original_prediction = model.predict(original_instance)[0]
+    if isinstance(original_prediction, dict):  # Extract value if prediction is a dictionary with an index
+        original_prediction = list(original_prediction.values())[0]
+    changed_instance = original_instance.copy()
+    if indoor_temperature:
+        changed_instance['indoor_temperature'] = indoor_temperature
+    if outdoor_temperature:
+        changed_instance['outdoor_temperature'] = outdoor_temperature
+    if past_electricity:
+        changed_instance['past_electricity'] = past_electricity
+    new_prediction = model.predict(changed_instance)[0]
+    if isinstance(new_prediction, dict):  # Extract value if prediction is a dictionary with an index
+        new_prediction = list(new_prediction.values())[0]
+    text = f"<p>For the data sample with <code>ID</code> <var>{id}</var>, the original features are:</p>"
+    text += f"<ul>{''.join([f'<li><code>{feature}</code> = <var>{_extract_value(value)}</var></li>' for feature, value in original_instance.to_dict().items()])}</ul>"
+    text += f"<p>The model predicts <samp>{str(round(original_prediction, 2))}</samp> for this instance.</p>"
+    text += f"<p>Let's change the features to: <ul>{''.join([f'<li><code>{feature}</code> = <var>{_extract_value(value)}</var></li>' for feature, value in changed_instance.to_dict().items()])}</ul></p>"
+    text += f"<p>Then the model will predict <samp>{str(round(new_prediction, 2))}</samp>.</p>"
+    return text
+
+def _extract_value(value):
+    """Extracts the numeric value if the input is a dictionary with an index."""
+    if isinstance(value, dict):
+        return list(value.values())[0]
+    return value
 
 def _get_change_string(cfe, original_instance):
     """Builds a string describing the changes between the cfe and original instance."""

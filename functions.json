@@ -217,5 +217,36 @@
                 ]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "what_if_one",
+            "description": "Calculate the effect of changing a feature on the prediction for one data sample identified by an ID. It changes the feature values and calls the ML prediction function to determine the effect of the change on the prediction.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the single data sample to calculate the effect of changing a feature for"
+                    },
+                    "indoor_temperature": {
+                        "type": "float",
+                        "description": "The new value of indoor temperature"
+                    },
+                    "outdoor_temperature": {
+                        "type": "float",
+                        "description": "The new value of outdoor temperature"
+                    },
+                    "past_electricity": {
+                        "type": "float",
+                        "description": "The new value of past electricity"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
     }
 ]
