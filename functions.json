@@ -147,6 +147,35 @@
     {
         "type": "function",
         "function": {
+            "name": "predict_new",
+            "description": "Get a prediction of a new or hypothetical data sample. It calls the ML prediction function with given feature values to obtain a prediction and return it to the user. The user must provide the values for all features!",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "indoor_temperature": {
+                        "type": "float",
+                        "description": "The value of indoor temperature"
+                    },
+                    "outdoor_temperature": {
+                        "type": "float",
+                        "description": "The value of outdoor temperature"
+                    },
+                    "past_electricity": {
+                        "type": "float",
+                        "description": "The value of past electricity"
+                    }
+                }
+            },
+            "required": [
+                "indoor_temperature",
+                "outdoor_temperature",
+                "past_electricity"
+            ]
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "explain_one",
             "description": "Get an explanation of prediction for one data sample identified by an ID. It calls SHAP module with given data point to determine what features are most important for the prediction, and returns the explanations.",
             "parameters": {

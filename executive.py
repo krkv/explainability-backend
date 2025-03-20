@@ -29,28 +29,8 @@ dice_model = dice_ml.Model(model=model, backend="sklearn", model_type="regressor
 dice_exp = dice_ml.Dice(dice_data, dice_model, method="random")
 
 dice_dataset.pop('prediction')
-     
-def format_group(indoor_temperature_min=None, indoor_temperature_max=None,
-               outdoor_temperature_min=None, outdoor_temperature_max=None, 
-               past_electricity_min=None, past_electricity_max=None):
-    text = "<p>I am grouping the data as follows:<ul>"
-    if indoor_temperature_min:
-        text += f"<li><code>indoor temperature</code> is more than <var>{indoor_temperature_min}</var></li>"
-    if indoor_temperature_max:
-        text += f"<li><code>indoor temperature</code> is less than <var>{indoor_temperature_max}</var></li>"
-    if outdoor_temperature_min:
-        text += f"<li><code>outdoor temperature</code> is more than <var>{outdoor_temperature_min}</var></li>"
-    if outdoor_temperature_max:
-        text += f"<li><code>outdoor temperature</code> is less than <var>{outdoor_temperature_max}</var></li>"
-    if past_electricity_min:
-        text += f"<li><code>past electricity</code> is more than <var>{past_electricity_min}</var></li>"
-    if past_electricity_max:
-        text += f"<li><code>past electricity</code> is less than <var>{past_electricity_max}</var></li>"
-    text += "</ul></p>"
-    return text
 
-def show_ids():
-    return f"<p>Available <code>ID</code> values are: {', '.join([f'<var>{id}</var>' for id in dataset.index.get_level_values(0).unique().sort_values()])}.</p>"
+# Providing information
 
 def about_dataset():
     text = "<p>The dataset contains information about energy consumption in a building.</p>"
@@ -78,6 +58,11 @@ def about_explainer():
         It connects optimal credit allocation with local explanations using the classic Shapley values from game theory and their related extensions.</p>"
     return text
 
+# Showing data
+
+def show_ids():
+    return f"<p>Available <code>ID</code> values are: {', '.join([f'<var>{id}</var>' for id in dataset.index.get_level_values(0).unique().sort_values()])}.</p>"
+
 def show_one(id):
     intro = f"<p>Here is the data for <code>ID</code> <var>{id}</var>:</p>"
     renamed = dataset.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
@@ -87,7 +72,7 @@ def show_one(id):
 def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
                past_electricity_min=None, past_electricity_max=None):
-    intro = format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    intro = _format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
     result = dataset
     if indoor_temperature_min:
         result = result[result['indoor_temperature'] > indoor_temperature_min]
@@ -109,6 +94,8 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
     table = f"<p>{renamed.to_html()}</p>"
     return intro + table
 
+# Calculating predictions
+
 def predict_one(id):
     data = dataset.loc[id]
     prediction = model.predict(data)
@@ -119,7 +106,7 @@ def predict_one(id):
 def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
                past_electricity_min=None, past_electricity_max=None):
-    intro = format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    intro = _format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
     
     data = dataset
     if indoor_temperature_min:
@@ -144,6 +131,17 @@ def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
     table = f"<p>{framed.to_html()}</p>"
     return intro + table
 
+def predict_new(indoor_temperature, outdoor_temperature, past_electricity):
+    data = pd.DataFrame([[indoor_temperature, outdoor_temperature, past_electricity]], columns=['indoor_temperature', 'outdoor_temperature', 'past_electricity'])
+    prediction = model.predict(data)
+    rounded = round(prediction[0], 2)
+    text = "<p>Let's consider a new data sample with the following features:</p>"
+    text += f"<p><ul>{''.join([f'<li><code>{feature}</code> = <var>{_extract_value(value)}</var></li>' for feature, value in data.to_dict().items()])}</ul><p>"
+    text += f"<p>The model prediction for the new data will be <samp>{rounded}</samp>.</p>"
+    return text
+
+# SHAP feature importances
+
 def explain_one(id):
     data = dataset.loc[id]
     shap_values = explainer.shap_values(data, nsamples=10_000, silent=True)
@@ -155,7 +153,7 @@ def explain_one(id):
 def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
                past_electricity_min=None, past_electricity_max=None):
-    intro = format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    intro = _format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
     
     data = dataset
     if indoor_temperature_min:
@@ -187,6 +185,8 @@ def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
     table = f"<p>{result.to_html()}</p>"
         
     return intro + table
+
+# DiCe counterfactual explanations
 
 def cfes_one(id):
     original_prediction = model.predict(dice_dataset.loc[[id]])[0]
@@ -222,6 +222,8 @@ def cfes_one(id):
 
     return output_string
 
+# What-If analysis
+
 def what_if_one(id, indoor_temperature=None, outdoor_temperature=None, past_electricity=None):
     original_instance = dice_dataset.loc[[id]]
     original_prediction = model.predict(original_instance)[0]
@@ -244,11 +246,26 @@ def what_if_one(id, indoor_temperature=None, outdoor_temperature=None, past_elec
     text += f"<p>Then the model will predict <samp>{str(round(new_prediction, 2))}</samp>.</p>"
     return text
 
-def _extract_value(value):
-    """Extracts the numeric value if the input is a dictionary with an index."""
-    if isinstance(value, dict):
-        return list(value.values())[0]
-    return value
+# Helper functions
+
+def _format_group(indoor_temperature_min=None, indoor_temperature_max=None,
+               outdoor_temperature_min=None, outdoor_temperature_max=None, 
+               past_electricity_min=None, past_electricity_max=None):
+    text = "<p>I am grouping the data as follows:<ul>"
+    if indoor_temperature_min:
+        text += f"<li><code>indoor temperature</code> is more than <var>{indoor_temperature_min}</var></li>"
+    if indoor_temperature_max:
+        text += f"<li><code>indoor temperature</code> is less than <var>{indoor_temperature_max}</var></li>"
+    if outdoor_temperature_min:
+        text += f"<li><code>outdoor temperature</code> is more than <var>{outdoor_temperature_min}</var></li>"
+    if outdoor_temperature_max:
+        text += f"<li><code>outdoor temperature</code> is less than <var>{outdoor_temperature_max}</var></li>"
+    if past_electricity_min:
+        text += f"<li><code>past electricity</code> is more than <var>{past_electricity_min}</var></li>"
+    if past_electricity_max:
+        text += f"<li><code>past electricity</code> is less than <var>{past_electricity_max}</var></li>"
+    text += "</ul></p>"
+    return text
 
 def _get_change_string(cfe, original_instance):
     """Builds a string describing the changes between the cfe and original instance."""
@@ -275,3 +292,9 @@ def _get_change_string(cfe, original_instance):
     # Strip off last and
     change_string = change_string[:-5]
     return change_string
+
+def _extract_value(value):
+    """Extracts the numeric value if the input is a dictionary with an index."""
+    if isinstance(value, dict):
+        return list(value.values())[0]
+    return value
