@@ -20,10 +20,10 @@ You are also given the full history of user's messages in this conversation.
 Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
 Use user's query history to understand the question better and guide your responses if needed.
 
-[{'role': 'assistant', 'content': "Hello! I'm Claire, your data science assistant. I am here to help you understand your data, models, predictions, and more. What would you like to know?"}, {'role': 'user', 'content': 'How accurate is the model?'}, {'role': 'assistant', 'content': "I'm having trouble connecting to the server. Please, try again later."}, {'role': 'user', 'content': 'Tall me about the model?'}, {'role': 'assistant', 'content': '<p>The model is a <b>genetic programming symbolic regressor</b>.</p><p>It was trained on the dataset features to predict energy consumption.</p><p>Symbolic regression is a machine learning technique that aims to identify an underlying mathematical expression that best describes a relationship.</p><p>It begins by building a population of naive random formulas to represent a relationship between known independent variables and their dependent variable targets in order to predict new data.</p><p>Each successive generation of programs is then evolved from the one that came before it by selecting the fittest individuals from the population to undergo genetic operations.<p>'}, {'role': 'user', 'content': 'How accurate is it?'}, {'role': 'assistant', 'content': '<p>The model has an <b>explained variance score</b> of <var>0.24</var>.</p><p>The <b>mean squared error</b> of the model is <var>665552.52</var>.</p><p>The <b>root mean squared error</b> of the model is <var>815.81</var>.</p>'}, {'role': 'user', 'content': 'Is this a good score?'}, {'role': 'assistant', 'content': 'To better understand if the score is good, could you please tell me more about what you are trying to achieve with the model or what your goals are for the energy consumption predictions?'}, {'role': 'user', 'content': 'To predict the future energy consumption from the timeseries data'}]
+[{'role': 'assistant', 'content': "Hello! I'm Claire, your data science assistant. I am here to help you understand your data, models, predictions, and more. What would you like to know?"}, {'role': 'user', 'content': 'Hello'}]
 
 <|eot_id|><|start_header_id|>user<|end_header_id|>
 
-To predict the future energy consumption from the timeseries data
+Hello
 
 <|eot_id|><|start_header_id|>assistant<|end_header_id|>

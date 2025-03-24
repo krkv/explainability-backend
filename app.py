@@ -14,6 +14,8 @@ def get_response():
         try:
             data = json.loads(request.data)
             conversation = data["conversation"]
+            model = data["model"]
+            print("Model requested:", model)
             response = generate_assistant_response(conversation)
             return {
                 "assistantResponse": response
