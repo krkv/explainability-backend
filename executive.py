@@ -4,6 +4,7 @@ import shap
 import copy
 import dice_ml
 import numpy as np
+from sklearn.metrics import explained_variance_score, mean_squared_error, root_mean_squared_error
 
 dataset = pd.read_csv('energy_test_data.csv', index_col=[0,1])
 y_values = dataset.pop('y')
@@ -50,6 +51,16 @@ def about_model():
     text += "<p>Symbolic regression is a machine learning technique that aims to identify an underlying mathematical expression that best describes a relationship.</p>"
     text += "<p>It begins by building a population of naive random formulas to represent a relationship between known independent variables and their dependent variable targets in order to predict new data.</p>"
     text += "<p>Each successive generation of programs is then evolved from the one that came before it by selecting the fittest individuals from the population to undergo genetic operations.<p>"
+    return text
+
+def model_accuracy():
+    pred = model.predict(dataset)
+    explained_variance = explained_variance_score(y_values, pred)
+    mse = mean_squared_error(y_values, pred)
+    rmse = np.sqrt(mse)
+    text = f"<p>The model has an <b>explained variance score</b> of <var>{explained_variance:.2f}</var>.</p>"
+    text += f"<p>The <b>mean squared error</b> of the model is <var>{mse:.2f}</var>.</p>"
+    text += f"<p>The <b>root mean squared error</b> of the model is <var>{rmse:.2f}</var>.</p>"
     return text
 
 def about_explainer():

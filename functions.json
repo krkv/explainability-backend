@@ -23,6 +23,13 @@
     {
         "type": "function",
         "function": {
+            "name": "model_accuracy",
+            "description": "Get information about the model accuracy. It can tell the user how accurate are the model's predictions."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "about_explainer",
             "description": "Get information about the explainer. It can tell the user more about the SHAP explainer used in the model."
         }
