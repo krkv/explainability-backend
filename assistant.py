@@ -36,7 +36,7 @@ Here is a list of functions in JSON format that can be invoked:
 
 You have only two options:
 1. If you decide to invoke any of the function(s), you MUST put it in the format of [func_name1(params_name1=params_value1, params_name2=params_value2...);func_name2(params)].
-In this case your response must always be an array! If you return one function call, put it into an array! Use ; as separator between function calls. In this case you SHOULD NOT return anything else.
+In this case your response must always be an array! If you return one function call, put it into an array! Use ; as separator between function calls. In this case you SHOULD NOT return anything else. The function calls should be unique and not repeated.
 2. If you decide that no function can be called, you should return a general response to the user in free form, engaging them in a conversation and asking them to formulate the questions in such a way that function calls would be possible.
 In this case you are not allowed to mention the names of the functions or any technical details, because the user does not know them. They are for your reference only! Also, your free-form response should be short and concise, not more than 3-4 sentences.
 

@@ -284,5 +284,60 @@
                 ]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "mistake_one",
+            "description": "Get information about the model's mistake for one data sample identified by an ID. It calls the ML prediction function to obtain the prediction and see how correct is the model prediction.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "description": "The id of the single data sample to calculate the model's mistake for"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "mistake_group",
+            "description": "Get information about the model's mistakes for a group of data points specified by filtering of the dataset. It calls the ML prediction function to obtain the predictions and compares them to the true values to determine how correct is the model prediction.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "indoor_temperature_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of indoor temperature"
+                    },
+                    "indoor_temperature_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of outdoor temperature"
+                    },
+                    "outdoor_temperature_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of outdoor temperature"
+                    },
+                    "outdoor_temperature_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of outdoor temperature"
+                    },
+                    "past_electricity_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of past electricity"
+                    },
+                    "past_electricity_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of past electricity"
+                    }
+                }
+            }
+        }
     }
 ]

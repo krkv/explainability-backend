@@ -151,6 +151,51 @@ def predict_new(indoor_temperature, outdoor_temperature, past_electricity):
     text += f"<p>The model prediction for the new data will be <samp>{rounded}</samp>.</p>"
     return text
 
+# Showing mistakes
+
+def mistake_one(id):
+    data = dataset.loc[id]
+    prediction = model.predict(data)[0]
+    rounded = round(prediction, 2)
+    actual = y_values.loc[id].values[0]
+    text = f"<p>The prediction for <code>ID</code> <var>{id}</var> is <samp>{rounded}</samp>.</p>"
+    text += f"<p>The actual value is <samp>{actual}</samp>.</p>"
+    text += f"<p>The error is <samp>{round(abs(actual - prediction), 2)}</samp>.</p>"
+    return text
+
+def mistake_group(indoor_temperature_min=None, indoor_temperature_max=None,
+                outdoor_temperature_min=None, outdoor_temperature_max=None, 
+                past_electricity_min=None, past_electricity_max=None):
+     intro = _format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+     
+     data = dataset
+     if indoor_temperature_min:
+          data = data[data['indoor_temperature'] > indoor_temperature_min]
+     if indoor_temperature_max:
+          data = data[data['indoor_temperature'] < indoor_temperature_max]
+     if outdoor_temperature_min:
+          data = data[data['outdoor_temperature'] > outdoor_temperature_min]
+     if outdoor_temperature_max:
+          data = data[data['outdoor_temperature'] < outdoor_temperature_max]
+     if past_electricity_min:
+          data = data[data['past_electricity'] > past_electricity_min]
+     if past_electricity_max:
+          data = data[data['past_electricity'] < past_electricity_max]
+          
+     intro += "<p>Here are the errors for the selected group.</p>"
+     
+     prediction = model.predict(data)
+     labels = y_values.loc[data.index].values
+     errors = abs(labels - prediction).round(2)
+     framed = pd.DataFrame(errors, columns=['error'], index=data.index)
+     framed['prediction'] = prediction.round(2)
+     framed['actual'] = labels
+     framed = framed[['actual', 'prediction', 'error']]
+     framed.sort_index(inplace=True)
+     
+     table = f"<p>{framed.to_html()}</p>"
+     return intro + table
+
 # SHAP feature importances
 
 def explain_one(id):
