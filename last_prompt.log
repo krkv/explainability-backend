@@ -20,10 +20,10 @@ You are also given the full history of user's messages in this conversation.
 Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
 Use user's query history to understand the question better and guide your responses if needed.
 
-[{'role': 'assistant', 'content': "Hello! I'm Claire, your data science assistant. I am here to help you understand your data, models, predictions, and more. What would you like to know?"}, {'role': 'user', 'content': 'Are you a dancer?'}]
+[{'role': 'assistant', 'content': "Hello! I'm Claire, your data science assistant. I am here to help you understand your data, models, predictions, and more. What would you like to know?"}, {'role': 'user', 'content': 'Hello, please tell me about yourself'}]
 
 <|eot_id|><|start_header_id|>user<|end_header_id|>
 
-Are you a dancer?
+Hello, please tell me about yourself
 
 <|eot_id|><|start_header_id|>assistant<|end_header_id|>
