@@ -22,11 +22,10 @@ def get_response():
             data = json.loads(request.data)
             conversation = data["conversation"]
             model = data["model"]
-            print("Model requested:", model)
-            response = generate_assistant_response(conversation)
+            response = generate_assistant_response(conversation, model)
             return {
                 "assistantResponse": response
             }
         except Exception as ext:
-            app.logger.error("Failed to generate a response!", ext)
+            app.logger.error(f"Failed to generate a response! {ext}")
             return("Bad request", 400)
