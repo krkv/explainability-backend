@@ -41,7 +41,7 @@ def about_dataset():
     return text
 
 def about_dataset_in_depth():
-    text = "Here are the statistics of each feature in the dataset:"
+    text = "<p>Here are the statistics of each feature in the dataset:</p>"
     text += f"<p>{dataset.describe().round(2).to_html()}</p>"
     return text
 

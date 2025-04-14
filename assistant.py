@@ -1,9 +1,10 @@
-from parser import parse_calls, is_list_of_calls
+import json
+from parser import parse_calls
 from huggingface import generate_hugging_face_response
 from googlecloud import generate_google_cloud_response
 
 def format_llm_response(response):
-    return response.replace("\n", "<br>")
+    return " ".join(response.split())
     
 def generate_assistant_response(conversation, model):
     print("=== Model ===")
@@ -23,7 +24,24 @@ def generate_assistant_response(conversation, model):
     print("=== Assistant Response ===")
     print(response)
     
-    if is_list_of_calls(response):
-        return parse_calls(response)
+    res = json.loads(response)
+    
+    if "function_calls" not in res or "freeform_response" not in res:
+        raise ValueError("Invalid response format. Expected keys 'function_calls' and 'freeform_response'.")
+    function_calls = res["function_calls"]
+    freeform_response = res["freeform_response"]
+    print("=== Function Calls ===")
+    print(function_calls)
+    print("=== Freeform Response ===")
+    print(freeform_response)
+    
+    if len(function_calls) > 0:
+        parses = parse_calls(function_calls)
     else:
-        return format_llm_response(response)
+        return format_llm_response(freeform_response)
+
+    if freeform_response:
+        result = freeform_response + "\n" + parses
+        return format_llm_response(result)
+    else:
+        return format_llm_response(parses)

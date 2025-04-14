@@ -1,12 +1,8 @@
 from executive import *
 
-def is_list_of_calls(calls):
-    return calls.startswith('[') and calls.endswith(']')
-
 def parse_calls(calls):
     results = []
 
-    calls = calls.strip('[]').split(';')
     if len(calls) == 0:
         raise Exception("No calls found")
     for call in calls:
