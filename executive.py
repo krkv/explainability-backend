@@ -4,16 +4,16 @@ import shap
 import copy
 import dice_ml
 import numpy as np
-from sklearn.metrics import explained_variance_score, mean_squared_error, root_mean_squared_error
+from sklearn.metrics import explained_variance_score, root_mean_squared_error, mean_absolute_error
 
-dataset = pd.read_csv('energy_test_data.csv', index_col=[0,1])
+dataset = pd.read_csv('data/summer_workday_test.csv')
 y_values = dataset.pop('y')
 
 explanation_dataset = copy.deepcopy(dataset)
 explanation_dataset = explanation_dataset.to_numpy()
 explanation_dataset = shap.kmeans(explanation_dataset, 25)
 
-with open('energy_gp_model.pkl', 'rb') as file:
+with open('model/custom_gp_model.pkl', 'rb') as file:
         model = pickle.load(file)
         
 explainer = shap.KernelExplainer(model.predict, explanation_dataset, link="identity")
@@ -22,7 +22,7 @@ dice_dataset = copy.deepcopy(dataset)
 dice_dataset['prediction'] = model.predict(dice_dataset.to_numpy())
 
 dice_data = dice_ml.Data(dataframe=dice_dataset, 
-                         continuous_features=['outdoor_temperature', 'indoor_temperature', 'past_electricity'], 
+                         continuous_features=['indoor_temperature', 'outdoor_temperature', 'past_electricity'], 
                          outcome_name='prediction')
 
 dice_model = dice_ml.Model(model=model, backend="sklearn", model_type="regressor")
@@ -34,7 +34,7 @@ dice_dataset.pop('prediction')
 # Providing information
 
 def about_dataset():
-    text = "<p>The dataset contains information about energy consumption in a building.</p>"
+    text = "<p>The dataset <b>summer_workday_test</b> is a test dataset contains information about energy consumption.</p>"
     text += f"<p>It has <var>{len(dataset)}</var> instances and <var>{len(dataset.columns)}</var> features.</p>"
     text += f"<p>The features are: {', '.join([f'<code>{feature}</code>' for feature in dataset.columns])}.</p>"
     text += "<p>I can also give you the more in depth statistics of the dataset. Would you like to see it?</p>"
@@ -51,15 +51,16 @@ def about_model():
     text += "<p>Symbolic regression is a machine learning technique that aims to identify an underlying mathematical expression that best describes a relationship.</p>"
     text += "<p>It begins by building a population of naive random formulas to represent a relationship between known independent variables and their dependent variable targets in order to predict new data.</p>"
     text += "<p>Each successive generation of programs is then evolved from the one that came before it by selecting the fittest individuals from the population to undergo genetic operations.<p>"
+    text += f"<p>The program that is currently loaded looks like this: <code>{model._program}</code></p>"
+    text += f"<p>Where features are: {' '.join([f'X{i} = {dataset.columns[i]}' for i in range(len(dataset.columns))])}</p>"
     return text
 
 def model_accuracy():
     pred = model.predict(dataset)
     explained_variance = explained_variance_score(y_values, pred)
-    mse = mean_squared_error(y_values, pred)
-    rmse = np.sqrt(mse)
+    rmse = root_mean_squared_error(y_values, pred)
+    mae = mean_absolute_error(y_values, pred)
     text = f"<p>The model has an <b>explained variance score</b> of <var>{explained_variance:.2f}</var>.</p>"
-    text += f"<p>The <b>mean squared error</b> of the model is <var>{mse:.2f}</var>.</p>"
     text += f"<p>The <b>root mean squared error</b> of the model is <var>{rmse:.2f}</var>.</p>"
     return text
 
@@ -77,7 +78,9 @@ def show_ids():
 def show_one(id):
     intro = f"<p>Here is the data for <code>ID</code> <var>{id}</var>:</p>"
     renamed = dataset.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
-    table = f"<p>{renamed.loc[id].to_html()}</p>"
+    framed = pd.DataFrame(renamed)
+    # Convert Series to DataFrame for HTML rendering
+    table = f"<p>{framed.loc[id].to_frame().T.to_html()}</p>"
     return intro + table
 
 def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
@@ -108,7 +111,7 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
 # Calculating predictions
 
 def predict_one(id):
-    data = dataset.loc[id]
+    data = dataset.loc[id].to_frame().T
     prediction = model.predict(data)
     rounded = round(prediction[0], 2)
     text = f"<p>The prediction for <code>ID</code> <var>{id}</var> is <samp>{rounded}</samp>.</p>"
@@ -154,10 +157,10 @@ def predict_new(indoor_temperature, outdoor_temperature, past_electricity):
 # Showing mistakes
 
 def mistake_one(id):
-    data = dataset.loc[id]
+    data = dataset.loc[id].to_frame().T
     prediction = model.predict(data)[0]
     rounded = round(prediction, 2)
-    actual = y_values.loc[id].values[0]
+    actual = y_values.loc[id]
     text = f"<p>The prediction for <code>ID</code> <var>{id}</var> is <samp>{rounded}</samp>.</p>"
     text += f"<p>The actual value is <samp>{actual}</samp>.</p>"
     text += f"<p>The error is <samp>{round(abs(actual - prediction), 2)}</samp>.</p>"
@@ -199,7 +202,7 @@ def mistake_group(indoor_temperature_min=None, indoor_temperature_max=None,
 # SHAP feature importances
 
 def explain_one(id):
-    data = dataset.loc[id]
+    data = dataset.loc[id].to_frame().T
     shap_values = explainer.shap_values(data, nsamples=10_000, silent=True)
     influences = shap_values.squeeze()
     result = pd.DataFrame(influences, columns=['influence'], index=dataset.columns).sort_values(by='influence', key=abs, ascending=False)
@@ -354,3 +357,5 @@ def _extract_value(value):
     if isinstance(value, dict):
         return list(value.values())[0]
     return value
+
+print(about_model())
