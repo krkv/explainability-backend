@@ -76,6 +76,8 @@ def show_ids():
     return f"<p>Available <code>ID</code> values are: {', '.join([f'<var>{id}</var>' for id in dataset.index.get_level_values(0).unique().sort_values()])}.</p>"
 
 def show_one(id):
+    if (id not in dataset.index):
+        return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
     intro = f"<p>Here is the data for <code>ID</code> <var>{id}</var>:</p>"
     renamed = dataset.rename(columns={'outdoor_temperature': 'outdoor temperature', 'indoor_temperature': 'indoor temperature', 'past_electricity': 'past electricity'})
     framed = pd.DataFrame(renamed)
@@ -100,6 +102,9 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
         result = result[result['past_electricity'] > past_electricity_min]
     if past_electricity_max:
         result = result[result['past_electricity'] < past_electricity_max]
+        
+    if result.empty:
+        return f"<p>There is no data for the selected group.</p>"
     
     intro += f"<p>Showing the data for the selected group.</p>"
 
@@ -111,6 +116,8 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
 # Calculating predictions
 
 def predict_one(id):
+    if (id not in dataset.index):
+        return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
     data = dataset.loc[id].to_frame().T
     prediction = model.predict(data)
     rounded = round(prediction[0], 2)
@@ -136,6 +143,9 @@ def predict_group(indoor_temperature_min=None, indoor_temperature_max=None,
     if past_electricity_max:
         data = data[data['past_electricity'] < past_electricity_max]
         
+    if data.empty:
+        return f"<p>There is no data for the selected group.</p>"
+        
     intro += "<p>Here are the predictions for the selected group.</p>"
         
     prediction = model.predict(data)
@@ -157,6 +167,8 @@ def predict_new(indoor_temperature, outdoor_temperature, past_electricity):
 # Showing mistakes
 
 def mistake_one(id):
+    if (id not in dataset.index):
+        return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
     data = dataset.loc[id].to_frame().T
     prediction = model.predict(data)[0]
     rounded = round(prediction, 2)
@@ -185,6 +197,9 @@ def mistake_group(indoor_temperature_min=None, indoor_temperature_max=None,
      if past_electricity_max:
           data = data[data['past_electricity'] < past_electricity_max]
           
+     if data.empty:
+        return f"<p>There is no data for the selected group.</p>"
+          
      intro += "<p>Here are the errors for the selected group.</p>"
      
      prediction = model.predict(data)
@@ -202,6 +217,8 @@ def mistake_group(indoor_temperature_min=None, indoor_temperature_max=None,
 # SHAP feature importances
 
 def explain_one(id):
+    if (id not in dataset.index):
+        return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
     data = dataset.loc[id].to_frame().T
     shap_values = explainer.shap_values(data, nsamples=10_000, silent=True)
     influences = shap_values.squeeze()
@@ -228,6 +245,9 @@ def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
     if past_electricity_max:
         data = data[data['past_electricity'] < past_electricity_max]
         
+    if data.empty:
+        return f"<p>There is no data for the selected group.</p>"
+        
     intro += "<p>Here are the feature importances for the selected group.</p>"
         
     result = pd.DataFrame(index=data.index, columns=[])
@@ -248,6 +268,9 @@ def explain_group(indoor_temperature_min=None, indoor_temperature_max=None,
 # DiCe counterfactual explanations
 
 def cfes_one(id):
+    if (id not in dataset.index):
+        return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
+    
     original_prediction = model.predict(dice_dataset.loc[[id]])[0]
     
     cfe = dice_exp.generate_counterfactuals(dice_dataset.loc[[id]],
@@ -284,6 +307,9 @@ def cfes_one(id):
 # What-If analysis
 
 def what_if_one(id, indoor_temperature=None, outdoor_temperature=None, past_electricity=None):
+    if (id not in dataset.index):
+        return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
+    
     original_instance = dice_dataset.loc[[id]]
     original_prediction = model.predict(original_instance)[0]
     if isinstance(original_prediction, dict):  # Extract value if prediction is a dictionary with an index
@@ -310,7 +336,7 @@ def what_if_one(id, indoor_temperature=None, outdoor_temperature=None, past_elec
 def _format_group(indoor_temperature_min=None, indoor_temperature_max=None,
                outdoor_temperature_min=None, outdoor_temperature_max=None, 
                past_electricity_min=None, past_electricity_max=None):
-    text = "<p>I am grouping the data as follows:<ul>"
+    text = "<p>Grouping the data as follows:<ul>"
     if indoor_temperature_min:
         text += f"<li><code>indoor temperature</code> is more than <var>{indoor_temperature_min}</var></li>"
     if indoor_temperature_max:
@@ -357,5 +383,3 @@ def _extract_value(value):
     if isinstance(value, dict):
         return list(value.values())[0]
     return value
-
-print(about_model())

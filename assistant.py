@@ -36,12 +36,9 @@ def generate_assistant_response(conversation, model):
     print(freeform_response)
     
     if len(function_calls) > 0:
-        parses = parse_calls(function_calls)
-    else:
-        return format_llm_response(freeform_response)
+        parse = parse_calls(function_calls)
+        res["parse"] = parse
 
-    if freeform_response:
-        result = freeform_response + "\n" + parses
-        return format_llm_response(result)
-    else:
-        return format_llm_response(parses)
+    res["freeform_response"] = format_llm_response(freeform_response)
+    
+    return res
