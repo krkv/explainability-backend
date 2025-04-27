@@ -14,7 +14,7 @@ explanation_dataset = explanation_dataset.to_numpy()
 explanation_dataset = shap.kmeans(explanation_dataset, 25)
 
 with open('model/custom_gp_model.pkl', 'rb') as file:
-        model = pickle.load(file)
+    model = pickle.load(file)
         
 explainer = shap.KernelExplainer(model.predict, explanation_dataset, link="identity")
 
@@ -62,6 +62,7 @@ def model_accuracy():
     mae = mean_absolute_error(y_values, pred)
     text = f"<p>The model has an <b>explained variance score</b> of <var>{explained_variance:.2f}</var>.</p>"
     text += f"<p>The <b>root mean squared error</b> of the model is <var>{rmse:.2f}</var>.</p>"
+    text += f"<p>The <b>mean absolute error</b> of the model is <var>{mae:.2f}</var>.</p>"
     return text
 
 def about_explainer():
@@ -71,6 +72,33 @@ def about_explainer():
     return text
 
 # Showing data
+
+def count_all():
+    return f"<p>There are <var>{len(dataset)}</var> instances in the dataset.</p>"
+
+def count_group(indoor_temperature_min=None, indoor_temperature_max=None,
+                outdoor_temperature_min=None, outdoor_temperature_max=None, 
+                past_electricity_min=None, past_electricity_max=None):
+    intro = _format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
+    result = dataset
+    
+    if indoor_temperature_min:
+        result = result[result['indoor_temperature'] > indoor_temperature_min]
+    if indoor_temperature_max:
+        result = result[result['indoor_temperature'] < indoor_temperature_max]
+    if outdoor_temperature_min:
+        result = result[result['outdoor_temperature'] > outdoor_temperature_min]
+    if outdoor_temperature_max:
+        result = result[result['outdoor_temperature'] < outdoor_temperature_max]
+    if past_electricity_min:
+        result = result[result['past_electricity'] > past_electricity_min]
+    if past_electricity_max:
+        result = result[result['past_electricity'] < past_electricity_max]
+        
+    if result.empty:
+        return f"<p>There is no data for the selected group.</p>"
+          
+    return intro + f"<p>There are <var>{len(result)}</var> instances in the selected group.</p>"
 
 def show_ids():
     return f"<p>Available <code>ID</code> values are: {', '.join([f'<var>{id}</var>' for id in dataset.index.get_level_values(0).unique().sort_values()])}.</p>"
@@ -90,6 +118,7 @@ def show_group(indoor_temperature_min=None, indoor_temperature_max=None,
                past_electricity_min=None, past_electricity_max=None):
     intro = _format_group(indoor_temperature_min, indoor_temperature_max, outdoor_temperature_min, outdoor_temperature_max, past_electricity_min, past_electricity_max)
     result = dataset
+    
     if indoor_temperature_min:
         result = result[result['indoor_temperature'] > indoor_temperature_min]
     if indoor_temperature_max:

@@ -44,6 +44,49 @@
     {
         "type": "function",
         "function": {
+            "name": "count_all",
+            "description": "Count the number of data samples in the dataset. Can be used to count all data samples in the dataset and return the number."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "count_group",
+            "description": "Count the number of data samples in the dataset specified by filtering. Can be used to count the data samples in the dataset that match the filtering criteria and return the number.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "indoor_temperature_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of indoor temperature"
+                    },
+                    "indoor_temperature_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of outdoor temperature"
+                    },
+                    "outdoor_temperature_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of outdoor temperature"
+                    },
+                    "outdoor_temperature_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of outdoor temperature"
+                    },
+                    "past_electricity_min": {
+                        "type": "float",
+                        "description": "Filter dataset by the minimum value of past electricity"
+                    },
+                    "past_electricity_max": {
+                        "type": "float",
+                        "description": "Filter dataset by the maximum value of past electricity"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "show_one",
             "description": "Show a data sample identified by an ID. Presents the original data points. Can de used to display a sample from the dataset.",
             "parameters": {
