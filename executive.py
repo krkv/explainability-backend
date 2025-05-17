@@ -33,6 +33,27 @@ dice_dataset.pop('prediction')
 
 # Providing information
 
+def available_functions():
+    text = "<p>Here are the available functions:</p>"
+    text += "<ul>"
+    text += "<li><code>count_all()</code>: Count all instances in the dataset.</li>"
+    text += "<li><code>count_group()</code>: Count instances in a group, filtered by available features.</li>"
+    text += "<li><code>show_ids()</code>: Show all available IDs.</li>"
+    text += "<li><code>show_one()</code>: Show data for a specific ID.</li>"
+    text += "<li><code>show_group()</code>: Show data for a group, filtered by available features.</li>"
+    text += "<li><code>predict_one()</code>: Predict energy consumption for a specific ID.</li>"
+    text += "<li><code>predict_group()</code>: Predict energy consumption for a group, filtered by available features.</li>"
+    text += "<li><code>predict_new()</code>: Predict energy consumption for new data.</li>"
+    text += "<li><code>mistake_one()</code>: Show prediction error for a specific ID.</li>"
+    text += "<li><code>mistake_group()</code>: Show prediction errors for a group, filtered by available features.</li>"
+    text += "<li><code>explain_one()</code>: Explain prediction for a specific ID using SHAP values.</li>"
+    text += "<li><code>explain_group()</code>: Explain predictions for a group using SHAP values, filtered by available features.</li>"
+    text += "<li><code>cfes_one()</code>: Generate counterfactual explanations for a specific ID using DiCE.</li>"
+    text += "<li><code>what_if_one()</code>: Show what-if analysis for a specific ID.</li>"
+    text += "</ul>"
+    text += "<p>Let me know if you want to use any of these functions.</p>"
+    return text
+
 def about_dataset():
     text = "<p>The dataset <b>summer_workday_test</b> is a test dataset contains information about energy consumption.</p>"
     text += f"<p>It has <var>{len(dataset)}</var> instances and <var>{len(dataset.columns)}</var> features.</p>"

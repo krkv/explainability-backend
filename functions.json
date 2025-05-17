@@ -2,6 +2,13 @@
     {
         "type": "function",
         "function": {
+            "name": "available_functions",
+            "description": "Get a list of all available functions. It can tell the user what functions are available in the system."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "about_dataset",
             "description": "Get information about the dataset. It can tell the user the number of data samples in the dataset, the number of features, and the feature names."
         }
