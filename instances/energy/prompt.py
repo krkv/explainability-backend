@@ -2,10 +2,12 @@ import os
 import json
 import pandas as pd
 
-with open('functions.json') as f:
+INSTANCE_PATH = 'instances/energy/'
+
+with open(INSTANCE_PATH + 'functions.json') as f:
     functions = json.load(f)
     
-dataset = pd.read_csv('data/summer_workday_test.csv')
+dataset = pd.read_csv(INSTANCE_PATH + 'data/summer_workday_test.csv')
 
 dataset_json = dataset.describe().to_json()
 

@@ -1,5 +1,5 @@
 import json
-from parser import parse_calls
+from instances.energy.parser import parse_calls
 from huggingface import generate_hugging_face_response
 from googlecloud import generate_google_cloud_response
 

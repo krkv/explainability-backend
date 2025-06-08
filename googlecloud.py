@@ -1,7 +1,7 @@
 from google import genai
 from google.genai.types import HttpOptions, GenerateContentConfig
 from pydantic import BaseModel
-from prompt import get_system_prompt
+from instances.energy.prompt import get_system_prompt
 
 class Response(BaseModel):
     function_calls: list[str]

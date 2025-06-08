@@ -1,4 +1,4 @@
-from executive import *
+from instances.energy.executive import *
 
 def parse_calls(calls):
     results = []

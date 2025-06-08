@@ -32,5 +32,5 @@ HF_TOKEN="hf_***"
 ### Start dev server
 
 ```
-flask run --debug
+FLASK_ENV="development" flask run --debug
 ```

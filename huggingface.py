@@ -1,6 +1,6 @@
 import os
 from huggingface_hub import InferenceClient
-from prompt import get_system_prompt
+from instances.energy.prompt import get_system_prompt
 
 HF_TOKEN = os.getenv('HF_TOKEN')
 

@@ -1,7 +1,7 @@
 import os
 import json
 from huggingface_hub import InferenceClient
-from executive import about_dataset, about_dataset_in_depth, about_model
+from instances.energy.executive import about_dataset, about_dataset_in_depth, about_model
 
 with open('functions.json') as f:
     functions = json.load(f)

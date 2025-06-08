@@ -6,14 +6,16 @@ import dice_ml
 import numpy as np
 from sklearn.metrics import explained_variance_score, root_mean_squared_error, mean_absolute_error
 
-dataset = pd.read_csv('data/summer_workday_test.csv')
+INSTANCE_PATH = 'instances/energy/'
+
+dataset = pd.read_csv(INSTANCE_PATH + 'data/summer_workday_test.csv')
 y_values = dataset.pop('y')
 
 explanation_dataset = copy.deepcopy(dataset)
 explanation_dataset = explanation_dataset.to_numpy()
 explanation_dataset = shap.kmeans(explanation_dataset, 25)
 
-with open('model/custom_gp_model.pkl', 'rb') as file:
+with open(INSTANCE_PATH + 'model/custom_gp_model.pkl', 'rb') as file:
     model = pickle.load(file)
         
 explainer = shap.KernelExplainer(model.predict, explanation_dataset, link="identity")
