@@ -1,0 +1,54 @@
+{
+    "model": "LogisticRegression",
+    "description": "Trained LogisticRegression model for predicting heart disease.",
+    "training_data": {
+        "dataset": "Heart Disease UCI (preprocessed)",
+        "training_size": 473,
+        "test_size": 203
+    },
+    "parameters": {
+        "C": 1.0,
+        "class_weight": null,
+        "dual": false,
+        "fit_intercept": true,
+        "intercept_scaling": 1,
+        "l1_ratio": null,
+        "max_iter": 100,
+        "multi_class": "auto",
+        "n_jobs": null,
+        "penalty": "l2",
+        "random_state": 42,
+        "solver": "lbfgs",
+        "tol": 0.0001,
+        "verbose": 0,
+        "warm_start": false
+    },
+    "accuracy": 0.7685,
+    "classification_report": {
+        "0": {
+            "precision": 0.7591240875912408,
+            "recall": 0.8813559322033898,
+            "f1-score": 0.815686274509804,
+            "support": 118.0
+        },
+        "1": {
+            "precision": 0.7878787878787878,
+            "recall": 0.611764705882353,
+            "f1-score": 0.6887417218543046,
+            "support": 85.0
+        },
+        "accuracy": 0.7684729064039408,
+        "macro avg": {
+            "precision": 0.7735014377350143,
+            "recall": 0.7465603190428713,
+            "f1-score": 0.7522139981820544,
+            "support": 203.0
+        },
+        "weighted avg": {
+            "precision": 0.7711642330318393,
+            "recall": 0.7684729064039408,
+            "f1-score": 0.7625321514767132,
+            "support": 203.0
+        }
+    }
+}

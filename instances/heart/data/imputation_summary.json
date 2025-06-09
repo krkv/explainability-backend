@@ -1,0 +1,52 @@
+{
+    "trestbps": {
+        "imputation_method": "median",
+        "missing_before": 33,
+        "missing_after": 0
+    },
+    "chol": {
+        "imputation_method": "median",
+        "missing_before": 26,
+        "missing_after": 0
+    },
+    "fbs": {
+        "imputation_method": "most_frequent",
+        "missing_before": 0,
+        "missing_after": 0
+    },
+    "restecg": {
+        "imputation_method": "most_frequent",
+        "missing_before": 0,
+        "missing_after": 0
+    },
+    "thalch": {
+        "imputation_method": "median",
+        "missing_before": 33,
+        "missing_after": 0
+    },
+    "exang": {
+        "imputation_method": "most_frequent",
+        "missing_before": 0,
+        "missing_after": 0
+    },
+    "oldpeak": {
+        "imputation_method": "median",
+        "missing_before": 36,
+        "missing_after": 0
+    },
+    "slope": {
+        "imputation_method": "most_frequent",
+        "missing_before": 0,
+        "missing_after": 0
+    },
+    "ca": {
+        "imputation_method": "most_frequent",
+        "missing_before": 453,
+        "missing_after": 0
+    },
+    "thal": {
+        "imputation_method": "most_frequent",
+        "missing_before": 0,
+        "missing_after": 0
+    }
+}

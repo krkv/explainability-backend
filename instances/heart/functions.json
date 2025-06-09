@@ -1,0 +1,205 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "age_group_performance",
+            "description": "Return performance metrics for different age groups in the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "confusion_matrix_stats",
+            "description": "Return the confusion matrix for the model predictions, including true positives, false positives, etc.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "counterfactual",
+            "description": "Generate counterfactual examples for a patient that flip the prediction to a desired class.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient to explain."
+                    },
+                    "desired_class": {
+                        "type": "integer",
+                        "description": "The class you want the prediction to change to."
+                    },
+                    "num_counterfactuals": {
+                        "type": "integer",
+                        "description": "Number of counterfactual examples to generate. Default is 1."
+                    }
+                },
+                "required": [
+                    "patient_id",
+                    "desired_class"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dataset_summary",
+            "description": "Return a summary of the dataset including average feature values for all patients and optionally compare with a specific patient's features.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "Optional. ID (row index) of the patient to compare to average values."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "feature_importance",
+            "description": "Compute SHAP-based feature importance globally or for a specific patient.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "Optional. If provided, returns feature importance for the specific patient."
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "feature_interactions",
+            "description": "Return the top correlated feature pairs in the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_model_description",
+            "description": "Returns a general description of the model architecture and its purpose.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_model_parameters",
+            "description": "Returns the exact training hyperparameters of the model such as max_depth, criterion, and others.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "misclassified_cases",
+            "description": "Return statistics about misclassified samples and their common feature patterns.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "performance_metrics",
+            "description": "Returns selected performance metrics such as precision, recall, F1-score, and AUC-ROC. If no metrics are provided, returns all available metrics.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "accuracy",
+                                "precision",
+                                "recall",
+                                "f1_score",
+                                "auc_roc"
+                            ]
+                        },
+                        "description": "List of metrics to return. Available options: accuracy, precision, recall, f1_score, auc_roc."
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "predict",
+            "description": "Predict the class and probability scores for a specific patient using their ID.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient to predict."
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "what_if",
+            "description": "Simulate how changing a specific feature value would affect the prediction for a patient.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient to simulate."
+                    },
+                    "feature": {
+                        "type": "string",
+                        "description": "The name of the feature to modify."
+                    },
+                    "value_change": {
+                        "type": "number",
+                        "description": "The value to add or subtract from the feature."
+                    }
+                },
+                "required": [
+                    "patient_id",
+                    "feature",
+                    "value_change"
+                ]
+            }
+        }
+    }
+]
