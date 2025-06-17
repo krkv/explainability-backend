@@ -1,0 +1,66 @@
+{
+  "id": {
+    "description": "Unique patient identifier",
+    "aliases": ["patient id"]
+  },
+  "age": {
+    "description": "Age of the patient in years",
+    "aliases": []
+  },
+  "sex": {
+    "description": "Sex of the patient (1 = male, 0 = female)",
+    "aliases": ["gender"]
+  },
+  "dataset": {
+    "description": "Source dataset identifier",
+    "aliases": []
+  },
+  "cp": {
+    "description": "Chest pain type (0 to 3)",
+    "aliases": ["chest pain"]
+  },
+  "trestbps": {
+    "description": "Resting blood pressure (mm Hg)",
+    "aliases": ["blood pressure", "resting bp"]
+  },
+  "chol": {
+    "description": "Serum cholesterol in mg/dl",
+    "aliases": ["cholesterol"]
+  },
+  "fbs": {
+    "description": "Fasting blood sugar > 120 mg/dl (1 = true, 0 = false)",
+    "aliases": ["fasting blood sugar"]
+  },
+  "restecg": {
+    "description": "Resting electrocardiographic results",
+    "aliases": ["ecg", "rest ecg"]
+  },
+  "thalch": {
+    "description": "Maximum heart rate achieved",
+    "aliases": ["max heart rate"]
+  },
+  "exang": {
+    "description": "Exercise induced angina (1 = yes, 0 = no)",
+    "aliases": ["exercise angina"]
+  },
+  "oldpeak": {
+    "description": "ST depression induced by exercise",
+    "aliases": ["st depression"]
+  },
+  "slope": {
+    "description": "Slope of the peak exercise ST segment",
+    "aliases": []
+  },
+  "ca": {
+    "description": "Number of major vessels (0–3) colored by fluoroscopy",
+    "aliases": []
+  },
+  "thal": {
+    "description": "Thalassemia status (3 = normal; 6 = fixed defect; 7 = reversible defect)",
+    "aliases": []
+  },
+  "num": {
+    "description": "Presence of heart disease (0 = no, 1 = yes)",
+    "aliases": ["target", "heart disease"]
+  }
+}

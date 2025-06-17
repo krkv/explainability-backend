@@ -5,12 +5,17 @@ import copy
 import dice_ml
 import json
 import numpy as np
-from sklearn.metrics import explained_variance_score, root_mean_squared_error, mean_absolute_error
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 INSTANCE_PATH = 'instances/heart/'
 
+feature_metadata_path = INSTANCE_PATH + 'data/feature_metadata.json'
+
 dataset = pd.read_csv(INSTANCE_PATH + 'data/test_set.csv')
+dataset_full = copy.deepcopy(dataset)
 y_values = dataset.pop('num')
+
+target_variable = 'num'
 
 feature_names = dataset.columns.tolist()
 
@@ -40,49 +45,17 @@ dice_exp = dice_ml.Dice(dice_data, dice_model, method="random")
 
 dice_dataset.pop('prediction')
 
-# def __init__(self, config_path="heart_disease_inference_settings.json"):
-#         """Initialize the class by loading the dataset, model, and necessary configurations."""
+feature_metadata = {}
+alias_lookup = {}
 
-#         # Load configuration
-#         with open(config_path, "r") as f:
-#             self.config = json.load(f)
+with open(feature_metadata_path, "r") as f:
+    feature_metadata = json.load(f)
 
-#         # Validate required fields
-#         required_keys = ["model_path", "model_metadata", "dataset_path", "target_variable",
-#                          "non_informative_features"]
-#         for key in required_keys:
-#             if key not in self.config:
-#                 raise KeyError(f"Missing required key '{key}' in configuration file.")
-
-#         print("📥 Loading dataset and model...")
-
-#         # Load dataset and model
-#         self.df, self.feature_names = self.load_dataset()
-#         self.model, self.metadata = self.load_model()
-
-#         self.target_variable = self.config["target_variable"]
-#         self.non_informative_features = self.config["non_informative_features"] + [self.target_variable]
-
-#         self.df_cleaned = self.df.drop(columns=self.non_informative_features, errors="ignore")
-#         self.feature_names = [f for f in self.feature_names if f not in self.non_informative_features]
-
-#         # Load feature metadata and alias lookup
-#         feature_metadata_path = self.config.get("feature_metadata_path")
-#         if feature_metadata_path:
-#             with open(feature_metadata_path, "r") as f:
-#                 self.feature_metadata = json.load(f)
-#             self.alias_lookup = {
-#                 alias.lower(): feat
-#                 for feat, meta in self.feature_metadata.items()
-#                 for alias in ([feat] + meta.get("aliases", []))
-#             }
-#         else:
-#             self.feature_metadata = {}
-#             self.alias_lookup = {}
-
-#         print("📊 Precomputing feature importance...")
-#         self.precomputed_feature_importance = self._compute_feature_importance()
-#         print("✅ Data and model successfully loaded. Ready to use!")
+alias_lookup = {
+    alias.lower(): feat
+    for feat, meta in feature_metadata.items()
+    for alias in ([feat] + meta.get("aliases", []))
+}
 
 def get_model_parameters():
     """Returns the exact training hyperparameters of the model (e.g., max_depth, criterion)."""
@@ -96,47 +69,18 @@ def get_model_description():
 
     return {"model_description": model_metadata.get("description", "No description available.")} 
 
-### HERE
-
-def _compute_feature_importance(self):
-    """Computes and returns SHAP-based global feature importance scores."""
-
-    # Use SHAP KernelExplainer for model-agnostic explanation if needed
-    explainer = shap.Explainer(self.model.predict, self.df_cleaned)
-    shap_values = explainer(self.df_cleaned)
-
-    importance = np.abs(shap_values.values).mean(axis=0)
-
-    return {
-        "global_feature_importance": dict(sorted(
-            {self.feature_names[i]: float(importance[i]) for i in range(len(self.feature_names))}.items(),
-            key=lambda x: x[1], reverse=True))
-    }
-
-def load_model(self):
-    """Loads the trained model (.pkl) and its metadata (.json)."""
-    model_path = self.config["model_path"]
-    metadata_path = self.config["model_metadata"]
-
-    model = joblib.load(model_path)
-
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
-
-    return model, metadata
-
-def predict(self, patient_id: int):
+def predict(patient_id: int):
     """Predict heart disease risk for a specific patient by ID."""
 
-    if patient_id not in self.df_cleaned.index:
+    if patient_id not in dataset.index:
         return {"error": f"Patient ID {patient_id} not found in the dataset."}
 
     # Get a single row as a DataFrame
-    patient_row = self.df_cleaned.loc[patient_id].to_frame().T
+    patient_row = dataset.loc[patient_id].to_frame().T
 
     # Predict
-    prediction = self.model.predict(patient_row)[0]
-    probabilities = self.model.predict_proba(patient_row)[0].tolist()
+    prediction = model.predict(patient_row)[0]
+    probabilities = model.predict_proba(patient_row)[0].tolist()
 
     return {
         "patient_id": patient_id,
@@ -144,27 +88,21 @@ def predict(self, patient_id: int):
         "probabilities": probabilities
     }
 
-def feature_importance(self, patient_id=None):
+def feature_importance(patient_id=None):
     """Returns SHAP-based feature importance scores (global or patient-specific)."""
-    
-    # Return precomputed global SHAP importance
-    if patient_id is None:
-        return {"global_feature_importance": self.precomputed_feature_importance}
 
     # Ensure patient exists
-    if patient_id not in self.df.index:
+    if patient_id not in dataset.index:
         return {"error": f"Patient ID {patient_id} not found in the dataset."}
 
     # Prepare patient row for SHAP
-    patient_row = self.df.loc[patient_id].drop(labels=self.non_informative_features, errors="ignore").to_frame().T
-
-    explainer = shap.Explainer(self.model.predict, self.df_cleaned)
-    shap_values = explainer(patient_row)
+    patient_row = dataset.loc[patient_id].to_frame().T
+    shap_values = explainer.shap_values(patient_row, nsamples=10_000, silent=True)
 
     # Build per-feature contributions
     patient_importance = {
-        self.feature_names[i]: float(abs(shap_values.values[0][i]))
-        for i in range(len(self.feature_names))
+        feature_names[i]: float(abs(shap_values.values[0][i]))
+        for i in range(len(feature_names))
     }
 
     # Sort and filter out zero contributions
@@ -174,18 +112,18 @@ def feature_importance(self, patient_id=None):
 
     return {"patient_id": patient_id, "feature_importance": sorted_importance}
 
-def dataset_summary(self, patient_id=None):
+def dataset_summary(patient_id=None):
     """
     If a patient ID is provided, compare the patient's features to average features of patients
     with and without heart disease. If no ID is given, return only the group-level averages.
     """
     # Columns used for comparison
-    feature_columns = [f for f in self.df.columns if f not in self.non_informative_features]
+    feature_columns = [f for f in dataset.columns]
 
     # Compute averages
-    avg_hd = self.df[self.df[self.target_variable] == 1][feature_columns].mean().round(3).to_dict()
-    avg_nohd = self.df[self.df[self.target_variable] == 0][feature_columns].mean().round(3).to_dict()
-    avg_all = self.df[feature_columns].mean().round(3).to_dict()
+    avg_hd = dataset_full[dataset_full[target_variable] == 1][feature_columns].mean().round(3).to_dict()
+    avg_nohd = dataset_full[dataset_full[target_variable] == 0][feature_columns].mean().round(3).to_dict()
+    avg_all = dataset_full[feature_columns].mean().round(3).to_dict()
 
     result = {
         "comparison": {
@@ -198,46 +136,44 @@ def dataset_summary(self, patient_id=None):
     # Optional patient comparison
     if patient_id is not None:
         try:
-            patient_row = self.df.iloc[[patient_id]]
+            patient_row = dataset.iloc[[patient_id]]
             patient_features = patient_row[feature_columns].iloc[0].round(3).to_dict()
             result["patient_id"] = patient_id
             result["comparison"]["patient"] = patient_features
         except IndexError:
-            result["warning"] = f"Patient ID {patient_id} is out of range. Dataset has {len(self.df)} patients."
+            result["warning"] = f"Patient ID {patient_id} is out of range. Dataset has {len(dataset)} patients."
 
     return result
 
-def performance_metrics(self, metrics: list = None):
+def performance_metrics(metrics: list = None):
     """Computes and returns selected performance metrics, including AUC-ROC."""
 
-    y = self.df[self.target_variable].values.ravel()
-    X = self.df_cleaned
-    y_pred = self.model.predict(X)
+    y_pred = model.predict(dataset)
 
     try:
-        y_prob = self.model.predict_proba(X)
+        y_prob = model.predict_proba(dataset)
     except AttributeError:
         y_prob = None  # Some models don't support this
 
-    n_classes = len(np.unique(y))
+    n_classes = len(np.unique(y_values))
 
     try:
         if y_prob is not None:
             if n_classes == 2:
                 y_score = y_prob[:, 1]
-                auc = roc_auc_score(y, y_score)
+                auc = roc_auc_score(y_values, y_score)
             else:
-                auc = roc_auc_score(y, y_prob, multi_class="ovr")
+                auc = roc_auc_score(y_values, y_prob, multi_class="ovr")
         else:
             auc = 0.0
     except Exception:
         auc = 0.0
 
     all_metrics = {
-        "accuracy": float(accuracy_score(y, y_pred)),
-        "precision": float(precision_score(y, y_pred, average="weighted", zero_division=0)),
-        "recall": float(recall_score(y, y_pred, average="weighted", zero_division=0)),
-        "f1_score": float(f1_score(y, y_pred, average="weighted", zero_division=0)),
+        "accuracy": float(accuracy_score(y_values, y_pred)),
+        "precision": float(precision_score(y_values, y_pred, average="weighted", zero_division=0)),
+        "recall": float(recall_score(y_values, y_pred, average="weighted", zero_division=0)),
+        "f1_score": float(f1_score(y_values, y_pred, average="weighted", zero_division=0)),
         "auc_roc": float(auc)
     }
 
@@ -266,14 +202,12 @@ def performance_metrics(self, metrics: list = None):
     else:
         return all_metrics
 
-def confusion_matrix_stats(self):
+def confusion_matrix_stats():
     """Returns the confusion matrix with counts of TN, FP, FN, TP, or the full matrix for multi-class."""
 
-    y = self.df[self.target_variable].values.ravel()
-    X = self.df_cleaned
-    y_pred = self.model.predict(X)
+    y_pred = model.predict(dataset)
 
-    cm = confusion_matrix(y, y_pred)
+    cm = confusion_matrix(y_values, y_pred)
 
     if cm.shape == (2, 2):
         tn, fp, fn, tp = cm.ravel()
@@ -288,14 +222,14 @@ def confusion_matrix_stats(self):
             "confusion_matrix": cm.tolist()
         }
 
-def what_if(self, patient_id: int, feature: str, value_change: float):
+def what_if(patient_id: int, feature: str, value_change: float):
     """Simulates how changing a single feature affects predictions for a given patient."""
-    feature_key = self.alias_lookup.get(feature.lower(), feature)
+    feature_key = alias_lookup.get(feature.lower(), feature)
 
-    if patient_id not in self.df.index:
+    if patient_id not in dataset.index:
         return {"error": f"Patient ID {patient_id} not found in the dataset."}
 
-    patient_row = self.df.loc[patient_id].drop(labels=self.non_informative_features, errors="ignore").to_frame().T
+    patient_row = dataset.loc[patient_id].to_frame().T
 
     if feature_key not in patient_row.columns:
         return {"error": f"Feature '{feature}' not found in patient data."}
@@ -303,11 +237,11 @@ def what_if(self, patient_id: int, feature: str, value_change: float):
     modified_row = patient_row.copy()
     modified_row[feature_key] += value_change
 
-    original_prediction = int(self.model.predict(patient_row)[0])
-    new_prediction = int(self.model.predict(modified_row)[0])
+    original_prediction = int(model.predict(patient_row)[0])
+    new_prediction = int(model.predict(modified_row)[0])
 
-    original_prob = self.model.predict_proba(patient_row)[0].tolist()
-    new_prob = self.model.predict_proba(modified_row)[0].tolist()
+    original_prob = model.predict_proba(patient_row)[0].tolist()
+    new_prob = model.predict_proba(modified_row)[0].tolist()
 
     return {
         "patient_id": patient_id,
@@ -321,51 +255,23 @@ def what_if(self, patient_id: int, feature: str, value_change: float):
         }
     }
 
-def counterfactual(self, patient_id: int, num_counterfactuals=1, desired_class=0):
+def counterfactual(patient_id: int):
     """Generates counterfactual explanations using DiCE for a given patient ID and target class."""
 
-    # Suppress DiCE warnings
-    warnings.simplefilter(action="ignore", category=FutureWarning)
-
     # Check if patient exists
-    if patient_id not in self.df.index:
+    if patient_id not in dataset.index:
         return {"error": f"Patient ID {patient_id} not found in the dataset."}
-
-    # Prepare dataset for DiCE
-    df_counterfactual = self.df.drop(columns=["dataset"], errors="ignore").reset_index(drop=True)
-
-    # Extract the original patient row
-    original_patient = self.df.loc[[patient_id]].drop(columns=["dataset"], errors="ignore")
-
-    # Drop target variable and reset index for DiCE compatibility
-    patient_row = original_patient.drop(columns=[self.target_variable], errors="ignore").reset_index(drop=True)
-
-    # Get feature types from config
-    categorical = self.config.get("categorical_features", [])
-    continuous = self.config.get("continuous_features", [])
-
-    # Ensure categorical features are int
-    df_counterfactual[categorical] = df_counterfactual[categorical].astype(int)
-    patient_row[categorical] = patient_row[categorical].astype(int)
-
-    # Create DiCE objects
-    data = dice_ml.Data(
-        dataframe=df_counterfactual,
-        continuous_features=continuous,
-        categorical_features=categorical,
-        outcome_name=self.target_variable
-    )
-    model = dice_ml.Model(model=self.model, backend="sklearn")
-    exp = dice_ml.Dice(data, model)
+    
+    original_patient = dataset.loc[[patient_id]]
 
     # Generate counterfactuals
-    cf = exp.generate_counterfactuals(
-        query_instances=patient_row,
-        total_CFs=num_counterfactuals,
-        desired_class=desired_class
+    cf = dice_exp.generate_counterfactuals(
+        query_instances=dice_dataset.loc[[patient_id]],
+        total_CFs=10,
+        desired_class="opposite"
     )
+    
     cf_df = cf.cf_examples_list[0].final_cfs_df
-    cf_df[categorical] = cf_df[categorical].astype(int)
 
     # Compare with original
     counterfactuals_with_changes = []
@@ -374,7 +280,7 @@ def counterfactual(self, patient_id: int, num_counterfactuals=1, desired_class=0
         changes = {"original": {}, "counterfactual": {}}
 
         for feature in cf_dict:
-            if feature != self.target_variable and feature in original_patient.columns:
+            if feature != target_variable:
                 original_val = original_patient[feature].values[0]
                 cf_val = cf_dict[feature]
                 if original_val != cf_val:
@@ -387,21 +293,16 @@ def counterfactual(self, patient_id: int, num_counterfactuals=1, desired_class=0
             "changes": changes
         })
 
-    # Restore default warnings
-    warnings.simplefilter(action="default", category=FutureWarning)
-
     return {"patient_id": patient_id, "counterfactuals": counterfactuals_with_changes}
 
-def misclassified_cases(self):
+def misclassified_cases():
     """Identifies frequent misclassifications and extracts common feature patterns."""
 
-    y = self.df[self.target_variable]
-    X = self.df_cleaned
-    y_pred = self.model.predict(X)
+    y_pred = model.predict(dataset)
 
-    df_copy = self.df.copy()
+    df_copy = dataset.copy()
     df_copy["predicted"] = y_pred
-    df_copy["misclassified"] = df_copy["predicted"] != y
+    df_copy["misclassified"] = df_copy["predicted"] != y_values
 
     misclassified_df = df_copy[df_copy["misclassified"]]
     correctly_classified_df = df_copy[~df_copy["misclassified"]]
@@ -423,17 +324,15 @@ def misclassified_cases(self):
         }
     }
 
-def age_group_performance(self):
+def age_group_performance():
     """Computes model performance across different age groups."""
 
-    target = self.target_variable
-
-    if target not in self.df.columns or "age" not in self.df.columns:
+    if target_variable not in dataset.columns or "age" not in dataset.columns:
         return {"error": f"Required column(s) missing from dataset."}
 
-    df = self.df.drop(columns=["dataset", "id"], errors="ignore").copy()
-    y = df[target].values.ravel()
-    y_pred = self.model.predict(df.drop(columns=[target], errors="ignore"))
+    df = dataset.drop(columns=["dataset", "id"], errors="ignore").copy()
+    y = df[target_variable].values.ravel()
+    y_pred = model.predict(df.drop(columns=[target_variable], errors="ignore"))
 
     # Define age groups
     age_groups = {
@@ -445,7 +344,7 @@ def age_group_performance(self):
     results = {}
     for group, subset in age_groups.items():
         if not subset.empty:
-            y_true_group = subset[target]
+            y_true_group = subset[target_variable]
             y_pred_group = y_pred[subset.index]
 
             results[group] = {
@@ -458,9 +357,9 @@ def age_group_performance(self):
 
     return results
 
-def feature_interactions(self):
+def feature_interactions():
     """Computes feature interactions based on correlation analysis."""
-    df = self.df_cleaned.select_dtypes(include=[np.number])  # Only numeric features
+    df = dataset.select_dtypes(include=[np.number])  # Only numeric features
 
     correlation_matrix = df.corr()
     feature_names = correlation_matrix.columns.tolist()
