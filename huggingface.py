@@ -1,6 +1,7 @@
 import os
 from huggingface_hub import InferenceClient
-from instances.energy.prompt import get_system_prompt
+from instances.energy.prompt import get_system_prompt as get_system_prompt_energy
+from instances.heart.prompt import get_system_prompt as get_system_prompt_heart
 
 HF_TOKEN = os.getenv('HF_TOKEN')
 
@@ -9,7 +10,12 @@ client = InferenceClient(
     token=HF_TOKEN,
 )
 
-def generate_hugging_face_response(conversation):
+def generate_hugging_face_response(conversation, usecase):
+  if (usecase == "heart"):
+    get_system_prompt = get_system_prompt_heart
+  elif (usecase == "energy"):
+    get_system_prompt = get_system_prompt_energy
+    
   system_prompt = get_system_prompt(conversation)
   user_input = conversation[len(conversation) - 1]['content']
   llama_prompt = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>

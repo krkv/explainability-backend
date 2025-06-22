@@ -4,7 +4,7 @@ import shap
 import copy
 import dice_ml
 import numpy as np
-from sklearn.metrics import explained_variance_score, root_mean_squared_error, mean_absolute_error
+from sklearn.metrics import explained_variance_score, mean_squared_error, mean_absolute_error
 
 INSTANCE_PATH = 'instances/energy/'
 
@@ -81,7 +81,7 @@ def about_model():
 def model_accuracy():
     pred = model.predict(dataset)
     explained_variance = explained_variance_score(y_values, pred)
-    rmse = root_mean_squared_error(y_values, pred)
+    rmse = mean_squared_error(y_values, pred, squared=False)
     mae = mean_absolute_error(y_values, pred)
     text = f"<p>The model has an <b>explained variance score</b> of <var>{explained_variance:.2f}</var>.</p>"
     text += f"<p>The <b>root mean squared error</b> of the model is <var>{rmse:.2f}</var>.</p>"

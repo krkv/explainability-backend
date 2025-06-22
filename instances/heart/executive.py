@@ -1,5 +1,5 @@
 import pandas as pd
-import pickle
+import joblib
 import shap
 import copy
 import dice_ml
@@ -24,12 +24,12 @@ explanation_dataset = explanation_dataset.to_numpy()
 explanation_dataset = shap.kmeans(explanation_dataset, 25)
 
 with open(INSTANCE_PATH + 'model/best_model_3_DecisionTreeClassifier.pkl', 'rb') as file:
-    model = pickle.load(file)
+    model = joblib.load(file)
     
 with open(INSTANCE_PATH + 'model/best_model_3_DecisionTreeClassifier_metadata.json', 'r') as file:
     model_metadata = json.load(file)
         
-explainer = shap.KernelExplainer(model.predict, explanation_dataset, link="identity")
+explainer = shap.Explainer(model.predict, explanation_dataset)
 
 dice_dataset = copy.deepcopy(dataset)
 dice_dataset['prediction'] = model.predict(dice_dataset.to_numpy())
@@ -61,13 +61,13 @@ def get_model_parameters():
     """Returns the exact training hyperparameters of the model (e.g., max_depth, criterion)."""
 
     if "parameters" in model_metadata:
-        return model_metadata["parameters"]
-    return {"error": "Model parameters not found in metadata."}
+        return json.dumps(model_metadata["parameters"])
+    return "Model parameters not found in metadata."
 
 def get_model_description():
     """Returns a general description of the model architecture and its purpose (e.g., DecisionTreeClassifier trained to predict heart disease)."""
 
-    return {"model_description": model_metadata.get("description", "No description available.")} 
+    return model_metadata.get("description", "No description available.")
 
 def predict(patient_id: int):
     """Predict heart disease risk for a specific patient by ID."""
@@ -82,11 +82,11 @@ def predict(patient_id: int):
     prediction = model.predict(patient_row)[0]
     probabilities = model.predict_proba(patient_row)[0].tolist()
 
-    return {
+    return json.dumps({
         "patient_id": patient_id,
         "prediction": int(prediction),
         "probabilities": probabilities
-    }
+    })
 
 def feature_importance(patient_id=None):
     """Returns SHAP-based feature importance scores (global or patient-specific)."""
@@ -110,7 +110,7 @@ def feature_importance(patient_id=None):
         k: v for k, v in sorted(patient_importance.items(), key=lambda item: item[1], reverse=True) if v > 0
     }
 
-    return {"patient_id": patient_id, "feature_importance": sorted_importance}
+    return json.dumps({"patient_id": patient_id, "feature_importance": sorted_importance})
 
 def dataset_summary(patient_id=None):
     """
@@ -143,7 +143,7 @@ def dataset_summary(patient_id=None):
         except IndexError:
             result["warning"] = f"Patient ID {patient_id} is out of range. Dataset has {len(dataset)} patients."
 
-    return result
+    return json.dumps(result)
 
 def performance_metrics(metrics: list = None):
     """Computes and returns selected performance metrics, including AUC-ROC."""
@@ -198,9 +198,9 @@ def performance_metrics(metrics: list = None):
                 normalized_metrics.append(metric_mapping[key])
             else:
                 raise ValueError(f"Unknown metric: {m}")
-        return {key: all_metrics[key] for key in normalized_metrics}
+        return json.dumps({key: all_metrics[key] for key in normalized_metrics})
     else:
-        return all_metrics
+        return json.dumps(all_metrics)
 
 def confusion_matrix_stats():
     """Returns the confusion matrix with counts of TN, FP, FN, TP, or the full matrix for multi-class."""
@@ -211,16 +211,16 @@ def confusion_matrix_stats():
 
     if cm.shape == (2, 2):
         tn, fp, fn, tp = cm.ravel()
-        return {
+        return json.dumps({
             "true_negatives": int(tn),
             "false_positives": int(fp),
             "false_negatives": int(fn),
             "true_positives": int(tp)
-        }
+        })
     else:
-        return {
+        return json.dumps({
             "confusion_matrix": cm.tolist()
-        }
+        })
 
 def what_if(patient_id: int, feature: str, value_change: float):
     """Simulates how changing a single feature affects predictions for a given patient."""
@@ -293,7 +293,7 @@ def counterfactual(patient_id: int):
             "changes": changes
         })
 
-    return {"patient_id": patient_id, "counterfactuals": counterfactuals_with_changes}
+    return json.dumps({"patient_id": patient_id, "counterfactuals": counterfactuals_with_changes})
 
 def misclassified_cases():
     """Identifies frequent misclassifications and extracts common feature patterns."""

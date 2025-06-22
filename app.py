@@ -22,7 +22,8 @@ def get_response():
             data = json.loads(request.data)
             conversation = data["conversation"]
             model = data["model"]
-            response = generate_assistant_response(conversation, model)
+            usecase = "heart"
+            response = generate_assistant_response(conversation, model, usecase)
             return {
                 "assistantResponse": response
             }

@@ -32,19 +32,10 @@
                     "patient_id": {
                         "type": "integer",
                         "description": "The ID of the patient to explain."
-                    },
-                    "desired_class": {
-                        "type": "integer",
-                        "description": "The class you want the prediction to change to."
-                    },
-                    "num_counterfactuals": {
-                        "type": "integer",
-                        "description": "Number of counterfactual examples to generate. Default is 1."
                     }
                 },
                 "required": [
-                    "patient_id",
-                    "desired_class"
+                    "patient_id"
                 ]
             }
         }
