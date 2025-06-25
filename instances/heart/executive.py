@@ -252,12 +252,12 @@ def what_if(patient_id: int, feature: str, value_change: float):
     feature_key = alias_lookup.get(feature.lower(), feature)
 
     if patient_id not in dataset.index:
-        return {"error": f"Patient ID {patient_id} not found in the dataset."}
+        return {"error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
 
     patient_row = dataset.loc[patient_id].to_frame().T
 
     if feature_key not in patient_row.columns:
-        return {"error": f"Feature '{feature}' not found in patient data."}
+        return {"error": f"Feature <code>{feature}</code> not found in patient data."}
 
     modified_row = patient_row.copy()
     modified_row[feature_key] += value_change
@@ -267,8 +267,8 @@ def what_if(patient_id: int, feature: str, value_change: float):
 
     original_prob = model.predict_proba(patient_row)[0].tolist()
     new_prob = model.predict_proba(modified_row)[0].tolist()
-
-    return {
+    
+    data = {
         "patient_id": patient_id,
         "feature_modified": feature_key,
         "value_change": value_change,
@@ -279,6 +279,12 @@ def what_if(patient_id: int, feature: str, value_change: float):
             "new": new_prob
         }
     }
+    text = f"<p>For patient <code>ID</code> <var>{patient_id}</var>, modifying feature <code>{feature_key}</code> by <var>{value_change}</var> results in:</p>"
+    text += f"<p>Original prediction: <var>{class_names[original_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in original_prob]}</var></p>"
+    text += f"<p>New prediction: <var>{class_names[new_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in new_prob]}</var></p>"
+
+    return { "data": data, "text": text }
+
 
 def counterfactual(patient_id: int):
     """Generates counterfactual explanations using DiCE for a given patient ID and target class."""
