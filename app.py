@@ -22,8 +22,12 @@ def get_response():
             data = json.loads(request.data)
             conversation = data["conversation"]
             model = data["model"]
-            usecase = "heart"
-            response = generate_assistant_response(conversation, model, usecase)
+            usecase = data["usecase"]
+            if (usecase == "Heart Disease"):
+                uc = "heart"
+            elif (usecase == "Energy Consumption"):
+                uc = "energy"
+            response = generate_assistant_response(conversation, model, uc)
             return {
                 "assistantResponse": response
             }
