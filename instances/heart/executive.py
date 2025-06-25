@@ -406,24 +406,22 @@ def misclassified_cases():
 def age_group_performance():
     """Computes model performance across different age groups."""
 
-    if target_variable not in dataset.columns or "age" not in dataset.columns:
-        return {"error": f"Required column(s) missing from dataset."}
-
-    df = dataset.drop(columns=["dataset", "id"], errors="ignore").copy()
-    y = df[target_variable].values.ravel()
-    y_pred = model.predict(df.drop(columns=[target_variable], errors="ignore"))
+    if "age" not in dataset.columns:
+        return {"error": f"Required column <code>age</code> is missing from dataset."}
+    
+    y_pred = model.predict(dataset)
 
     # Define age groups
     age_groups = {
-        "<40": df[df["age"] < 40],
-        "40-60": df[(df["age"] >= 40) & (df["age"] <= 60)],
-        ">60": df[df["age"] > 60]
+        "<40": dataset[dataset["age"] < 0.4],
+        "40-60": dataset[(dataset["age"] >= 0.4) & (dataset["age"] <= 0.6)],
+        ">60": dataset[dataset["age"] > 0.6]
     }
 
     results = {}
     for group, subset in age_groups.items():
         if not subset.empty:
-            y_true_group = subset[target_variable]
+            y_true_group = y_values[subset.index]
             y_pred_group = y_pred[subset.index]
 
             results[group] = {
@@ -433,8 +431,17 @@ def age_group_performance():
                 "recall": float(recall_score(y_true_group, y_pred_group, average="weighted", zero_division=0)),
                 "f1_score": float(f1_score(y_true_group, y_pred_group, average="weighted", zero_division=0))
             }
+            
+    text = "<p>Model performance across age groups:</p>"
+    headers = ["Age Group", "Accuracy", "Precision", "Recall", "F1 Score"]
+    table = [
+        [group, results[group]["accuracy"], results[group]["precision"], results[group]["recall"], results[group]["f1_score"]]
+        for group in results
+    ]
+    text += tabulate(table, headers=headers, tablefmt='html', numalign="left")
 
-    return results
+    return { "data": results, "text": text }
+
 
 def feature_interactions():
     """Computes feature interactions based on correlation analysis."""
