@@ -123,7 +123,7 @@
         "type": "function",
         "function": {
             "name": "performance_metrics",
-            "description": "Returns selected performance metrics such as precision, recall, F1-score, and AUC-ROC. If no metrics are provided, returns all available metrics.",
+            "description": "Returns selected performance metrics such as model accuracy precision, recall, F1-score, and AUC-ROC. If no parameters are provided, returns all available metrics.",
             "parameters": {
                 "type": "object",
                 "properties": {

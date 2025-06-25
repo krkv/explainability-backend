@@ -210,10 +210,15 @@ def performance_metrics(metrics: list = None):
             if key in metric_mapping:
                 normalized_metrics.append(metric_mapping[key])
             else:
-                raise ValueError(f"Unknown metric: {m}")
-        return json.dumps({key: all_metrics[key] for key in normalized_metrics})
+                return { "error": f"Metric <code>{m}</code> is not recognized. Valid metrics are: <code>{', '.join(metric_mapping.keys())}</code>" }
+        data = {key: all_metrics[key] for key in normalized_metrics}
+        text = "<p>Selected performance metrics are:</p>" + tabulate(data.items(), headers=["Metric", "Value"], tablefmt='html', numalign="left")
+        return { "text": text, "data": data }
     else:
-        return json.dumps(all_metrics)
+        data = all_metrics
+        text = "<p>All performance metrics are:</p>" + tabulate(data.items(), headers=["Metric", "Value"], tablefmt='html', numalign="left")
+        return { "text": text, "data": data }
+
 
 def confusion_matrix_stats():
     """Returns the confusion matrix with counts of TN, FP, FN, TP, or the full matrix for multi-class."""
