@@ -229,16 +229,23 @@ def confusion_matrix_stats():
 
     if cm.shape == (2, 2):
         tn, fp, fn, tp = cm.ravel()
-        return json.dumps({
+        data = {
             "true_negatives": int(tn),
             "false_positives": int(fp),
             "false_negatives": int(fn),
             "true_positives": int(tp)
-        })
+        }
+        text = f"<p>Confusion matrix statistics:</p>" + tabulate(data.items(), headers=["Statistic", "Count"], tablefmt='html', numalign="left")
+        return { "text": text, "data": data }
+
     else:
-        return json.dumps({
-            "confusion_matrix": cm.tolist()
-        })
+        data = {
+            "confusion_matrix": cm.tolist(),
+            "classes": class_names
+        }
+        text = f"<p>Confusion matrix for multi-class classification:</p>" + tabulate(cm, headers=class_names, tablefmt='html', numalign="left")
+        return { "text": text, "data": data }
+    
 
 def what_if(patient_id: int, feature: str, value_change: float):
     """Simulates how changing a single feature affects predictions for a given patient."""
