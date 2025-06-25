@@ -377,9 +377,9 @@ def misclassified_cases():
     misclassified_df = df_copy[df_copy["misclassified"]]
     correctly_classified_df = df_copy[~df_copy["misclassified"]]
 
-    return {
-        "false_positives": int(((y_pred == 1) & (y == 0)).sum()),
-        "false_negatives": int(((y_pred == 0) & (y == 1)).sum()),
+    data = {
+        "false_positives": int(((y_pred == 1) & (y_values == 0)).sum()),
+        "false_negatives": int(((y_pred == 0) & (y_values == 1)).sum()),
         "feature_distribution": {
             "misclassified_cases": misclassified_df
             .drop(columns=["predicted", "misclassified"], errors="ignore")
@@ -393,6 +393,15 @@ def misclassified_cases():
             .to_dict()
         }
     }
+    
+    text = "<p>Misclassified cases statistics:</p>"
+    text += f"<p>False Positives: <var>{data['false_positives']}</var></p>"
+    text += f"<p>False Negatives: <var>{data['false_negatives']}</var></p>"
+    text += "<p>Feature distribution for misclassified cases:</p>" + tabulate(data["feature_distribution"]["misclassified_cases"].items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
+    text += "<p>Feature distribution for correctly classified cases:</p>" + tabulate(data["feature_distribution"]["correctly_classified_cases"].items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
+    
+    return { "data": data, "text": text }
+
 
 def age_group_performance():
     """Computes model performance across different age groups."""
