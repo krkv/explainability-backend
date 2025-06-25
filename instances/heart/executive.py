@@ -6,6 +6,7 @@ import dice_ml
 import json
 import numpy as np
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from tabulate import tabulate
 
 INSTANCE_PATH = 'instances/heart/'
 
@@ -61,13 +62,20 @@ def get_model_parameters():
     """Returns the exact training hyperparameters of the model (e.g., max_depth, criterion)."""
 
     if "parameters" in model_metadata:
-        return json.dumps(model_metadata["parameters"])
-    return "Model parameters not found in metadata."
+        headers = ["Parameter", "Value"]
+        table = [
+            [param, str(value)]
+            for param, value in model_metadata["parameters"].items()
+        ]
+        return { "data": model_metadata["parameters"], "text": "<p>Model training hyperparameters are:</p>"  + tabulate(table, headers, tablefmt='html')}
+    return { "error": "Model parameters not found in metadata." }
 
 def get_model_description():
     """Returns a general description of the model architecture and its purpose (e.g., DecisionTreeClassifier trained to predict heart disease)."""
 
-    return model_metadata.get("description", "No description available.")
+    if "description" in model_metadata:
+        return { "data": model_metadata["description"] }
+    return { "error": "Model description not found in metadata." }
 
 def predict(patient_id: int):
     """Predict heart disease risk for a specific patient by ID."""
@@ -82,11 +90,11 @@ def predict(patient_id: int):
     prediction = model.predict(patient_row)[0]
     probabilities = model.predict_proba(patient_row)[0].tolist()
 
-    return json.dumps({
+    return { "data": {
         "patient_id": patient_id,
         "prediction": int(prediction),
         "probabilities": probabilities
-    })
+    }}
 
 def feature_importance(patient_id=None):
     """Returns SHAP-based feature importance scores (global or patient-specific)."""

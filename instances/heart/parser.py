@@ -8,7 +8,7 @@ def parse_calls(calls):
     for call in calls:
         try:
             result = eval(call)
-            results.append(result)
+            results.append(result["text"])
         except Exception as e:
             raise Exception(f"Error parsing call: {call}")
     return '\n'.join(results)
