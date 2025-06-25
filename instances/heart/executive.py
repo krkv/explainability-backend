@@ -7,6 +7,7 @@ import json
 import numpy as np
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from tabulate import tabulate
+import random
 
 INSTANCE_PATH = 'instances/heart/'
 
@@ -286,46 +287,84 @@ def what_if(patient_id: int, feature: str, value_change: float):
     return { "data": data, "text": text }
 
 
+def _get_change_string(cfe, original_instance):
+    """Builds a string describing the changes between the cfe and original instance."""
+    cfe_features = list(cfe.columns)
+    original_features = list(original_instance.columns)
+    message = "CFE features and Original Instance features are different!"
+    assert set(cfe_features) == set(original_features), message
+
+    change_string = ""
+    for feature in cfe_features:
+        orig_f = original_instance[feature].values[0]
+        cfe_f = cfe[feature].values[0]
+
+        if isinstance(cfe_f, str):
+            cfe_f = float(cfe_f)
+
+        if orig_f != cfe_f:
+            if cfe_f > orig_f:
+                inc_dec = " increase"
+            else:
+                inc_dec = " decrease"
+            change_string += f"{inc_dec} <code>{feature}</code> to <var>{str(round(cfe_f, 2))}</var>"
+            change_string += " and "
+    # Strip off last and
+    change_string = change_string[:-5]
+    return change_string
+
+
 def counterfactual(patient_id: int):
     """Generates counterfactual explanations using DiCE for a given patient ID and target class."""
 
     # Check if patient exists
     if patient_id not in dataset.index:
-        return {"error": f"Patient ID {patient_id} not found in the dataset."}
+        return {"error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
     
-    original_patient = dataset.loc[[patient_id]]
+    original_prediction = model.predict(dice_dataset.loc[[patient_id]])[0]
 
     # Generate counterfactuals
-    cf = dice_exp.generate_counterfactuals(
+    cfe = dice_exp.generate_counterfactuals(
         query_instances=dice_dataset.loc[[patient_id]],
         total_CFs=10,
         desired_class="opposite"
     )
     
-    cf_df = cf.cf_examples_list[0].final_cfs_df
+    final_cfes = cfe.cf_examples_list[0].final_cfs_df
+    final_cfe_ids = list(final_cfes.index)
+    if 'prediction' in final_cfes.columns:
+            final_cfes.pop('prediction')
+    
+    new_predictions = model.predict(final_cfes)
+    
+    original_instance = dice_dataset.loc[[patient_id]]
+    
+    output_string = f"<p>The original prediction for the data sample with <code>ID</code> <var>{patient_id}</var> is <samp>{class_names[original_prediction]}</samp>.</p>"
+    output_string += "<p>Here are some options to change the prediction of this instance.</p>"
+    
+    output_string += "<ul>"
+    output_string += "<li>First, if you"
+    transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
+    
+    for i, c_id in enumerate(final_cfe_ids):
+        if i < 3 and i < len(final_cfe_ids):
+            if i != 0:
+                output_string += f"<li>{random.choice(transition_words)} if you"
+            output_string += _get_change_string(final_cfes.loc[[c_id]], original_instance)
+            new_prediction = new_predictions[i]
+            output_string += f", the model will predict <samp>{class_names[new_prediction]}</samp>.</li>"
+    output_string += "</ul>"
+    
+    data = {
+        "patient_id": patient_id,
+        "original_prediction": original_prediction,
+        "counterfactuals": final_cfes.to_dict(orient='records'),
+        "new_predictions": new_predictions.tolist()
+    }
 
-    # Compare with original
-    counterfactuals_with_changes = []
-    for _, cf_row in cf_df.iterrows():
-        cf_dict = cf_row.to_dict()
-        changes = {"original": {}, "counterfactual": {}}
+    return { "data": data, "text": output_string }
 
-        for feature in cf_dict:
-            if feature != target_variable:
-                original_val = original_patient[feature].values[0]
-                cf_val = cf_dict[feature]
-                if original_val != cf_val:
-                    changes["original"][feature] = int(original_val) if isinstance(original_val,
-                                                                                    np.integer) else original_val
-                    changes["counterfactual"][feature] = int(cf_val) if isinstance(cf_val, np.integer) else cf_val
-
-        counterfactuals_with_changes.append({
-            "counterfactual": {k: int(v) if isinstance(v, np.integer) else v for k, v in cf_dict.items()},
-            "changes": changes
-        })
-
-    return json.dumps({"patient_id": patient_id, "counterfactuals": counterfactuals_with_changes})
-
+            
 def misclassified_cases():
     """Identifies frequent misclassifications and extracts common feature patterns."""
 
