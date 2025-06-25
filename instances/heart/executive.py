@@ -19,6 +19,7 @@ y_values = dataset.pop('num')
 target_variable = 'num'
 
 feature_names = dataset.columns.tolist()
+class_names = ["NEGATIVE", "POSITIVE"]
 
 explanation_dataset = copy.deepcopy(dataset)
 explanation_dataset = explanation_dataset.to_numpy()
@@ -30,7 +31,7 @@ with open(INSTANCE_PATH + 'model/best_model_3_DecisionTreeClassifier.pkl', 'rb')
 with open(INSTANCE_PATH + 'model/best_model_3_DecisionTreeClassifier_metadata.json', 'r') as file:
     model_metadata = json.load(file)
         
-explainer = shap.Explainer(model.predict, explanation_dataset)
+explainer = shap.KernelExplainer(model.predict, explanation_dataset)
 
 dice_dataset = copy.deepcopy(dataset)
 dice_dataset['prediction'] = model.predict(dice_dataset.to_numpy())
@@ -74,14 +75,14 @@ def get_model_description():
     """Returns a general description of the model architecture and its purpose (e.g., DecisionTreeClassifier trained to predict heart disease)."""
 
     if "description" in model_metadata:
-        return { "data": model_metadata["description"] }
+        return { "data": model_metadata["description"], "text": f"<p>Model description is: {model_metadata['description']}</p>" }
     return { "error": "Model description not found in metadata." }
 
 def predict(patient_id: int):
     """Predict heart disease risk for a specific patient by ID."""
 
     if patient_id not in dataset.index:
-        return {"error": f"Patient ID {patient_id} not found in the dataset."}
+        return {"error": f"Patient ID {patient_id} not found in the dataset.", "text": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
 
     # Get a single row as a DataFrame
     patient_row = dataset.loc[patient_id].to_frame().T
@@ -92,33 +93,28 @@ def predict(patient_id: int):
 
     return { "data": {
         "patient_id": patient_id,
-        "prediction": int(prediction),
+        "prediction": prediction,
         "probabilities": probabilities
-    }}
+    }, "text": f"<p>Patient <code>ID</code> <var>{patient_id}</var> has a predicted risk of heart disease: <var>{class_names[prediction]}</var>.</p> <p>The prediction class (positive, negative) probabilities are: <var>{[ round(prob, 2) for prob in probabilities ]}</var></p>" }
 
 def feature_importance(patient_id=None):
     """Returns SHAP-based feature importance scores (global or patient-specific)."""
 
     # Ensure patient exists
     if patient_id not in dataset.index:
-        return {"error": f"Patient ID {patient_id} not found in the dataset."}
+        return {"error": f"Patient ID {patient_id} not found in the dataset.", "text": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
 
     # Prepare patient row for SHAP
     patient_row = dataset.loc[patient_id].to_frame().T
     shap_values = explainer.shap_values(patient_row, nsamples=10_000, silent=True)
+    influences = shap_values.squeeze()
+    result = pd.DataFrame(influences, columns=['Influence'], index=dataset.columns).sort_values(by='Influence', ascending=False)
+    text = f"<p>For the patient with <code>ID</code> <var>{patient_id}</var> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
 
-    # Build per-feature contributions
-    patient_importance = {
-        feature_names[i]: float(abs(shap_values.values[0][i]))
-        for i in range(len(feature_names))
-    }
-
-    # Sort and filter out zero contributions
-    sorted_importance = {
-        k: v for k, v in sorted(patient_importance.items(), key=lambda item: item[1], reverse=True) if v > 0
-    }
-
-    return json.dumps({"patient_id": patient_id, "feature_importance": sorted_importance})
+    return { "data": {"patient_id": patient_id, "feature_importance": influences },
+             "text": text }
+    
+###
 
 def dataset_summary(patient_id=None):
     """
