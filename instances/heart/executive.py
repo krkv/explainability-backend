@@ -59,6 +59,7 @@ alias_lookup = {
     for alias in ([feat] + meta.get("aliases", []))
 }
 
+
 def get_model_parameters():
     """Returns the exact training hyperparameters of the model (e.g., max_depth, criterion)."""
 
@@ -71,12 +72,14 @@ def get_model_parameters():
         return { "data": model_metadata["parameters"], "text": "<p>Model training hyperparameters are:</p>"  + tabulate(table, headers, tablefmt='html')}
     return { "error": "Model parameters not found in metadata." }
 
+
 def get_model_description():
     """Returns a general description of the model architecture and its purpose (e.g., DecisionTreeClassifier trained to predict heart disease)."""
 
     if "description" in model_metadata:
         return { "data": model_metadata["description"], "text": f"<p>Model description is: {model_metadata['description']}</p>" }
     return { "error": "Model description not found in metadata." }
+
 
 def predict(patient_id: int):
     """Predict heart disease risk for a specific patient by ID."""
@@ -97,6 +100,7 @@ def predict(patient_id: int):
         "probabilities": probabilities
     }, "text": f"<p>Patient <code>ID</code> <var>{patient_id}</var> has a predicted risk of heart disease: <var>{class_names[prediction]}</var>.</p> <p>The prediction class (positive, negative) probabilities are: <var>{[ round(prob, 2) for prob in probabilities ]}</var></p>" }
 
+
 def feature_importance(patient_id=None):
     """Returns SHAP-based feature importance scores (global or patient-specific)."""
 
@@ -113,8 +117,7 @@ def feature_importance(patient_id=None):
 
     return { "data": {"patient_id": patient_id, "feature_importance": influences },
              "text": text }
-    
-###
+
 
 def dataset_summary(patient_id=None):
     """
@@ -136,6 +139,10 @@ def dataset_summary(patient_id=None):
             "all_patients_average": avg_all
         }
     }
+    
+    text = "<p>Average features for patients with heart disease:</p>" + tabulate(avg_hd.items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
+    text += "<p>Average features for patients without heart disease:</p>" + tabulate(avg_nohd.items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
+    text += "<p>Average features for all patients:</p>" + tabulate(avg_all.items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
 
     # Optional patient comparison
     if patient_id is not None:
@@ -144,10 +151,12 @@ def dataset_summary(patient_id=None):
             patient_features = patient_row[feature_columns].iloc[0].round(3).to_dict()
             result["patient_id"] = patient_id
             result["comparison"]["patient"] = patient_features
+            text += f"<p>Patient <code>ID</code> <var>{patient_id}</var> features:</p>" + tabulate(patient_features.items(), headers=["Feature", "Value"], tablefmt='html', numalign="left")
         except IndexError:
-            result["warning"] = f"Patient ID {patient_id} is out of range. Dataset has {len(dataset)} patients."
+            return { "error": f"Patient <code>ID</code> <var>{patient_id}</var> is out of range. Dataset has <var>{len(dataset)}</var> patients." }
+            
+    return { "data": result, "text": text }
 
-    return json.dumps(result)
 
 def performance_metrics(metrics: list = None):
     """Computes and returns selected performance metrics, including AUC-ROC."""
