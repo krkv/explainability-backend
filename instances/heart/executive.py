@@ -458,4 +458,6 @@ def feature_interactions():
     # Sort by absolute correlation
     top_interactions = dict(sorted(interaction_dict.items(), key=lambda x: abs(x[1]), reverse=True)[:5])
 
-    return {"top_feature_interactions": top_interactions}
+    data = {"top_feature_interactions": top_interactions}
+    text = "<p>Top feature interactions based on correlation analysis:</p>" + tabulate(top_interactions.items(), headers=["Feature Interaction", "Correlation"], tablefmt='html', numalign="left")
+    return { "data": data, "text": text }
