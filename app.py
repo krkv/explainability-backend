@@ -24,10 +24,10 @@ def get_response():
             model = data["model"]
             usecase = data["usecase"]
             if (usecase == "Heart Disease"):
-                uc = "heart"
+                usecase = "heart"
             elif (usecase == "Energy Consumption"):
-                uc = "energy"
-            response = generate_assistant_response(conversation, model, uc)
+                usecase = "energy"
+            response = generate_assistant_response(conversation, model, usecase)
             return {
                 "assistantResponse": response
             }
