@@ -60,16 +60,30 @@
     {
         "type": "function",
         "function": {
-            "name": "feature_importance",
-            "description": "Compute SHAP-based feature importance globally or for a specific patient.",
+            "name": "feature_importance_patient",
+            "description": "Compute SHAP-based feature importance for a specific patient.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "patient_id": {
                         "type": "integer",
-                        "description": "Optional. If provided, returns feature importance for the specific patient."
+                        "description": "Required ID of the patient to compute feature importance for."
                     }
-                }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "feature_importance_global",
+            "description": "Compute SHAP-based feature importance globally for the entire dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
             }
         }
     },

@@ -102,8 +102,8 @@ def predict(patient_id: int):
     }, "text": f"<p>Patient <code>ID</code> <var>{patient_id}</var> has a predicted risk of heart disease: <var>{class_names[prediction]}</var>.</p> <p>The prediction class (positive, negative) probabilities are: <var>{[ round(prob, 2) for prob in probabilities ]}</var></p>" }
 
 
-def feature_importance(patient_id=None):
-    """Returns SHAP-based feature importance scores (global or patient-specific)."""
+def feature_importance_patient(patient_id):
+    """Returns SHAP-based feature importance scores (patient-specific)."""
 
     # Ensure patient exists
     if patient_id not in dataset.index:
@@ -118,6 +118,26 @@ def feature_importance(patient_id=None):
 
     return { "data": {"patient_id": patient_id, "feature_importance": influences },
              "text": text }
+
+
+def feature_importance_global():
+    """Returns SHAP-based feature importance scores (global)."""
+
+    # Compute SHAP values for the entire dataset
+    explainer = shap.Explainer(model.predict, dataset)
+    shap_values = explainer(dataset)
+    importance = np.abs(shap_values.values).mean(axis=0)
+    
+    # Create a DataFrame for global feature importance
+    result =  dict(sorted(
+                {feature_names[i]: float(importance[i]) for i in range(len(feature_names))}.items(),
+                key=lambda x: x[1], reverse=True))
+    
+    result_html = pd.DataFrame(result.items(), columns=['Feature', 'Importance']).to_html(index=False)
+    
+    text = "<p>Global feature importances based on SHAP values are:</p>" + f"{result_html}"
+    
+    return { "data": {"global_feature_importance": result }, "text": text }
 
 
 def dataset_summary(patient_id=None):
