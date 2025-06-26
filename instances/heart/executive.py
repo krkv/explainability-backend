@@ -60,6 +60,16 @@ alias_lookup = {
     for alias in ([feat] + meta.get("aliases", []))
 }
 
+# Compute SHAP values for the entire dataset
+global_explainer = shap.Explainer(model.predict, dataset)
+global_shap_values = global_explainer(dataset)
+importance = np.abs(global_shap_values.values).mean(axis=0)
+
+# Create a DataFrame for global feature importance
+global_feature_importances = dict(
+    sorted({feature_names[i]: float(importance[i]) for i in range(len(feature_names))}.items(), key=lambda x: x[1], reverse=True)
+)
+
 
 def get_model_parameters():
     """Returns the exact training hyperparameters of the model (e.g., max_depth, criterion)."""
@@ -122,22 +132,12 @@ def feature_importance_patient(patient_id):
 
 def feature_importance_global():
     """Returns SHAP-based feature importance scores (global)."""
-
-    # Compute SHAP values for the entire dataset
-    explainer = shap.Explainer(model.predict, dataset)
-    shap_values = explainer(dataset)
-    importance = np.abs(shap_values.values).mean(axis=0)
     
-    # Create a DataFrame for global feature importance
-    result =  dict(sorted(
-                {feature_names[i]: float(importance[i]) for i in range(len(feature_names))}.items(),
-                key=lambda x: x[1], reverse=True))
-    
-    result_html = pd.DataFrame(result.items(), columns=['Feature', 'Importance']).to_html(index=False)
+    result_html = pd.DataFrame(global_feature_importances.items(), columns=['Feature', 'Importance']).to_html(index=False)
     
     text = "<p>Global feature importances based on SHAP values are:</p>" + f"{result_html}"
     
-    return { "data": {"global_feature_importance": result }, "text": text }
+    return { "data": {"global_feature_importance": global_feature_importances }, "text": text }
 
 
 def dataset_summary(patient_id=None):
