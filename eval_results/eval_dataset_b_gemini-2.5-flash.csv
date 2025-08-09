@@ -1,0 +1,81 @@
+id,user_input,conversation_history,expected_parse,generated_parse
+1,Can you give me the prediction for sample 77 and also explain it?,[],"['predict_one(id=77)', 'explain_one(id=77)']","['predict_one(id=77)', 'explain_one(id=77)']"
+2,How accurate was that prediction?,"['Show me data point 150.', 'What would the model predict for it?']",['mistake_one(id=150)'],['mistake_one(id=150)']
+3,"Okay, now show me those data points.",['How many data points have an outdoor temperature below 20 degrees?'],['show_group(outdoor_temperature_max=20)'],['show_group(outdoor_temperature_max=20)']
+4,"What would be the predicted energy use if the indoor temperature is 28, outdoor is 25, and past usage was 9000?",['How good is the model?'],"['predict_new(indoor_temperature=28, outdoor_temperature=25, past_electricity=9000)']","['predict_new(indoor_temperature=28, outdoor_temperature=25, past_electricity=9000)']"
+5,How could I get a different result?,"['Show me sample 21.', 'What is the prediction?']",['cfes_one(id=21)'],['cfes_one(id=21)']
+6,Tell me about the model and its performance.,[],"['about_model()', 'model_accuracy()']","['about_model()', 'model_accuracy()']"
+7,Show me the model's mistakes for samples where the indoor temperature is above 29 degrees and past electricity usage is over 10000.,['How many samples are there in total?'],"['mistake_group(indoor_temperature_min=29, past_electricity_min=10000)']","['mistake_group(indoor_temperature_min=29,past_electricity_min=10000)']"
+8,What if the past electricity was 7500 instead?,"['Show me sample with ID 88.', ""What's the prediction?""]","['what_if_one(id=88, past_electricity=7500)']","['what_if_one(id=88,past_electricity=7500)']"
+9,What are all the things you can do?,"['Hello, who are you?']",['available_functions()'],['available_functions()']
+10,Why are predictions high for samples with high past electricity usage (above 15000)?,['What are the features in the dataset?'],['explain_group(past_electricity_min=15000)'],['explain_group(past_electricity_min=15000)']
+11,That seems reasonable.,"['What is the prediction for ID 123?', 'Okay, and the explanation?']",[],[]
+12,Can you give me the stats for the features?,['Tell me about the data.'],['about_dataset_in_depth()'],['about_dataset_in_depth()']
+13,"Show me the data point, its prediction, and how to change the outcome.","[""Let's look at ID 42.""]","['show_one(id=42)', 'predict_one(id=42)', 'cfes_one(id=42)']","['show_one(id=42)', 'predict_one(id=42)', 'cfes_one(id=42)']"
+14,How many samples are there in total?,[],['count_all()'],['count_all()']
+15,Why are these predicted this way?,['Show me predictions for samples with indoor temperature below 25 and outdoor temperature above 25.'],"['explain_group(indoor_temperature_max=25, outdoor_temperature_min=25)']","['explain_group(indoor_temperature_max=25, outdoor_temperature_min=25)']"
+16,Now show me the ones where outdoor temperature is exactly 26.,['Show me all data points where past electricity is greater than 10000.'],"['show_group(outdoor_temperature_min=26, outdoor_temperature_max=26)']","['show_group(past_electricity_min=10000, outdoor_temperature_min=26, outdoor_temperature_max=26)']"
+17,What kind of model is this and what's the explanation method?,"[""Hi, I'd like to understand your system.""]","['about_model()', 'about_explainer()']","['about_model()', 'about_explainer()']"
+18,What would the model say if the indoor temp was 25 and outdoor was 20?,['Give me the prediction for sample 300.'],"['what_if_one(id=300, indoor_temperature=25, outdoor_temperature=20)']",[]
+19,List all the data IDs for me.,['How many samples are there?'],['show_ids()'],['show_ids()']
+20,Is the prediction correct and what would it take to get a lower energy consumption prediction?,"['I am interested in sample 99.', 'What does the model predict for it?']","['mistake_one(id=99)', 'cfes_one(id=99)']","['mistake_one(id=99)', 'cfes_one(id=99)']"
+21,Show me the data for id 77 and explain its prediction.,[],"['show_one(id=77)', 'explain_one(id=77)']","['show_one(id=77)', 'explain_one(id=77)']"
+22,How accurate is the model?,"['What can you do?', 'Tell me about the dataset.']",['model_accuracy()'],['model_accuracy()']
+23,And what about its prediction?,['Show me the data for ID 123.'],['predict_one(id=123)'],['predict_one(id=123)']
+24,How many samples have an outdoor temperature above 25 degrees and past electricity consumption below 6000?,[],"['count_group(outdoor_temperature_min=25, past_electricity_max=6000)']","['count_group(outdoor_temperature_min=25, past_electricity_max=6000)']"
+25,What would the prediction be if the indoor temperature was 26 for that one?,"[""What's the prediction for ID 99?"", 'Explain it to me.']","['what_if_one(id=99, indoor_temperature=26)']","['what_if_one(id=99, indoor_temperature=26)']"
+26,Tell me everything about the dataset.,['Hi there.'],"['about_dataset()', 'about_dataset_in_depth()']","['about_dataset()', 'about_dataset_in_depth()']"
+27,Why was it predicted that way?,"['Show me the data for ID 250', ""What's the prediction?""]",['explain_one(id=250)'],['explain_one(id=250)']
+28,Show me the predictions for samples where the indoor temperature is between 28 and 29 degrees.,[],"['predict_group(indoor_temperature_min=28, indoor_temperature_max=29)']","['predict_group(indoor_temperature_min=28, indoor_temperature_max=29)']"
+29,That can't be right.,"['Predict for a new sample: indoor 22, outdoor 20, past 5000.']",[],[]
+30,How could I get a lower prediction?,"['Show me the data for ID 42', 'What is the prediction for it?']",['cfes_one(id=42)'],[]
+31,"Show me the model's mistakes where the past electricity usage was very high, say over 15000.",['How good is this model?'],['mistake_group(past_electricity_min=15000)'],['mistake_group(past_electricity_min=15000)']
+32,"Can you predict for a new data point? Indoor temp: 29.5, outdoor temp: 24, past electricity: 9000.",[],"['predict_new(indoor_temperature=29.5, outdoor_temperature=24, past_electricity=9000)']","['predict_new(indoor_temperature=29.5, outdoor_temperature=24, past_electricity=9000)']"
+33,"Let's check ID 300. Show me the data, the prediction, and how wrong the model was.",['List all the IDs for me.'],"['show_one(id=300)', 'predict_one(id=300)', 'mistake_one(id=300)']","['show_one(id=300)', 'predict_one(id=300)', 'mistake_one(id=300)']"
+34,Show me the data for them.,['How many samples have an outdoor temperature below 20?'],['show_group(outdoor_temperature_max=20)'],['show_group(outdoor_temperature_max=20)']
+35,What about the model and the explainer?,['Tell me about the data available.'],"['about_model()', 'about_explainer()']","['about_model()', 'about_explainer()']"
+36,Is the prediction for ID 88 correct?,"[""What's the weather like today?""]",['mistake_one(id=88)'],['mistake_one(id=88)']
+37,Now explain why they are predicted that way.,['Show me predictions for samples with past electricity greater than 10000.'],['explain_group(past_electricity_min=10000)'],['explain_group(past_electricity_min=10000)']
+38,I want to see all available functions.,['I am a new user.'],['available_functions()'],['available_functions()']
+39,What's the total number of data points?,"['Hi, what is this system for?']",['count_all()'],['count_all()']
+40,"If I change outdoor temperature to 20 and past electricity to 7000, what happens?","['Show me sample 155', 'What is its prediction?']","['what_if_one(id=155, outdoor_temperature=20, past_electricity=7000)']","['what_if_one(id=155, outdoor_temperature=20, past_electricity=7000)']"
+41,Tell me about the model.,[],['about_model()'],['about_model()']
+42,What is its prediction?,['Show me data sample with id 101.'],['predict_one(id=101)'],['predict_one(id=101)']
+43,"Show sample 55, predict it, and explain why.",[],"['show_one(id=55)', 'predict_one(id=55)', 'explain_one(id=55)']","['show_one(id=55)', 'predict_one(id=55)', 'explain_one(id=55)']"
+44,How many samples have an outdoor temperature above 25 degrees?,['How many data points are there in total?'],['count_group(outdoor_temperature_min=25)'],['count_group(outdoor_temperature_min=25)']
+45,What if the indoor temperature was 26 instead?,"['Show me sample 210.', 'What is its prediction?']","['what_if_one(id=210, indoor_temperature=26)']","['what_if_one(id=210,indoor_temperature=26)']"
+46,How accurate is the model?,"[""What's the weather like today?"", 'Can you order a pizza?']",['model_accuracy()'],['model_accuracy()']
+47,"Okay, now only show the ones from that group where past electricity is over 10000.",['Show me all data points where the indoor temperature is higher than 29 degrees.'],"['show_group(indoor_temperature_min=29, past_electricity_min=10000)']","['show_group(indoor_temperature_min=29, past_electricity_min=10000)']"
+48,Can you explain this?,"['Show me data point 88', ""What's the prediction?""]",['explain_one(id=88)'],['explain_one(id=88)']
+49,"What would the energy consumption be if the indoor temp is 28, outdoor is 22, and past consumption was 7500?",[],"['predict_new(indoor_temperature=28, outdoor_temperature=22, past_electricity=7500)']","['predict_new(indoor_temperature=28, outdoor_temperature=22, past_electricity=7500)']"
+50,Show me the mistakes for predictions where the outdoor temperature is below 18.,['Is the model always right?'],['mistake_group(outdoor_temperature_max=18)'],['mistake_group(outdoor_temperature_max=18)']
+51,Tell me about the dataset and its features in detail.,[],"['about_dataset()', 'about_dataset_in_depth()']",['about_dataset_in_depth()']
+52,How could I get a different prediction for this one?,['What is the prediction for ID 12?'],['cfes_one(id=12)'],['cfes_one(id=12)']
+53,Why are they predicted like that?,['Show me predictions for data where past electricity is between 5000 and 5500.'],"['explain_group(past_electricity_min=5000, past_electricity_max=5500)']","['explain_group(past_electricity_min=5000, past_electricity_max=5500)']"
+54,Is this energy consumption sustainable for the environment?,['Show me some samples with high consumption.'],[],[]
+55,What are all the things you can do?,['Hello!'],['available_functions()'],['available_functions()']
+56,How wrong was the model here?,"['Show me instance 300.', 'Predict it.']",['mistake_one(id=300)'],['mistake_one(id=300)']
+57,Predict for samples with indoor temperature below 25 and explain the results.,[],"['predict_group(indoor_temperature_max=25)', 'explain_group(indoor_temperature_max=25)']","['predict_group(indoor_temperature_max=25)', 'explain_group(indoor_temperature_max=25)']"
+58,How many data points are there in total?,['Show me the data for outdoor temps between 20 and 22.'],['count_all()'],['count_all()']
+59,What about the mistakes for these?,"['Show me the instances where past electricity is very low, say under 4000.']",['mistake_group(past_electricity_max=4000)'],['mistake_group(past_electricity_max=4000)']
+60,"For sample 7, what if outdoor temp was 20? Also, tell me how I could have gotten a lower prediction for it originally.",['Show me sample 7.'],"['what_if_one(id=7, outdoor_temperature=20)', 'cfes_one(id=7)']","['what_if_one(id=7,outdoor_temperature=20)', 'cfes_one(id=7)']"
+61,Show me the data for instance 15.,[],['show_one(id=15)'],['show_one(id=15)']
+62,What is the prediction for it and how accurate is the model?,['Show me the data for instance 15.'],"['predict_one(id=15)', 'model_accuracy()']","['predict_one(id=15)', 'model_accuracy()']"
+63,How many samples have an outdoor temperature above 25 degrees?,"[""What's the weather like today?"", 'Tell me about the dataset.']",['count_group(outdoor_temperature_min=25)'],['count_group(outdoor_temperature_min=25)']
+64,What if the indoor temperature was 28 degrees for that one?,"['Show me id 101.', 'What is its prediction?']","['what_if_one(id=101, indoor_temperature=28)']","['what_if_one(id=101,indoor_temperature=28)']"
+65,Tell me everything about the data.,[],"['about_dataset()', 'about_dataset_in_depth()']","['about_dataset()', 'about_dataset_in_depth()']"
+66,"Show me predictions for data where the past electricity usage was very high, say over 15000.",[],['predict_group(past_electricity_min=15000)'],['predict_group(past_electricity_min=15000)']
+67,And why are they predicted that way?,"['Show me predictions for data where the past electricity usage was very high, say over 15000.']",['explain_group(past_electricity_min=15000)'],['explain_group(past_electricity_min=15000)']
+68,"Can you predict for a new data point? indoor_temperature is 26, outdoor_temperature is 22, and past_electricity is 6500.",['How accurate is this model?'],"['predict_new(indoor_temperature=26, outdoor_temperature=22, past_electricity=6500)']","['predict_new(indoor_temperature=26, outdoor_temperature=22, past_electricity=6500)']"
+69,How can I get a lower prediction?,"['Can you predict for a new data point? indoor_temperature is 26, outdoor_temperature is 22, and past_electricity is 6500.', 'The prediction is 7200.']",[],[]
+70,Was the prediction for ID 55 correct?,[],['mistake_one(id=55)'],['mistake_one(id=55)']
+71,"Ok, show me the explanation for it.",['Was the prediction for ID 55 correct?'],['explain_one(id=55)'],['explain_one(id=55)']
+72,List all available actions.,"['Hello.', 'What can you do for me?']",['available_functions()'],['available_functions()']
+73,"Show me the data and prediction for sample 200. Also, how can I change the outcome?",[],"['show_one(id=200)', 'predict_one(id=200)', 'cfes_one(id=200)']","['show_one(id=200)', 'predict_one(id=200)', 'cfes_one(id=200)']"
+74,"I'm interested in cases where the indoor temperature is between 25 and 26, but the outdoor temperature is less than 20. Show me their data and mistakes.",['What are the features in this dataset?'],"['show_group(indoor_temperature_min=25, indoor_temperature_max=26, outdoor_temperature_max=20)', 'mistake_group(indoor_temperature_min=25, indoor_temperature_max=26, outdoor_temperature_max=20)']","['show_group(indoor_temperature_min=25, indoor_temperature_max=26, outdoor_temperature_max=20)', 'mistake_group(indoor_temperature_min=25, indoor_temperature_max=26, outdoor_temperature_max=20)']"
+75,That's interesting. What about the model itself?,"['Show me data for id 12.', 'Explain the prediction.']",['about_model()'],['about_model()']
+76,How many data points are there in total?,['How many samples have high electricity consumption?'],['count_all()'],['count_all()']
+77,That's not what I expected.,['Show me the prediction for ID 99.'],[],[]
+78,Compare the prediction for id 75 if the outdoor temperature was 18 versus if it was 28.,[],"['what_if_one(id=75, outdoor_temperature=18)', 'what_if_one(id=75, outdoor_temperature=28)']","['what_if_one(id=75, outdoor_temperature=18)', 'what_if_one(id=75, outdoor_temperature=28)']"
+79,Tell me about the explainer and the model accuracy.,[],"['about_explainer()', 'model_accuracy()']","['about_explainer()', 'model_accuracy()']"
+80,Show me the mistakes for the samples we just looked at.,['Show me the data where indoor temp is over 29 and past electricity is under 6000.'],"['mistake_group(indoor_temperature_min=29, past_electricity_max=6000)']","['mistake_group(indoor_temperature_min=29, past_electricity_max=6000)']"

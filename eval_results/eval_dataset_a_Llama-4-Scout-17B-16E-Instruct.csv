@@ -1,0 +1,12 @@
+id,user_input,conversation_history,expected_parse,generated_parse
+1,What are the ids of the instances?,['Tell me about the dataset'],['show_ids()'],['show_ids()']
+2,Show me sample 34 and its prediction,"['I want to understand the model', 'Is the weather data relevant?']","['show_one(id=34)', 'predict_one(id=34)']","['show_one(id=34)', 'predict_one(id=34)']"
+3,What is the prediction,"['Show me the data ids', 'Show id 92']",['predict_one(id=92)'],['predict_one(id=92)']
+4,How can we change this prediction?,"['What is the prediction for id 33?', 'How correct is it?']",['cfes_one(id=33)'],"['mistake_one(id=33)', 'what_if_one(id=33)']"
+5,What would it predict if the outdoor temperature was 15?,"['What kind of explainer is used?', 'What is the prediction for id 33?']","['what_if(id=33, outdoor_temperature=15)']","['predict_new(indoor_temperature=27.8575948569, outdoor_temperature=15, past_electricity=7384.0587006751)']"
+6,Show mistakes for samples with indoor temperature between 27 and 29,[],"['mistake_group(indoor_temperature_min=27, indoor_temperature_max=29)']","['mistake_group(indoor_temperature_min=27, indoor_temperature_max=29)']"
+7,What do I need to know about the model and explanations?,[],"['about_model()', 'about_explainer()']","['about_model()', 'about_explainer()']"
+8,Why they are predicted so?,"['Show data ids', 'Show predictions for data where outdoor is less than 22']",['explain_group(outdoor_temperature_max=22)'],"['explain_group(outdoor_temperature_min=0, outdoor_temperature_max=22)']"
+9,"Predict indoor 24, outdoor 19, past 6800","['Show id 1', 'Now prediction', 'Explain it']","['predict_new(indoor_temperature=24, outdoor_temperature=19, past_electricity=6800)']","['predict_new(indoor_temperature=24, outdoor_temperature=19, past_electricity=6800)']"
+10,How many points have past electricity consumption between 6000 and 8000,[],"['count_group(past_electricity_min=6000, past_electricity_max=8000)']","['count_group(past_electricity_min=6000, past_electricity_max=8000)']"
+11,Please give me financial advice,['What is this chat?'],[],[]

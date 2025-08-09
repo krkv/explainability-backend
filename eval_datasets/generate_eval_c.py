@@ -1,11 +1,15 @@
-from google import genai
-from google.genai.types import HttpOptions, GenerateContentConfig
-from pydantic import BaseModel
+from huggingface_hub import InferenceClient
 import json
 import pandas as pd
 import csv
+import os
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 INSTANCE_PATH = 'instances/energy/'
+RESULT_FILE_PATH = 'eval_datasets/eval_dataset_d.csv'
 
 with open(INSTANCE_PATH + 'functions.json') as f:
     functions = json.load(f)
@@ -33,7 +37,7 @@ examples_energy = [
     {
         "user_input": "How can we change this prediction?", 
         "conversation_history": ["What is the prediction for id 33?", "How correct is it?"],
-        "function_calls": ["cfe(id=33)"]
+        "function_calls": ["cfes_one(id=33)"]
     },
     {
         "user_input": "What would it predict if the outdoor temperature was 15?", 
@@ -98,7 +102,7 @@ examples_energy = [
     {
         "user_input": "How do you explain stuff and why indoor above 25 are predicted this way", 
         "conversation_history": ["Tell me about the data", "Show the first id"],
-        "function_calls": ["about_explainer(), explain_group(indoor_temperature_min=25)"]
+        "function_calls": ["about_explainer()", "explain_group(indoor_temperature_min=25)"]
     },
     {
         "user_input": "I don't agree", 
@@ -113,31 +117,9 @@ examples_energy = [
     {
         "user_input": "What is the prediction and how to change it?", 
         "conversation_history": ["Show me the data", "Show id 38"],
-        "function_calls": ["predict_one(id=38)", "cfe(id=38)"]
-    },
-                        
+        "function_calls": ["predict_one(id=38)", "cfes_one(id=38)"]
+    },                       
 ]
-
-# with open('eval_dataset_a.csv', 'w') as f:
-#         writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL, quotechar='"')
-#         writer.writerow(["user_input", "conversation_history", "function_calls"])
-#         for example in examples_energy:
-#             writer.writerow([example["user_input"], example["conversation_history"], example["function_calls"]])
-
-class Sample(BaseModel):
-    user_input: str
-    conversation_history: list[str]
-    function_calls: list[str]
-
-class Response(BaseModel):
-    samples: list[Sample]
-
-client = genai.Client(
-    http_options=HttpOptions(api_version="v1"),
-    vertexai=True,
-    project="explainability-app",
-    location="europe-north1",
-)
 
 def get_system_prompt():
     system_prompt = f"""
@@ -180,7 +162,9 @@ def get_system_prompt():
         Here are some examples of user inputs and their corresponding function calls:
 
         {examples_energy}
-
+        
+        YOUR RESPONSE SHOULD BE A LIST OF SAMPLE OBJECTS! DO NOT WRAP THE RESULTING LIST IN AN OBJECT.
+        
         Generate as many samples as user asks.
         """
         
@@ -189,33 +173,49 @@ def get_system_prompt():
         
     return system_prompt
 
-user_input = "Generate 20 samples."
-
-def generate_google_cloud_response():    
-  response = client.models.generate_content(
-    model="gemini-2.5-pro",
-    contents=user_input,
-    config=GenerateContentConfig(
-      system_instruction=get_system_prompt(),
-      response_mime_type='application/json',
+def generate_openai_response(n_samples):
+    client = OpenAI(
+        api_key=os.getenv('OPEN_AI_KEY'),
     )
-  )
-  return response.text
+    
+    response = client.responses.create(
+        model="gpt-5",
+        instructions=get_system_prompt(),
+        input=f"Generate {n_samples} samples.",
+    )
+
+    return response
 
 if __name__ == "__main__":
     print("Generating response...")
-    
-    try:
-        response_text = generate_google_cloud_response()
-        if response_text is None:
-            raise ValueError("Response text is None")
-        response_json = json.loads(response_text)
-    except Exception as e:
-        raise ValueError(f"Error parsing response: {e}")
-        
-    with open('eval_dataset_a.csv', 'a') as f:
-        writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL, quotechar='"')
-        for sample in response_json:
-            writer.writerow([sample["user_input"], sample["conversation_history"], sample["function_calls"]])
+
+    if not os.path.exists(RESULT_FILE_PATH):
+        with open(RESULT_FILE_PATH, mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['id', 'user_input', 'conversation_history', 'expected_parse'])
             
-    print("Response generated and saved to eval_dataset_a.csv")
+    total_samples = 25
+    
+    while total_samples < 80:
+        
+        batch_size = 10 # BATCHING
+
+        try:
+            print(f"Generating {batch_size} samples...")
+            generated_response = generate_openai_response(batch_size)
+            if generated_response is None or generated_response.output is None:
+                raise ValueError("Response text is None")
+            response_json = json.loads(generated_response.output_text)
+            print(response_json)
+        except Exception as e:
+            raise ValueError(f"Error parsing response: {e}")
+
+        with open(RESULT_FILE_PATH, 'a') as f:
+            writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL, quotechar='"')
+            id = total_samples + 1
+            for sample in response_json:
+                writer.writerow([id, sample["user_input"], sample["conversation_history"], sample["function_calls"]])
+                id += 1
+        
+        print(f"Generated {batch_size} samples, total samples now: {total_samples + batch_size}")
+        total_samples += batch_size
