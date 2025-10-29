@@ -1,0 +1,1 @@
+"""Heart use case module."""

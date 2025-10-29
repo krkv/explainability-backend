@@ -1,0 +1,1 @@
+"""Energy use case module."""
