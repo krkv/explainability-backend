@@ -76,17 +76,10 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 
 ### Next Steps (Priority Order)
 
-1. **🔴 URGENT**: Fix UseCase enum to handle frontend values ("Energy Consumption", "Heart Disease")
-
-   - Add `from_string()` method to `UseCase` in `src/core/constants.py` 
-   - OR consolidate `UseCase` enums (remove duplication between `config.py` and `constants.py`)
-   - Update all code that manually converts usecase strings to use the `from_string()` method
-
-2. **Phase 6**: Refactor use cases (move functions from `instances/` to `src/usecases/`)
-3. **Phase 7**: Implement FastAPI API layer (schemas, routes, dependencies, main app)
-4. **Phase 9**: Update requirements.txt and Dockerfile for FastAPI
-5. **Phase 8**: Write tests for all components
-6. **Phase 10**: Remove legacy code after verification
+1. **Phase 7**: Implement FastAPI API layer (schemas, routes, dependencies, main app)
+2. **Phase 9**: Update requirements.txt and Dockerfile for FastAPI
+3. **Phase 8**: Write tests for all components
+4. **Phase 10**: Remove legacy code after verification (legacy `instances/` files can be removed once FastAPI migration is complete)
 
 ---
 
@@ -100,24 +93,24 @@ explainability-backend/
 ├── assistant.py                    # Orchestration (48 lines) - LEGACY, to be replaced
 ├── huggingface.py                  # HF provider (32 lines) - LEGACY, replaced
 ├── googlecloud.py                  # Google provider (35 lines) - LEGACY, replaced
-├── instances/                       # LEGACY - functions still here, migrating to src/usecases/
+├── instances/                       # LEGACY - functions migrated to src/usecases/, files kept for reference (remove in Phase 10)
 │   ├── energy/
-│   │   ├── executive.py           # 433 lines - global state, all functions
-│   │   ├── parser.py               # ✅ SECURITY FIXED - now uses safe AST parser
-│   │   ├── prompt.py               # Prompt generation
-│   │   └── functions.json          # Function definitions
+│   │   ├── executive.py           # ⚠️ LEGACY - functions migrated to src/usecases/energy/energy_functions.py
+│   │   ├── parser.py               # ⚠️ LEGACY - functionality in src/services/parser/function_parser.py
+│   │   ├── prompt.py               # ⚠️ LEGACY - functionality in src/usecases/energy/energy_usecase.py
+│   │   └── functions.json          # ✅ Still used by usecase for function definitions
 │   └── heart/
-│       ├── executive.py           # 464 lines - global state, all functions
-│       ├── parser.py               # ✅ SECURITY FIXED - now uses safe AST parser
-│       ├── prompt.py               # Prompt generation
-│       └── functions.json          # Function definitions
+│       ├── executive.py           # ⚠️ LEGACY - functions migrated to src/usecases/heart/heart_functions.py
+│       ├── parser.py               # ⚠️ LEGACY - functionality in src/services/parser/function_parser.py
+│       ├── prompt.py               # ⚠️ LEGACY - functionality in src/usecases/heart/heart_usecase.py
+│       └── functions.json          # ✅ Still used by usecase for function definitions
 └── src/                            # ✅ NEW CLEAN ARCHITECTURE
     ├── api/                        # ⚠️ MISSING - FastAPI routes not implemented
     ├── core/                       # ✅ COMPLETE - config, exceptions, constants, logging
     ├── domain/                     # ✅ COMPLETE - entities, interfaces/protocols
     ├── infrastructure/             # ✅ COMPLETE - loaders, caching, factories
     ├── services/                   # ✅ COMPLETE - assistant, LLM, parser, function executor
-    └── usecases/                   # ⚠️ MISSING - only empty __init__.py files
+    └── usecases/                   # ✅ COMPLETE - base, energy, heart usecases implemented
 └── requirements.txt                # ⚠️ MISSING FastAPI/uvicorn dependencies
 ```
 
@@ -130,12 +123,12 @@ explainability-backend/
    - ✅ No `eval()` usage remaining in codebase
    - ✅ Safe function execution implemented via `src/services/parser/function_parser.py`
 
-2. **Global State** ⚠️ **PARTIALLY ADDRESSED**
+2. **Global State** ✅ **ADDRESSED IN NEW CODE** ⚠️ **LEGACY FILES REMAIN**
 
-   - ⚠️ Models still loaded at import in `instances/energy/executive.py` and `instances/heart/executive.py`
-   - ⚠️ Datasets still loaded at import in executive files
+   - ✅ New usecases in `src/usecases/` use lazy loading (models/datasets load on demand)
    - ✅ Lazy loading infrastructure created (`src/infrastructure/loaders/`)
-   - ⚠️ Use cases not yet refactored to use lazy loading
+   - ✅ Use cases refactored to use lazy loading (`src/usecases/energy/energy_usecase.py`, `src/usecases/heart/heart_usecase.py`)
+   - ⚠️ Legacy `instances/energy/executive.py` and `instances/heart/executive.py` still have global state (will be removed in Phase 10)
 
 3. **Tight Coupling** ✅ **ADDRESSED**
 
@@ -149,11 +142,12 @@ explainability-backend/
    - ✅ Type hints throughout services and domain layer
    - ⚠️ FastAPI schemas not yet created (no request/response validation)
 
-5. **Code Duplication** ⚠️ **PARTIALLY ADDRESSED**
+5. **Code Duplication** ✅ **ADDRESSED IN NEW CODE** ⚠️ **LEGACY FILES REMAIN**
 
-   - ⚠️ Similar logic still exists in energy/heart executive files
-   - ⚠️ Use case refactoring not yet complete
+   - ✅ Use case refactoring complete - functions moved to `src/usecases/` with shared base class
    - ✅ Common infrastructure extracted (loaders, parsers, services)
+   - ✅ Energy and heart functions use same base class pattern
+   - ⚠️ Legacy `instances/` files still exist but are no longer used (will be removed in Phase 10)
 
 ---
 
@@ -234,19 +228,17 @@ src/
     ├── __init__.py
     ├── base/
     │   ├── __init__.py
-    │   ├── base_usecase.py           # Abstract base class
-    │   ├── base_functions.py         # Common function implementations
-    │   └── function_wrapper.py      # Function result formatting
+    │   └── base_usecase.py           # ✅ Abstract base class with lazy loading
     ├── energy/
     │   ├── __init__.py
-    │   ├── energy_usecase.py         # Energy usecase class
-    │   ├── energy_functions.py       # Refactored energy functions
-    │   └── energy_config.py          # Energy-specific config
+    │   ├── energy_usecase.py         # ✅ Energy usecase class
+    │   ├── energy_functions.py       # ✅ Refactored energy functions
+    │   └── energy_config.py          # ✅ Energy-specific config
     └── heart/
         ├── __init__.py
-        ├── heart_usecase.py          # Heart usecase class
-        ├── heart_functions.py         # Refactored heart functions
-        └── heart_config.py           # Heart-specific config
+        ├── heart_usecase.py          # ✅ Heart usecase class
+        ├── heart_functions.py         # ✅ Refactored heart functions
+        └── heart_config.py           # ✅ Heart-specific config
 
 tests/
 ├── __init__.py
@@ -1270,8 +1262,27 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 - **Code Updated**:
   - ✅ Updated `src/services/llm/huggingface_provider.py` to use `UseCase.from_string(usecase)`
   - ✅ Updated `src/services/llm/google_gemini_provider.py` to use `UseCase.from_string(usecase)`
-- **Note**: Legacy `app.py` still has manual conversion, but this will be removed when FastAPI migration is complete
-- **Note**: Two `UseCase` enums still exist (in `config.py` and `constants.py`), but both work correctly now. Consolidation can be done later if desired.
+- **Note**: Legacy `app.py` still has manual conversion, but this will be removed when FastAPI migration is complete (Phase 7)
+- **Note**: Two `UseCase` enums still exist (in `config.py` and `constants.py`), but both work correctly now. Consolidation is low priority and can be done later if desired.
+
+**✅ COMPLETE - Phase 6 UseCase Refactoring**:
+
+- **All usecase classes created**:
+  - ✅ `src/usecases/base/base_usecase.py` - Abstract base with lazy loading
+  - ✅ `src/usecases/energy/energy_usecase.py` - Energy usecase implementation
+  - ✅ `src/usecases/heart/heart_usecase.py` - Heart usecase implementation
+- **Functions refactored**:
+  - ✅ `src/usecases/energy/energy_functions.py` - All energy functions moved from `instances/energy/executive.py`
+  - ✅ `src/usecases/heart/heart_functions.py` - All heart functions moved from `instances/heart/executive.py`
+- **Configuration**:
+  - ✅ `src/usecases/energy/energy_config.py` - Energy-specific configuration
+  - ✅ `src/usecases/heart/heart_config.py` - Heart-specific configuration
+- **Registry updated**:
+  - ✅ `src/services/usecase/usecase_registry_service.py` - Now initializes and uses new usecase classes
+  - ✅ System prompts moved into usecase classes
+- **Lazy loading**: All models, datasets, and explainers load on demand via properties
+- **Dependency injection**: Functions receive dependencies via constructor, no global state
+- **Legacy files**: `instances/` directory still exists but is no longer used by new code (will be removed in Phase 10)
 
 ### To-dos
 
