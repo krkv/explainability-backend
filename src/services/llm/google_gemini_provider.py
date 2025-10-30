@@ -94,9 +94,6 @@ class GoogleGeminiProvider(LLMProvider):
         Returns:
             Generated response (structured JSON)
         """
-        # Import the original system prompt functions
-        from instances.energy.prompt import get_system_prompt as get_system_prompt_energy
-        from instances.heart.prompt import get_system_prompt as get_system_prompt_heart
         from pydantic import BaseModel
         
         # Define Response model exactly as in googlecloud.py
@@ -104,16 +101,13 @@ class GoogleGeminiProvider(LLMProvider):
             function_calls: list[str]
             freeform_response: str
         
-        # Get the appropriate system prompt function
-        if usecase == "heart":
-            get_system_prompt = get_system_prompt_heart
-        elif usecase == "energy":
-            get_system_prompt = get_system_prompt_energy
-        else:
-            raise ValueError(f"Unknown usecase: {usecase}")
+        # Get system prompt from use case registry
+        from src.services.service_factory import get_usecase_registry
+        from src.core.constants import UseCase
         
-        # Get system prompt using the original function
-        system_prompt = get_system_prompt(conversation)
+        usecase_enum = UseCase.ENERGY if usecase == "energy" else UseCase.HEART
+        registry = get_usecase_registry()
+        system_prompt = registry.get_system_prompt(usecase_enum, conversation)
         
         # Get user input from the last message
         user_input = conversation[len(conversation) - 1]['content']
