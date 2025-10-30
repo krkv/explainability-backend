@@ -1,11 +1,12 @@
 """Use case registry service for managing use cases, functions, and system prompts."""
 
-from typing import Dict, Callable, Any, List
+from typing import Dict, Callable, Any, List, Optional
 from src.core.constants import UseCase
 from src.core.exceptions import FunctionExecutionException
 from src.core.logging_config import get_logger
 from src.domain.interfaces.usecase_registry import UseCaseRegistry
 from src.domain.entities.message import Message
+from src.usecases.base.base_usecase import BaseUseCase
 
 logger = get_logger(__name__)
 
@@ -19,8 +20,39 @@ class UseCaseRegistryService(UseCaseRegistry):
     def __init__(self):
         self._registries: Dict[UseCase, Dict[str, Callable]] = {}
         self._system_prompts: Dict[UseCase, str] = {}
-        self._initialize_default_prompts()
+        self._usecase_instances: Dict[UseCase, BaseUseCase] = {}
+        self._initialize_usecases()
         logger.info("UseCaseRegistryService initialized")
+    
+    def _initialize_usecases(self) -> None:
+        """Initialize use case instances and register their functions."""
+        from src.infrastructure.factory import get_model_loader, get_data_loader, get_explainer_loader
+        from src.usecases.energy.energy_usecase import EnergyUseCase
+        from src.usecases.heart.heart_usecase import HeartUseCase
+        
+        model_loader = get_model_loader()
+        data_loader = get_data_loader()
+        explainer_loader = get_explainer_loader()
+        
+        # Initialize energy use case
+        energy_usecase = EnergyUseCase(
+            model_loader=model_loader,
+            data_loader=data_loader,
+            explainer_loader=explainer_loader,
+        )
+        self._usecase_instances[UseCase.ENERGY] = energy_usecase
+        self._registries[UseCase.ENERGY] = energy_usecase.get_functions()
+        logger.info(f"Registered energy use case with {len(self._registries[UseCase.ENERGY])} functions")
+        
+        # Initialize heart use case
+        heart_usecase = HeartUseCase(
+            model_loader=model_loader,
+            data_loader=data_loader,
+            explainer_loader=explainer_loader,
+        )
+        self._usecase_instances[UseCase.HEART] = heart_usecase
+        self._registries[UseCase.HEART] = heart_usecase.get_functions()
+        logger.info(f"Registered heart use case with {len(self._registries[UseCase.HEART])} functions")
     
     def register_usecase(self, usecase: UseCase, functions: Dict[str, Callable]) -> None:
         """
@@ -99,158 +131,10 @@ class UseCaseRegistryService(UseCaseRegistry):
         Returns:
             The complete system prompt with embedded data and functions.
         """
-        if usecase == UseCase.ENERGY:
-            return self._get_energy_system_prompt(conversation)
-        elif usecase == UseCase.HEART:
-            return self._get_heart_system_prompt(conversation)
+        if usecase in self._usecase_instances:
+            return self._usecase_instances[usecase].get_system_prompt(conversation)
         else:
             return self._get_default_prompt()
-    
-    def _get_energy_system_prompt(self, conversation: List[Dict[str, str]]) -> str:
-        """Generate the energy system prompt with embedded data and functions."""
-        import pandas as pd
-        import json
-        
-        # Load energy dataset and functions
-        energy_dataset = pd.read_csv('instances/energy/data/summer_workday_test.csv')
-        dataset_json = energy_dataset.describe().to_json()
-        
-        with open('instances/energy/functions.json') as f:
-            functions = json.load(f)
-        
-        # JSON schema for structured responses
-        response_schema = {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "Response",
-            "type": "object",
-            "properties": {
-                "function_calls": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "A list of function calls in string format."
-                },
-                "freeform_response": {
-                    "type": "string",
-                    "description": "A free-form response that strictly follows the rules of the assistant."
-                }
-            },
-            "required": ["function_calls", "freeform_response"],
-            "additionalProperties": "false"
-        }
-        
-        # Format conversation for the prompt
-        conversation_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversation])
-        
-        system_prompt = f"""
-    Your name is Claire. You are a trustworthy data science assistant that helps user to understand the data, model and predictions for a machine learning model application use case in energy sector.
-    Here is the description of the dataset:
-    
-    {dataset_json}
-
-    The model and the dataset are not available to you directly, but you have access to a set of functions that can be invoked to help the user.
-    Here is the list of functions that can be invoked. ONLY these functions can be called:
-
-    {functions}
-    
-    You are an expert in composing function calls. You are given a user query and a set of possible functions that you can call. Based on the user query, you need to decide whether any functions can be called or not.
-    You are a trustworthy assistant, which means you should not make up any information or provide any answers that are not supported by the functions given above.
-    
-    Respond ONLY in JSON format, following strictly this JSON schema for your response:
-    
-    {response_schema}
-    
-    Please use double quotes for the keys and values in the JSON response. Do not use single quotes.
-   
-    If you decide to invoke one or several of the available functions, you MUST include them in the JSON response field "function_calls" in format "[func_name1(params_name1=params_value1, params_name2=params_value2...),func_name1(params_name1=params_value1, params_name2=params_value2...)]".
-    When adding param values, only use param values given by user. Do not use any other values or make up any values.
-    If you decide that no function(s) can be called, you should return an empty list [] as "function_calls".
-      
-    Your free-form response in JSON field "freeform_response" is mandatory and it should be a short comment about what you are trying to achieve with chosen function calls. 
-    If user asked a question about data/model/prediction and it can not be answered with the available functions, your free-form response should not try to answer this question. Just say that you are not able to answer this question and ask if user wants to see the list of available functions.
-
-    You are also given the full history of user's messages in this conversation.
-    Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
-    Use user's query history to understand the question better and guide your responses if needed.
-
-    {conversation_text}
-    """
-        
-        return system_prompt
-    
-    def _get_heart_system_prompt(self, conversation: List[Dict[str, str]]) -> str:
-        """Generate the heart system prompt with embedded data and functions."""
-        import pandas as pd
-        import json
-        
-        # Load heart dataset and functions
-        heart_dataset = pd.read_csv('instances/heart/data/test_set.csv')
-        dataset_json = heart_dataset.describe().to_json()
-        
-        with open('instances/heart/functions.json') as f:
-            functions = json.load(f)
-        
-        # JSON schema for structured responses
-        response_schema = {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "Response",
-            "type": "object",
-            "properties": {
-                "function_calls": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "A list of function calls in string format."
-                },
-                "freeform_response": {
-                    "type": "string",
-                    "description": "A free-form response that strictly follows the rules of the assistant."
-                }
-            },
-            "required": ["function_calls", "freeform_response"],
-            "additionalProperties": "false"
-        }
-        
-        # Format conversation for the prompt
-        conversation_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversation])
-        
-        system_prompt = f"""
-    Your name is Claire. You are a trustworthy data science assistant that helps user to understand the data, model and predictions for a machine learning model application use case in medical sector.
-    Here is the description of the dataset:
-    
-    {dataset_json}
-
-    The model and the dataset are not available to you directly, but you have access to a set of functions that can be invoked to help the user.
-    Here is the list of functions that can be invoked. ONLY these functions can be called:
-
-    {functions}
-    
-    You are an expert in composing function calls. You are given a user query and a set of possible functions that you can call. Based on the user query, you need to decide whether any functions can be called or not.
-    You are a trustworthy assistant, which means you should not make up any information or provide any answers that are not supported by the functions given above.
-    
-    Respond ONLY in JSON format, following strictly this JSON schema for your response:
-    
-    {response_schema}
-    
-    Please use double quotes for the keys and values in the JSON response. Do not use single quotes.
-   
-    If you decide to invoke one or several of the available functions, you MUST include them in the JSON response field "function_calls" in format "[func_name1(params_name1=params_value1, params_name2=params_value2...),func_name1(params_name1=params_value1, params_name2=params_value2...)]".
-    When adding param values, only use param values given by user. Do not use any other values or make up any values.
-    If you decide that no function(s) can be called, you should return an empty list [] as "function_calls".
-      
-    Your free-form response in JSON field "freeform_response" is mandatory and it should be a short comment about what you are trying to achieve with chosen function calls. 
-    If user asked a question about data/model/prediction and it can not be answered with the available functions, your free-form response should not try to answer this question. Just say that you are not able to answer this question and ask if user wants to see the list of available functions.
-
-    You are also given the full history of user's messages in this conversation.
-    Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
-    Use user's query history to understand the question better and guide your responses if needed.
-
-    {conversation_text}
-    """
-        
-        return system_prompt
     
     def is_usecase_registered(self, usecase: UseCase) -> bool:
         """Check if a use case is registered."""
@@ -265,15 +149,17 @@ class UseCaseRegistryService(UseCaseRegistry):
         self._registries.clear()
         logger.info("Cleared all use cases")
     
-    def _initialize_default_prompts(self) -> None:
+    def get_usecase_instance(self, usecase: UseCase) -> Optional[BaseUseCase]:
         """
-        Initialize default system prompts for each use case.
-        Note: The actual system prompts are handled by the original functions
-        in instances/energy/prompt.py and instances/heart/prompt.py
+        Get the use case instance for a given use case.
+        
+        Args:
+            usecase: The use case to get
+            
+        Returns:
+            BaseUseCase instance or None if not found
         """
-        # These are placeholder prompts - the real ones are in the original files
-        self._system_prompts[UseCase.ENERGY] = "Energy analysis assistant (original prompt in instances/energy/prompt.py)"
-        self._system_prompts[UseCase.HEART] = "Heart disease analysis assistant (original prompt in instances/heart/prompt.py)"
+        return self._usecase_instances.get(usecase)
     
     def _get_default_prompt(self) -> str:
         """

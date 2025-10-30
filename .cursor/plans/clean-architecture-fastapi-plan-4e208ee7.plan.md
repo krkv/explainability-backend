@@ -47,7 +47,7 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 
 | **Phase 5: Service Layer** | ✅ **COMPLETE** | 100% | Assistant service, LLM providers, function executor all implemented |
 
-| **Phase 6: UseCase Refactoring** | ❌ **NOT STARTED** | 0% | Only empty `__init__.py` files exist |
+| **Phase 6: UseCase Refactoring** | ✅ **COMPLETE** | 100% | All usecase classes created, functions refactored, registry updated |
 
 | **Phase 7: FastAPI Migration** | ❌ **NOT STARTED** | 0% | No FastAPI code, still using Flask |
 
@@ -65,13 +65,14 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 4. **Type Safety**: Enums, type hints, and interfaces throughout
 5. **Lazy Loading**: Infrastructure for lazy loading models and data created
 6. **Frontend Compatibility**: UseCase enum now properly handles frontend values ("Energy Consumption", "Heart Disease")
+7. **UseCase Refactoring**: Complete - functions moved to `src/usecases/` with lazy loading and dependency injection
 
 ### Critical Remaining Work ❌
 
-1. **Use Case Refactoring**: Functions still in `instances/` directories, need to move to `src/usecases/`
-2. **FastAPI Migration**: No FastAPI routes, schemas, or main app file
-3. **Testing**: No tests written yet
-4. **Configuration**: FastAPI dependencies not in requirements.txt, Dockerfile still uses Flask
+1. **FastAPI Migration**: No FastAPI routes, schemas, or main app file
+2. **Testing**: No tests written yet
+3. **Configuration**: FastAPI dependencies not in requirements.txt, Dockerfile still uses Flask
+4. **Legacy Code Cleanup**: Legacy `instances/` files still present (can be removed in Phase 10)
 
 ### Next Steps (Priority Order)
 
@@ -879,11 +880,16 @@ class EnergyConfig(BaseModel):
 
 **Action Items:**
 
-- [ ] Create base usecase class
-- [ ] Refactor energy functions into class
-- [ ] Refactor heart functions into class
-- [ ] Move prompt generation into usecases
-- [ ] Remove global state
+- [x] Create base usecase class (`src/usecases/base/base_usecase.py`) ✅ **COMPLETE**
+- [x] Create energy config class (`src/usecases/energy/energy_config.py`) ✅ **COMPLETE**
+- [x] Refactor energy functions into class (`src/usecases/energy/energy_functions.py`) ✅ **COMPLETE**
+- [x] Create energy usecase class (`src/usecases/energy/energy_usecase.py`) ✅ **COMPLETE**
+- [x] Create heart config class (`src/usecases/heart/heart_config.py`) ✅ **COMPLETE**
+- [x] Refactor heart functions into class (`src/usecases/heart/heart_functions.py`) ✅ **COMPLETE**
+- [x] Create heart usecase class (`src/usecases/heart/heart_usecase.py`) ✅ **COMPLETE**
+- [x] Move prompt generation into usecases (`get_system_prompt()` in each usecase class) ✅ **COMPLETE**
+- [x] Update usecase registry to use new usecase classes (`src/services/usecase/usecase_registry_service.py`) ✅ **COMPLETE**
+- [ ] Remove global state ⚠️ **PARTIAL** - New usecases use lazy loading, but legacy `instances/` files still have global state (can be removed in Phase 10)
 
 ---
 
@@ -1274,7 +1280,7 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 - [x] Phase 3: Create domain layer (interfaces/protocols, entities) ✅ **COMPLETE**
 - [x] Phase 4: Implement infrastructure layer (lazy loaders for models, data, explainers) ✅ **COMPLETE**
 - [x] Phase 5: Implement service layer (LLM providers, assistant service, function parser) ✅ **COMPLETE**
-- [ ] Phase 6: Refactor usecases (base class, energy/heart implementations, move functions) ❌ **NOT STARTED**
+- [x] Phase 6: Refactor usecases (base class, energy/heart implementations, move functions) ✅ **COMPLETE**
 - [ ] Phase 7: Migrate to FastAPI (schemas, routes, dependencies, main app) ❌ **NOT STARTED**
 - [ ] Phase 8: Create testing infrastructure (unit tests, integration tests, fixtures) ❌ **NOT STARTED**
 - [ ] Phase 9: Update configuration files (requirements.txt, Dockerfile, README) ⚠️ **PARTIAL** - Only pydantic added
