@@ -27,62 +27,114 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 
 ---
 
+## Implementation Status
+
+**Last Updated**: Based on current codebase review
+
+### Phase Completion Status
+
+| Phase | Status | Completion | Notes |
+|-------|--------|------------|-------|
+| **Phase 1: Security Fix** | ✅ **COMPLETE** | 100% | eval() replaced with AST parser, both instances updated |
+| **Phase 2: Core Infrastructure** | ✅ **COMPLETE** | 100% | Config, exceptions, constants, logging all implemented |
+| **Phase 3: Domain Layer** | ✅ **COMPLETE** | 100% | Interfaces/protocols and entities created |
+| **Phase 4: Infrastructure Layer** | ✅ **COMPLETE** | 100% | Lazy loaders, caching, factories implemented |
+| **Phase 5: Service Layer** | ✅ **COMPLETE** | 100% | Assistant service, LLM providers, function executor all implemented |
+| **Phase 6: UseCase Refactoring** | ❌ **NOT STARTED** | 0% | Only empty `__init__.py` files exist |
+| **Phase 7: FastAPI Migration** | ❌ **NOT STARTED** | 0% | No FastAPI code, still using Flask |
+| **Phase 8: Testing Infrastructure** | ❌ **NOT STARTED** | 0% | Test directories exist but empty |
+| **Phase 9: Configuration Files** | ⚠️ **PARTIAL** | 20% | requirements.txt missing FastAPI, Dockerfile still Flask |
+| **Phase 10: Cleanup Legacy Code** | ❌ **NOT STARTED** | 0% | All legacy files still present |
+
+### Key Achievements ✅
+
+1. **Security Fixed**: `eval()` completely removed, replaced with safe AST-based function parser
+2. **Clean Architecture Foundation**: Core, domain, infrastructure, and service layers fully implemented
+3. **Dependency Injection**: Services use dependency injection via factories
+4. **Type Safety**: Enums, type hints, and interfaces throughout
+5. **Lazy Loading**: Infrastructure for lazy loading models and data created
+
+### Critical Remaining Work ❌
+
+1. **Use Case Refactoring**: Functions still in `instances/` directories, need to move to `src/usecases/`
+2. **FastAPI Migration**: No FastAPI routes, schemas, or main app file
+3. **Testing**: No tests written yet
+4. **Configuration**: FastAPI dependencies not in requirements.txt, Dockerfile still uses Flask
+
+### Next Steps (Priority Order)
+
+1. **Phase 6**: Refactor use cases (move functions from `instances/` to `src/usecases/`)
+2. **Phase 7**: Implement FastAPI API layer (schemas, routes, dependencies, main app)
+3. **Phase 9**: Update requirements.txt and Dockerfile for FastAPI
+4. **Phase 8**: Write tests for all components
+5. **Phase 10**: Remove legacy code after verification
+
+---
+
 ## Current Architecture Analysis
 
 ### Code Structure
 
 ```
 explainability-backend/
-├── app.py                          # Flask app (36 lines)
-├── assistant.py                    # Orchestration (48 lines)
-├── huggingface.py                  # HF provider (32 lines)
-├── googlecloud.py                  # Google provider (35 lines)
-├── instances/
+├── app.py                          # Flask app (36 lines) - LEGACY, to be replaced
+├── assistant.py                    # Orchestration (48 lines) - LEGACY, to be replaced
+├── huggingface.py                  # HF provider (32 lines) - LEGACY, replaced
+├── googlecloud.py                  # Google provider (35 lines) - LEGACY, replaced
+├── instances/                       # LEGACY - functions still here, migrating to src/usecases/
 │   ├── energy/
 │   │   ├── executive.py           # 433 lines - global state, all functions
-│   │   ├── parser.py               # Uses eval() - SECURITY RISK
+│   │   ├── parser.py               # ✅ SECURITY FIXED - now uses safe AST parser
 │   │   ├── prompt.py               # Prompt generation
 │   │   └── functions.json          # Function definitions
 │   └── heart/
 │       ├── executive.py           # 464 lines - global state, all functions
-│       ├── parser.py               # Uses eval() - SECURITY RISK
+│       ├── parser.py               # ✅ SECURITY FIXED - now uses safe AST parser
 │       ├── prompt.py               # Prompt generation
 │       └── functions.json          # Function definitions
-└── requirements.txt
+└── src/                            # ✅ NEW CLEAN ARCHITECTURE
+    ├── api/                        # ⚠️ MISSING - FastAPI routes not implemented
+    ├── core/                       # ✅ COMPLETE - config, exceptions, constants, logging
+    ├── domain/                     # ✅ COMPLETE - entities, interfaces/protocols
+    ├── infrastructure/             # ✅ COMPLETE - loaders, caching, factories
+    ├── services/                   # ✅ COMPLETE - assistant, LLM, parser, function executor
+    └── usecases/                   # ⚠️ MISSING - only empty __init__.py files
+└── requirements.txt                # ⚠️ MISSING FastAPI/uvicorn dependencies
 ```
 
 ### Critical Issues Identified
 
-1. **Security: eval() Usage**
+1. **Security: eval() Usage** ✅ **FIXED**
 
-   - `instances/energy/parser.py:10`: `eval(call)`
-   - `instances/heart/parser.py:10`: `eval(call)`
-   - Risk: Arbitrary code execution from LLM-generated strings
+   - ✅ `instances/energy/parser.py`: Now uses `FunctionParser` with AST-based parsing
+   - ✅ `instances/heart/parser.py`: Now uses `FunctionParser` with AST-based parsing
+   - ✅ No `eval()` usage remaining in codebase
+   - ✅ Safe function execution implemented via `src/services/parser/function_parser.py`
 
-2. **Global State**
+2. **Global State** ⚠️ **PARTIALLY ADDRESSED**
 
-   - Models loaded at import: `instances/energy/executive.py:18-19`
-   - Datasets loaded at import: `instances/energy/executive.py:11`
-   - Explainers created at import: `instances/energy/executive.py:21`
-   - Impact: High memory usage, untestable without full initialization
+   - ⚠️ Models still loaded at import in `instances/energy/executive.py` and `instances/heart/executive.py`
+   - ⚠️ Datasets still loaded at import in executive files
+   - ✅ Lazy loading infrastructure created (`src/infrastructure/loaders/`)
+   - ⚠️ Use cases not yet refactored to use lazy loading
 
-3. **Tight Coupling**
+3. **Tight Coupling** ✅ **ADDRESSED**
 
-   - `assistant.py` directly imports parsers and providers
-   - `app.py` manually parses JSON, no validation
-   - No abstraction layers
+   - ✅ Dependency injection implemented via services and factories
+   - ✅ Abstraction layers created (domain interfaces)
+   - ⚠️ Legacy `app.py` still uses direct imports (needs FastAPI migration)
 
-4. **Type Safety Issues**
+4. **Type Safety Issues** ✅ **MOSTLY ADDRESSED**
 
-   - String-based model/usecase switching
-   - Manual JSON parsing with try/except
-   - No request/response schemas
+   - ✅ Enums created for models and use cases (`src/core/config.py`, `src/core/constants.py`)
+   - ✅ Type hints throughout services and domain layer
+   - ⚠️ FastAPI schemas not yet created (no request/response validation)
 
-5. **Code Duplication**
+5. **Code Duplication** ⚠️ **PARTIALLY ADDRESSED**
 
-   - Similar filtering logic in energy/heart `group` functions
-   - Repeated prompt generation patterns
-   - Duplicated error handling
+   - ⚠️ Similar logic still exists in energy/heart executive files
+   - ⚠️ Use case refactoring not yet complete
+   - ✅ Common infrastructure extracted (loaders, parsers, services)
 
 ---
 
@@ -288,12 +340,13 @@ class FunctionRegistry:
 
 **Action Items:**
 
-- [ ] Implement AST-based function parser
-- [ ] Create function registry
-- [ ] Update energy parser to use safe parser
-- [ ] Update heart parser to use safe parser
-- [ ] Remove all `eval()` usage
-- [ ] Add unit tests for parser
+- [x] Implement AST-based function parser (`src/services/parser/function_parser.py`)
+- [x] Create function registry (`src/services/parser/function_registry.py`)
+- [x] Create AST parser utilities (`src/services/parser/ast_parser.py`)
+- [x] Update energy parser to use safe parser (`instances/energy/parser.py`)
+- [x] Update heart parser to use safe parser (`instances/heart/parser.py`)
+- [x] Remove all `eval()` usage
+- [ ] Add unit tests for parser (deferred to Phase 8)
 
 ---
 
@@ -391,10 +444,11 @@ class DataLoadException(ExplainabilityException):
 
 **Action Items:**
 
-- [ ] Create directory structure
-- [ ] Implement configuration management
-- [ ] Define exception hierarchy
-- [ ] Create constants/enums
+- [x] Create directory structure
+- [x] Implement configuration management (`src/core/config.py`)
+- [x] Define exception hierarchy (`src/core/exceptions.py`)
+- [x] Create constants/enums (`src/core/constants.py`)
+- [x] Setup logging configuration (`src/core/logging_config.py`)
 
 ---
 
@@ -447,9 +501,17 @@ class Message(BaseModel):
 
 **Action Items:**
 
-- [ ] Define domain interfaces (Protocols)
-- [ ] Create entity models
-- [ ] Establish type contracts
+- [x] Define domain interfaces (Protocols) (`src/domain/interfaces/`)
+  - [x] `llm_provider.py`
+  - [x] `function_executor.py`
+  - [x] `usecase_registry.py`
+  - [x] `model_loader.py`
+  - [x] `data_loader.py`
+- [x] Create entity models (`src/domain/entities/`)
+  - [x] `message.py` (includes `Conversation` class)
+  - [x] `function_call.py`
+  - [x] `assistant_response.py`
+- [x] Establish type contracts
 
 ---
 
@@ -497,10 +559,11 @@ class DataLoader:
 
 **Action Items:**
 
-- [ ] Implement lazy model loading
-- [ ] Implement lazy data loading
-- [ ] Add caching mechanism
-- [ ] Create explainer loader
+- [x] Implement lazy model loading (`src/infrastructure/loaders/model_loader.py`)
+- [x] Implement lazy data loading (`src/infrastructure/loaders/data_loader.py`)
+- [x] Add caching mechanism (`src/infrastructure/caching/cache_manager.py`)
+- [x] Create explainer loader (`src/infrastructure/loaders/explainer_loader.py`)
+- [x] Create infrastructure factory (`src/infrastructure/factory.py`)
 
 ---
 
@@ -650,10 +713,16 @@ class AssistantService:
 
 **Action Items:**
 
-- [ ] Refactor LLM providers into classes
-- [ ] Create assistant service
-- [ ] Implement dependency injection
-- [ ] Add error handling
+- [x] Refactor LLM providers into classes
+  - [x] `src/services/llm/huggingface_provider.py` (Note: Named `HuggingFaceProvider`, uses `google_gemini_provider.py` naming pattern)
+  - [x] `src/services/llm/google_gemini_provider.py` (Note: Named `GoogleGeminiProvider`)
+  - [x] `src/services/llm/llm_factory.py`
+- [x] Create assistant service (`src/services/assistant/assistant_service.py`)
+- [x] Create function executor service (`src/services/function/function_executor_service.py`)
+- [x] Create use case registry service (`src/services/usecase/usecase_registry_service.py`)
+- [x] Create service factory (`src/services/service_factory.py`)
+- [x] Implement dependency injection via factories
+- [x] Add error handling throughout
 
 ---
 
@@ -798,6 +867,13 @@ class EnergyConfig(BaseModel):
 ---
 
 ### Phase 7: FastAPI Migration
+
+**Status**: ❌ **NOT STARTED** - No FastAPI code exists yet, still using Flask
+
+**Note**: The service layer has been implemented differently than the plan:
+- `AssistantService` uses `process_message()` method instead of `generate_response()`
+- Services are created via factories (`service_factory.py`) rather than direct dependency injection in routes
+- `FunctionExecutorService` and `UseCaseRegistryService` are separate services that will need to be wired into FastAPI dependencies
 
 #### 7.1 API Schemas
 
@@ -1068,27 +1144,27 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
 ### Must Have
 
-- [ ] No `eval()` usage in codebase
-- [ ] All tests pass (>80% coverage)
-- [ ] API documentation available at `/docs`
-- [ ] Request validation working
-- [ ] Backward compatible API responses
-- [ ] No performance regression
+- [x] No `eval()` usage in codebase ✅ **ACHIEVED**
+- [ ] All tests pass (>80% coverage) ⚠️ **PENDING** - No tests written yet
+- [ ] API documentation available at `/docs` ⚠️ **PENDING** - FastAPI not implemented
+- [ ] Request validation working ⚠️ **PENDING** - FastAPI schemas not created
+- [ ] Backward compatible API responses ⚠️ **PENDING** - FastAPI not implemented
+- [ ] No performance regression ⚠️ **PENDING** - Not yet measured
 
 ### Should Have
 
-- [ ] Type hints throughout (>90% coverage)
-- [ ] Comprehensive error handling
-- [ ] Structured logging
-- [ ] Code duplication reduced by >50%
-- [ ] Clean architecture principles followed
+- [x] Type hints throughout (>90% coverage) ✅ **ACHIEVED** - Comprehensive type hints in services/domain
+- [x] Comprehensive error handling ✅ **ACHIEVED** - Exception hierarchy and error handling implemented
+- [x] Structured logging ✅ **ACHIEVED** - Logging configuration implemented
+- [ ] Code duplication reduced by >50% ⚠️ **PENDING** - Use case refactoring needed
+- [x] Clean architecture principles followed ✅ **ACHIEVED** - Layers properly separated
 
 ### Nice to Have
 
-- [ ] Async/await where beneficial
-- [ ] Metrics/monitoring
-- [ ] Performance improvements
-- [ ] Comprehensive documentation
+- [x] Async/await where beneficial ✅ **ACHIEVED** - LLM providers use async
+- [ ] Metrics/monitoring ❌ **NOT STARTED**
+- [ ] Performance improvements ❌ **NOT STARTED**
+- [ ] Comprehensive documentation ❌ **NOT STARTED**
 
 ---
 
@@ -1150,13 +1226,21 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
 ### To-dos
 
-- [ ] Phase 1: Implement safe function parser using AST to replace eval() - critical security fix
-- [ ] Phase 2: Set up core infrastructure (config, exceptions, constants, directory structure)
-- [ ] Phase 3: Create domain layer (interfaces/protocols, entities)
-- [ ] Phase 4: Implement infrastructure layer (lazy loaders for models, data, explainers)
-- [ ] Phase 5: Implement service layer (LLM providers, assistant service, function parser)
-- [ ] Phase 6: Refactor usecases (base class, energy/heart implementations, move functions)
-- [ ] Phase 7: Migrate to FastAPI (schemas, routes, dependencies, main app)
-- [ ] Phase 8: Create testing infrastructure (unit tests, integration tests, fixtures)
-- [ ] Phase 9: Update configuration files (requirements.txt, Dockerfile, README)
-- [ ] Phase 10: Remove legacy code (app.py, assistant.py, old instance files)
+- [x] Phase 1: Implement safe function parser using AST to replace eval() - critical security fix ✅ **COMPLETE**
+- [x] Phase 2: Set up core infrastructure (config, exceptions, constants, directory structure) ✅ **COMPLETE**
+- [x] Phase 3: Create domain layer (interfaces/protocols, entities) ✅ **COMPLETE**
+- [x] Phase 4: Implement infrastructure layer (lazy loaders for models, data, explainers) ✅ **COMPLETE**
+- [x] Phase 5: Implement service layer (LLM providers, assistant service, function parser) ✅ **COMPLETE**
+- [ ] Phase 6: Refactor usecases (base class, energy/heart implementations, move functions) ❌ **NOT STARTED**
+- [ ] Phase 7: Migrate to FastAPI (schemas, routes, dependencies, main app) ❌ **NOT STARTED**
+- [ ] Phase 8: Create testing infrastructure (unit tests, integration tests, fixtures) ❌ **NOT STARTED**
+- [ ] Phase 9: Update configuration files (requirements.txt, Dockerfile, README) ⚠️ **PARTIAL** - Only pydantic added
+- [ ] Phase 10: Remove legacy code (app.py, assistant.py, old instance files) ❌ **NOT STARTED**
+
+### Implementation Notes
+
+**Important**: The actual implementation differs slightly from the plan:
+- LLM providers are implemented as `HuggingFaceProvider` and `GoogleGeminiProvider` (not `GoogleProvider`)
+- Service layer includes additional services: `FunctionExecutorService`, `UseCaseRegistryService`
+- Infrastructure includes factories for dependency injection
+- Use case registry pattern implemented via `UseCaseRegistryService` instead of direct registry
