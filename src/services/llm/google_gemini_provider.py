@@ -105,7 +105,8 @@ class GoogleGeminiProvider(LLMProvider):
         from src.services.service_factory import get_usecase_registry
         from src.core.constants import UseCase
         
-        usecase_enum = UseCase.ENERGY if usecase == "energy" else UseCase.HEART
+        # Convert string usecase to enum (handles both frontend and backend formats)
+        usecase_enum = UseCase.from_string(usecase)
         registry = get_usecase_registry()
         system_prompt = registry.get_system_prompt(usecase_enum, conversation)
         

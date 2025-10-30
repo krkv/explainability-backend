@@ -13,6 +13,40 @@ class UseCase(str, Enum):
     """Supported use cases."""
     ENERGY = "energy"
     HEART = "heart"
+    
+    @classmethod
+    def from_string(cls, value: str) -> "UseCase":
+        """
+        Map frontend string format to enum.
+        
+        Handles both frontend format ("Energy Consumption", "Heart Disease")
+        and backend format ("energy", "heart").
+        
+        Args:
+            value: String value from frontend or backend
+            
+        Returns:
+            UseCase enum value
+            
+        Raises:
+            ValueError: If value cannot be mapped to a valid UseCase
+        """
+        mapping = {
+            "Energy Consumption": cls.ENERGY,
+            "Heart Disease": cls.HEART,
+            "energy": cls.ENERGY,
+            "heart": cls.HEART,
+        }
+        result = mapping.get(value)
+        if result is None:
+            # Try case-insensitive match
+            value_lower = value.lower()
+            if value_lower in ["energy consumption", "energy"]:
+                return cls.ENERGY
+            elif value_lower in ["heart disease", "heart"]:
+                return cls.HEART
+            raise ValueError(f"Invalid usecase value: {value}. Expected 'Energy Consumption', 'Heart Disease', 'energy', or 'heart'")
+        return result
 
 
 class MessageRole(str, Enum):

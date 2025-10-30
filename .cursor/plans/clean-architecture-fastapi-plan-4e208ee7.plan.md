@@ -34,16 +34,27 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 ### Phase Completion Status
 
 | Phase | Status | Completion | Notes |
+
 |-------|--------|------------|-------|
+
 | **Phase 1: Security Fix** | ✅ **COMPLETE** | 100% | eval() replaced with AST parser, both instances updated |
+
 | **Phase 2: Core Infrastructure** | ✅ **COMPLETE** | 100% | Config, exceptions, constants, logging all implemented |
+
 | **Phase 3: Domain Layer** | ✅ **COMPLETE** | 100% | Interfaces/protocols and entities created |
+
 | **Phase 4: Infrastructure Layer** | ✅ **COMPLETE** | 100% | Lazy loaders, caching, factories implemented |
+
 | **Phase 5: Service Layer** | ✅ **COMPLETE** | 100% | Assistant service, LLM providers, function executor all implemented |
+
 | **Phase 6: UseCase Refactoring** | ❌ **NOT STARTED** | 0% | Only empty `__init__.py` files exist |
+
 | **Phase 7: FastAPI Migration** | ❌ **NOT STARTED** | 0% | No FastAPI code, still using Flask |
+
 | **Phase 8: Testing Infrastructure** | ❌ **NOT STARTED** | 0% | Test directories exist but empty |
+
 | **Phase 9: Configuration Files** | ⚠️ **PARTIAL** | 20% | requirements.txt missing FastAPI, Dockerfile still Flask |
+
 | **Phase 10: Cleanup Legacy Code** | ❌ **NOT STARTED** | 0% | All legacy files still present |
 
 ### Key Achievements ✅
@@ -53,6 +64,7 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 3. **Dependency Injection**: Services use dependency injection via factories
 4. **Type Safety**: Enums, type hints, and interfaces throughout
 5. **Lazy Loading**: Infrastructure for lazy loading models and data created
+6. **Frontend Compatibility**: UseCase enum now properly handles frontend values ("Energy Consumption", "Heart Disease")
 
 ### Critical Remaining Work ❌
 
@@ -63,11 +75,17 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 
 ### Next Steps (Priority Order)
 
-1. **Phase 6**: Refactor use cases (move functions from `instances/` to `src/usecases/`)
-2. **Phase 7**: Implement FastAPI API layer (schemas, routes, dependencies, main app)
-3. **Phase 9**: Update requirements.txt and Dockerfile for FastAPI
-4. **Phase 8**: Write tests for all components
-5. **Phase 10**: Remove legacy code after verification
+1. **🔴 URGENT**: Fix UseCase enum to handle frontend values ("Energy Consumption", "Heart Disease")
+
+   - Add `from_string()` method to `UseCase` in `src/core/constants.py` 
+   - OR consolidate `UseCase` enums (remove duplication between `config.py` and `constants.py`)
+   - Update all code that manually converts usecase strings to use the `from_string()` method
+
+2. **Phase 6**: Refactor use cases (move functions from `instances/` to `src/usecases/`)
+3. **Phase 7**: Implement FastAPI API layer (schemas, routes, dependencies, main app)
+4. **Phase 9**: Update requirements.txt and Dockerfile for FastAPI
+5. **Phase 8**: Write tests for all components
+6. **Phase 10**: Remove legacy code after verification
 
 ---
 
@@ -449,6 +467,9 @@ class DataLoadException(ExplainabilityException):
 - [x] Define exception hierarchy (`src/core/exceptions.py`)
 - [x] Create constants/enums (`src/core/constants.py`)
 - [x] Setup logging configuration (`src/core/logging_config.py`)
+- [x] ✅ **FIXED**: Added `from_string()` method to `UseCase` enum in `constants.py` to handle frontend values ("Energy Consumption", "Heart Disease")
+- [x] ✅ **FIXED**: Updated LLM providers (`huggingface_provider.py`, `google_gemini_provider.py`) to use `UseCase.from_string()` instead of manual conversion
+- [ ] Consolidate duplicate `UseCase` enums (currently in both `config.py` and `constants.py`) - **LOW PRIORITY** - Both work correctly now
 
 ---
 
@@ -871,6 +892,7 @@ class EnergyConfig(BaseModel):
 **Status**: ❌ **NOT STARTED** - No FastAPI code exists yet, still using Flask
 
 **Note**: The service layer has been implemented differently than the plan:
+
 - `AssistantService` uses `process_message()` method instead of `generate_response()`
 - Services are created via factories (`service_factory.py`) rather than direct dependency injection in routes
 - `FunctionExecutorService` and `UseCaseRegistryService` are separate services that will need to be wired into FastAPI dependencies
@@ -1224,6 +1246,27 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 - Async/await can be added incrementally (start with sync, migrate later)
 - Maintain backward compatibility during transition
 
+### Implementation Notes
+
+**Important**: The actual implementation differs slightly from the plan:
+
+- LLM providers are implemented as `HuggingFaceProvider` and `GoogleGeminiProvider` (not `GoogleProvider`)
+- Service layer includes additional services: `FunctionExecutorService`, `UseCaseRegistryService`
+- Infrastructure includes factories for dependency injection
+- Use case registry pattern implemented via `UseCaseRegistryService` instead of direct registry
+
+**✅ RESOLVED - UseCase Enum Issue**:
+
+- **Issue Fixed**: Added `from_string()` method to `UseCase` enum in `constants.py`
+  - ✅ Method correctly maps "Energy Consumption" → `ENERGY` and "Heart Disease" → `HEART`
+  - ✅ Also handles backend format ("energy", "heart") for backward compatibility
+  - ✅ Includes case-insensitive matching for robustness
+- **Code Updated**:
+  - ✅ Updated `src/services/llm/huggingface_provider.py` to use `UseCase.from_string(usecase)`
+  - ✅ Updated `src/services/llm/google_gemini_provider.py` to use `UseCase.from_string(usecase)`
+- **Note**: Legacy `app.py` still has manual conversion, but this will be removed when FastAPI migration is complete
+- **Note**: Two `UseCase` enums still exist (in `config.py` and `constants.py`), but both work correctly now. Consolidation can be done later if desired.
+
 ### To-dos
 
 - [x] Phase 1: Implement safe function parser using AST to replace eval() - critical security fix ✅ **COMPLETE**
@@ -1236,11 +1279,3 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 - [ ] Phase 8: Create testing infrastructure (unit tests, integration tests, fixtures) ❌ **NOT STARTED**
 - [ ] Phase 9: Update configuration files (requirements.txt, Dockerfile, README) ⚠️ **PARTIAL** - Only pydantic added
 - [ ] Phase 10: Remove legacy code (app.py, assistant.py, old instance files) ❌ **NOT STARTED**
-
-### Implementation Notes
-
-**Important**: The actual implementation differs slightly from the plan:
-- LLM providers are implemented as `HuggingFaceProvider` and `GoogleGeminiProvider` (not `GoogleProvider`)
-- Service layer includes additional services: `FunctionExecutorService`, `UseCaseRegistryService`
-- Infrastructure includes factories for dependency injection
-- Use case registry pattern implemented via `UseCaseRegistryService` instead of direct registry
