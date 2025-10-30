@@ -20,6 +20,7 @@ class Message(BaseModel):
 class Conversation(BaseModel):
     """Represents a conversation as a list of messages."""
     
+    id: str = Field(..., description="Unique identifier for the conversation")
     messages: list[Message] = Field(default_factory=list, description="List of messages in the conversation")
     
     def add_message(self, role: MessageRole, content: str) -> None:

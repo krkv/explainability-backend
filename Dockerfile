@@ -5,11 +5,9 @@ WORKDIR /usr/local/app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-ENV FLASK_ENV=production
-ENV FLASK_APP=app.py
-
 # Copy in the source code
 COPY . .
-EXPOSE 5000
+EXPOSE 8080
 
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:8080", "app:app"]
+# Run FastAPI with uvicorn
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
