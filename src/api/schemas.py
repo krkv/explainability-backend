@@ -16,10 +16,9 @@ class ConversationMessage(BaseModel):
 class AssistantRequest(BaseModel):
     """Request schema for assistant response endpoint."""
     
-    conversation: List[ConversationMessage] = Field(..., description="Conversation history")
+    conversation: List[ConversationMessage] = Field(..., description="Full conversation history from frontend")
     model: str = Field(..., description="LLM model name")
     usecase: str = Field(..., description="Use case: 'Energy Consumption' or 'Heart Disease'")
-    conversation_id: Optional[str] = Field(None, description="Optional conversation ID for context")
 
 
 class AssistantResponseWrapper(BaseModel):

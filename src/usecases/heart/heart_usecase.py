@@ -254,9 +254,6 @@ class HeartUseCase(BaseUseCase):
             "additionalProperties": "false"
         }
         
-        # Format conversation for the prompt
-        conversation_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversation])
-        
         system_prompt = f"""
     Your name is Claire. You are a trustworthy data science assistant that helps user to understand the data, model and predictions for a machine learning model application use case in medical sector.
     Here is the description of the dataset:
@@ -288,7 +285,7 @@ class HeartUseCase(BaseUseCase):
     Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
     Use user's query history to understand the question better and guide your responses if needed.
 
-    {conversation_text}
+    {json.dumps(conversation)}
     """
         
         return system_prompt

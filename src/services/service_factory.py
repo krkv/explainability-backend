@@ -73,7 +73,6 @@ def get_service_stats() -> Dict[str, Any]:
             "usecases": [uc.value for uc in get_usecase_registry().get_registered_usecases()]
         },
         "function_executor": get_function_executor().get_parser_stats(),
-        "assistant_service": get_assistant_service().get_conversation_stats(),
         "llm_providers": get_provider_info()
     }
     return stats

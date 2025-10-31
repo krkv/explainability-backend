@@ -57,28 +57,21 @@ async def get_assistant_response(
         model = validate_model(request.model)
         usecase = validate_usecase(request.usecase)
         
-        # Extract user message from conversation
-        # The last message in the conversation should be the user's current message
+        # Validate conversation is not empty
         if not request.conversation:
             raise HTTPException(
                 status_code=400,
                 detail="Conversation cannot be empty. At least one message is required."
             )
         
-        # Get the last message as the user input
-        last_message = request.conversation[-1]
-        user_message = last_message.content
+        # Convert conversation from API format to simple dict format
+        conversation_dict = [{"role": msg.role, "content": msg.content} for msg in request.conversation]
         
-        # Optionally validate that last message is from user
-        if last_message.role != "user":
-            logger.warning(f"Last message role is '{last_message.role}', expected 'user'")
-        
-        # Process message using assistant service
+        # Process conversation using assistant service (frontend manages conversation history)
         response = await assistant_service.process_message(
-            user_message=user_message,
+            conversation=conversation_dict,
             usecase=usecase,
             model=model,
-            conversation_id=request.conversation_id,
         )
         
         # Wrap response in legacy format for backward compatibility
