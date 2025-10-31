@@ -126,8 +126,10 @@ class AssistantService:
         """
         messages = []
         for message in conversation.messages:
+            # Handle both enum and string roles (Pydantic's use_enum_values may convert to string)
+            role = message.role.value if hasattr(message.role, 'value') else message.role
             messages.append({
-                "role": message.role.value,
+                "role": role,
                 "content": message.content
             })
         return messages
