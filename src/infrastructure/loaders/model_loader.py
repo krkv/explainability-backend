@@ -1,7 +1,7 @@
 """Model loader implementation with lazy loading and caching."""
 
-import pickle
 import joblib
+import gplearn
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -74,14 +74,8 @@ class CachedModelLoader(ModelLoader):
         if not path.is_file():
             raise ModelLoadException(f"Path is not a file: {model_path}")
         
-        # Try different loading methods based on file extension
         try:
-            if path.suffix == '.pkl':
-                with open(path, 'rb') as f:
-                    return pickle.load(f)
-            else:
-                # Try joblib for other formats
-                return joblib.load(path)
+            return joblib.load(path)
         except Exception as e:
             raise ModelLoadException(f"Error loading model file {model_path}: {e}")
     
