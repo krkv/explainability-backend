@@ -29,7 +29,37 @@ This plan outlines the refactoring of the XAI LLM Chat Backend from a Flask-base
 
 ## Implementation Status
 
-**Last Updated**: Based on current codebase review
+**Last Updated**: 2025-01-27 - Conversation history management removed from backend
+
+## Changelog
+
+### 2025-01-27 - Conversation History Management Removed
+
+**Summary**: Removed all backend conversation state management. Frontend now manages and sends entire conversation history with each request.
+
+**Changes**:
+- **AssistantService** (`src/services/assistant/assistant_service.py`):
+  - ✅ Removed `_conversations` dictionary and all conversation tracking methods
+  - ✅ Removed `_get_or_create_conversation()`, `get_conversation()`, `get_all_conversations()`, `get_conversation_stats()` methods
+  - ✅ Removed `_prepare_conversation_for_llm()` method (no longer needed)
+  - ✅ Simplified `process_message()` to directly accept `conversation: List[Dict[str, str]]` from frontend
+  - ✅ Conversation is now passed directly to LLM providers without backend state management
+- **API Schemas** (`src/api/schemas.py`):
+  - ✅ Removed `conversation_id` field from `AssistantRequest`
+  - ✅ `AssistantRequest` now only includes `conversation`, `model`, and `usecase`
+- **API Routes** (`src/api/routes.py`):
+  - ✅ Updated to pass full conversation directly from request to `assistant_service.process_message()`
+  - ✅ Removed `conversation_id` extraction logic
+- **Service Factory** (`src/services/service_factory.py`):
+  - ✅ Removed `get_conversation_stats()` call from service initialization
+
+**Architecture Impact**:
+- Backend is now stateless regarding conversation history (matches legacy implementation)
+- Frontend is responsible for maintaining and sending conversation history with each request
+- Conversation history is embedded in system prompts as JSON (as per legacy implementation)
+- Reduced backend complexity and memory usage (no conversation storage)
+
+**Status**: ✅ Complete
 
 ### Phase Completion Status
 
@@ -681,7 +711,11 @@ import json
 from typing import List, Dict
 
 class AssistantService:
-    """Orchestrates LLM calls and function execution."""
+    """Orchestrates LLM calls and function execution.
+    
+    Note: Conversation history is managed by the frontend and passed with each request.
+    The backend is stateless and does not track conversations.
+    """
     
     def __init__(
         self,
@@ -691,13 +725,20 @@ class AssistantService:
         self.llm_provider = llm_provider
         self.function_parser = function_parser
     
-    async def generate_response(
+    async def process_message(
         self,
         conversation: List[Dict[str, str]],
-        usecase: str
-    ) -> Dict:
-        """Generate assistant response with function execution."""
-        # Get LLM response
+        usecase: UseCase,
+        model: Model
+    ) -> AssistantResponse:
+        """Process a conversation and generate an assistant response.
+        
+        Args:
+            conversation: Full conversation history from frontend
+            usecase: The use case context
+            model: The LLM model to use
+        """
+        # Get LLM response (conversation history is embedded in system prompt)
         llm_response = await self.llm_provider.generate_response(
             conversation, usecase
         )
@@ -716,11 +757,11 @@ class AssistantService:
                 # Log and handle gracefully
                 parse_result = f"Error executing functions: {e}"
         
-        return {
-            "function_calls": function_calls,
-            "freeform_response": freeform_response.strip(),
-            "parse": parse_result,
-        }
+        return AssistantResponse(
+            function_calls=function_calls,
+            freeform_response=freeform_response.strip(),
+            parse=parse_result,
+        )
 ```
 
 **Action Items:**
@@ -907,9 +948,10 @@ class Message(BaseModel):
     content: str
 
 class AssistantRequest(BaseModel):
-    conversation: List[Message]
+    conversation: List[Message]  # Full conversation history from frontend
     model: str  # Will be validated and converted to Model enum
     usecase: str  # Will be validated and converted to UseCase enum
+    # Note: conversation_id removed - backend is stateless, frontend manages conversation
 
 class AssistantResponse(BaseModel):
     function_calls: List[str]
@@ -1041,13 +1083,15 @@ async def shutdown():
 - [x] Add error handlers and CORS middleware ✅ **COMPLETE**
 - [x] Update requirements.txt with FastAPI dependencies ✅ **COMPLETE**
 - [x] Update Dockerfile for FastAPI/uvicorn ✅ **COMPLETE**
-- [x] Fix Conversation entity to include `id` field ✅ **COMPLETE**
+- [x] Remove backend conversation history management ✅ **COMPLETE** - Backend is now stateless
 
 **Implementation Details:**
 
-- **Schemas** (`src/api/schemas.py`): Created request/response models including `AssistantRequest`, `AssistantResponseWrapper`, and `HealthResponse`
+- **Schemas** (`src/api/schemas.py`): Created request/response models including `AssistantRequest` (with `conversation`, `model`, `usecase` - no `conversation_id`), `AssistantResponseWrapper`, and `HealthResponse`
 - **Dependencies** (`src/api/dependencies.py`): Implemented validation functions for model and usecase, dependency injection for `AssistantService` via service factory
 - **Routes** (`src/api/routes.py`): Implemented `/ready` health check endpoint and `/getAssistantResponse` POST endpoint with full error handling
+  - Passes full conversation history from frontend directly to `AssistantService.process_message()`
+  - Backend is stateless - no conversation tracking or extraction of user messages
 - **Main App** (`src/main.py`): FastAPI application with CORS middleware, logging setup, startup/shutdown events, and automatic API documentation at `/docs`
 - **Backward Compatibility**: Response format matches legacy Flask API (`{"assistantResponse": {...}}`) for seamless frontend integration
 - **Configuration**: Updated `requirements.txt` with `fastapi>=0.104.0` and `uvicorn[standard]>=0.24.0`, updated `Dockerfile` to use uvicorn instead of gunicorn
@@ -1297,7 +1341,7 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 **✅ COMPLETE - Phase 7 FastAPI Migration**:
 
 - **API Schemas** (`src/api/schemas.py`):
-  - ✅ Created `AssistantRequest` with conversation, model, usecase, and optional conversation_id
+  - ✅ Created `AssistantRequest` with conversation, model, usecase (conversation_id removed - backend is stateless)
   - ✅ Created `AssistantResponseWrapper` to match legacy Flask API format (`{"assistantResponse": {...}}`)
   - ✅ Created `HealthResponse` for health check endpoint
   - ✅ Used existing `AssistantResponse` entity from domain layer
@@ -1309,9 +1353,9 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
 - **API Routes** (`src/api/routes.py`):
   - ✅ Implemented `/ready` GET endpoint for health checks
   - ✅ Implemented `/getAssistantResponse` POST endpoint with full error handling
-  - ✅ Extracts user message from conversation history (last message)
+  - ✅ Passes full conversation history from frontend to `AssistantService.process_message()`
   - ✅ Validates and converts model/usecase strings to enums
-  - ✅ Calls `AssistantService.process_message()` with proper parameters
+  - ✅ Backend is stateless - no conversation tracking
   - ✅ Returns response in legacy format for backward compatibility
 - **Main Application** (`src/main.py`):
   - ✅ FastAPI application with title, description, version
@@ -1324,8 +1368,10 @@ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8080"]
   - ✅ `requirements.txt`: Added `fastapi>=0.104.0` and `uvicorn[standard]>=0.24.0`
   - ✅ `Dockerfile`: Changed CMD to use `uvicorn src.main:app` instead of gunicorn
   - ✅ Flask dependencies kept temporarily for backward compatibility
-- **Entity Fixes**:
-  - ✅ Added `id` field to `Conversation` entity to match `AssistantService` usage
+- **Conversation Management**:
+  - ✅ Backend does not track conversation history (stateless architecture)
+  - ✅ Frontend sends entire conversation history with each request
+  - ✅ Conversation history embedded in system prompts as JSON (matching legacy behavior)
 - **Backward Compatibility**: All responses match legacy Flask API format for seamless frontend integration
 
 ### To-dos
