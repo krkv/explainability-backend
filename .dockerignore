@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+env/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+tests/
+eval/
+eval_datasets/
+eval_results/
+
+# Development
+.dev/
+devdocs/
+*.md
+readme.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Evaluation and temporary files
+*.csv
+*.pkl
+*.log
+calculate_accuracy.py
+eval_*.py
+last_prompt.log
+eval_prompt.log
+
+# Documentation
+*.md
+docs/
+
