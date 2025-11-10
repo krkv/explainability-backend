@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     # API Configuration
     api_host: str = "0.0.0.0"
     api_port: int = 8080
-    api_title: str = "XAI LLM Chat Backend"
+    api_title: str = "Explainability Assistant Backend"
     api_description: str = "LLM-powered assistant for ML model explanations"
     api_version: str = "2.0.0"
     

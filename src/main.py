@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
-    title="XAI LLM Chat Backend",
+    title="Explainability Assistant Backend",
     description="LLM-powered assistant for ML model explanations",
     version="2.0.0",
     docs_url="/docs",
@@ -35,7 +35,7 @@ app.include_router(router)
 @app.on_event("startup")
 async def startup():
     """Startup tasks."""
-    logger.info("Starting XAI LLM Chat Backend")
+    logger.info("Starting Explainability Assistant Backend")
     logger.info("FastAPI application initialized")
     logger.info(f"API endpoints: {APIEndpoints.READY}, {APIEndpoints.ASSISTANT_RESPONSE}")
 
@@ -43,14 +43,14 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     """Shutdown tasks."""
-    logger.info("Shutting down XAI LLM Chat Backend")
+    logger.info("Shutting down Explainability Assistant Backend")
 
 
 @app.get("/")
 async def root():
     """Root endpoint with API information."""
     return {
-        "name": "XAI LLM Chat Backend",
+        "name": "Explainability Assistant Backend",
         "version": "2.0.0",
         "docs": "/docs",
         "health": APIEndpoints.READY,
