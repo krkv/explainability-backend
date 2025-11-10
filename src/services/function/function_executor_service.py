@@ -6,6 +6,7 @@ from src.core.exceptions import FunctionExecutionException, InvalidUseCaseExcept
 from src.core.logging_config import get_logger
 from src.domain.interfaces.function_executor import FunctionExecutor
 from src.domain.interfaces.usecase_registry import UseCaseRegistry
+from src.services.parser.ast_parser import ASTParser
 from src.services.parser.function_parser import FunctionParser
 from src.core.constants import UseCase
 
@@ -60,21 +61,22 @@ class FunctionExecutorService(FunctionExecutor):
             logger.error(f"An unexpected error occurred during function execution: {e}")
             raise FunctionExecutionException(f"An unexpected error occurred during function execution: {e}")
     
-    def get_available_functions(self, usecase: UseCase) -> Dict[str, Callable]:
+    def get_available_functions(self, usecase: UseCase) -> List[str]:
         """
-        Retrieves all registered functions for a specific use case.
+        Retrieves all registered function names for a specific use case.
         
         Args:
             usecase: The name of the use case.
             
         Returns:
-            A dictionary of callable functions.
+            A list of function names.
             
         Raises:
             InvalidUseCaseException: If the use case is not found.
         """
         try:
-            return self.usecase_registry.get_functions(usecase)
+            functions = self.usecase_registry.get_functions(usecase)
+            return list(functions.keys())
         except FunctionExecutionException as e:
             raise InvalidUseCaseException(f"Usecase '{usecase.value}' not found: {e}")
     
@@ -91,9 +93,7 @@ class FunctionExecutorService(FunctionExecutor):
             True if the function call is valid, False otherwise.
         """
         try:
-            parser = self._get_parser(usecase)
-            parsed_call = parser._ast_parser.parse_function_call(function_call_str)
-            func_name = parsed_call["name"]
+            func_name, kwargs = ASTParser.parse_function_call(function_call_str)
             self.usecase_registry.get_function(usecase, func_name)  # Check if function exists
             return True
         except (FunctionExecutionException, InvalidUseCaseException):
