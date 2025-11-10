@@ -121,9 +121,8 @@ class GoogleGeminiProvider(LLMProvider):
         )
         
         # Generate response using async wrapper
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None, 
+        # Use asyncio.to_thread() instead of deprecated asyncio.get_event_loop()
+        response = await asyncio.to_thread(
             self._generate_sync, 
             user_input,
             generate_content_config

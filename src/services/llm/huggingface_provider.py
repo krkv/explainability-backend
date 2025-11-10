@@ -111,9 +111,8 @@ class HuggingFaceProvider(LLMProvider):
   <|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
         
         # Generate response using async wrapper
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None, 
+        # Use asyncio.to_thread() instead of deprecated asyncio.get_event_loop()
+        response = await asyncio.to_thread(
             self._client.text_generation, 
             llama_prompt
         )
