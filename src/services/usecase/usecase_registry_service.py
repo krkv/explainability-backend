@@ -15,44 +15,72 @@ class UseCaseRegistryService(UseCaseRegistry):
     """
     Manages the registration and retrieval of functions and system prompts
     for different use cases.
+    
+    Use cases are loaded lazily - only when first requested, not at initialization.
+    This prevents loading expensive resources (models, datasets, explainers) for
+    use cases that may never be used.
     """
     
     def __init__(self):
         self._registries: Dict[UseCase, Dict[str, Callable]] = {}
         self._system_prompts: Dict[UseCase, str] = {}
         self._usecase_instances: Dict[UseCase, BaseUseCase] = {}
-        self._initialize_usecases()
-        logger.info("UseCaseRegistryService initialized")
+        # Track which use cases are available (but not yet loaded)
+        self._available_usecases = {UseCase.ENERGY, UseCase.HEART}
+        logger.info("UseCaseRegistryService initialized (lazy loading enabled)")
     
-    def _initialize_usecases(self) -> None:
-        """Initialize use case instances and register their functions."""
+    def _get_or_create_usecase(self, usecase: UseCase) -> BaseUseCase:
+        """
+        Get or create a use case instance (lazy loading).
+        
+        Args:
+            usecase: The use case to get or create
+            
+        Returns:
+            BaseUseCase instance
+            
+        Raises:
+            FunctionExecutionException: If use case is not available
+        """
+        # Check if already loaded
+        if usecase in self._usecase_instances:
+            return self._usecase_instances[usecase]
+        
+        # Check if use case is available
+        if usecase not in self._available_usecases:
+            raise FunctionExecutionException(f"Usecase '{usecase.value}' is not available.")
+        
+        # Lazy load the use case
+        logger.info(f"Lazy loading use case: {usecase.value}")
         from src.infrastructure.factory import get_model_loader, get_data_loader, get_explainer_loader
-        from src.usecases.energy.energy_usecase import EnergyUseCase
-        from src.usecases.heart.heart_usecase import HeartUseCase
         
         model_loader = get_model_loader()
         data_loader = get_data_loader()
         explainer_loader = get_explainer_loader()
         
-        # Initialize energy use case
-        energy_usecase = EnergyUseCase(
-            model_loader=model_loader,
-            data_loader=data_loader,
-            explainer_loader=explainer_loader,
-        )
-        self._usecase_instances[UseCase.ENERGY] = energy_usecase
-        self._registries[UseCase.ENERGY] = energy_usecase.get_functions()
-        logger.info(f"Registered energy use case with {len(self._registries[UseCase.ENERGY])} functions")
+        if usecase == UseCase.ENERGY:
+            from src.usecases.energy.energy_usecase import EnergyUseCase
+            usecase_instance = EnergyUseCase(
+                model_loader=model_loader,
+                data_loader=data_loader,
+                explainer_loader=explainer_loader,
+            )
+        elif usecase == UseCase.HEART:
+            from src.usecases.heart.heart_usecase import HeartUseCase
+            usecase_instance = HeartUseCase(
+                model_loader=model_loader,
+                data_loader=data_loader,
+                explainer_loader=explainer_loader,
+            )
+        else:
+            raise FunctionExecutionException(f"Usecase '{usecase.value}' is not implemented.")
         
-        # Initialize heart use case
-        heart_usecase = HeartUseCase(
-            model_loader=model_loader,
-            data_loader=data_loader,
-            explainer_loader=explainer_loader,
-        )
-        self._usecase_instances[UseCase.HEART] = heart_usecase
-        self._registries[UseCase.HEART] = heart_usecase.get_functions()
-        logger.info(f"Registered heart use case with {len(self._registries[UseCase.HEART])} functions")
+        # Store instance and register functions
+        self._usecase_instances[usecase] = usecase_instance
+        self._registries[usecase] = usecase_instance.get_functions()
+        logger.info(f"Loaded and registered {usecase.value} use case with {len(self._registries[usecase])} functions")
+        
+        return usecase_instance
     
     def register_usecase(self, usecase: UseCase, functions: Dict[str, Callable]) -> None:
         """
@@ -95,8 +123,8 @@ class UseCaseRegistryService(UseCaseRegistry):
         Raises:
             FunctionExecutionException: If the use case or function is not found.
         """
-        if usecase not in self._registries:
-            raise FunctionExecutionException(f"Usecase '{usecase.value}' not registered.")
+        # Lazy load use case if not already loaded
+        self._get_or_create_usecase(usecase)
         
         if function_name not in self._registries[usecase]:
             raise FunctionExecutionException(f"Function '{function_name}' not found in usecase '{usecase.value}'.")
@@ -116,8 +144,8 @@ class UseCaseRegistryService(UseCaseRegistry):
         Raises:
             FunctionExecutionException: If the use case is not found.
         """
-        if usecase not in self._registries:
-            raise FunctionExecutionException(f"Usecase '{usecase.value}' not registered.")
+        # Lazy load use case if not already loaded
+        self._get_or_create_usecase(usecase)
         return self._registries[usecase]
     
     def get_system_prompt(self, usecase: UseCase, conversation: List[Dict[str, str]]) -> str:
@@ -131,35 +159,51 @@ class UseCaseRegistryService(UseCaseRegistry):
         Returns:
             The complete system prompt with embedded data and functions.
         """
-        if usecase in self._usecase_instances:
-            return self._usecase_instances[usecase].get_system_prompt(conversation)
-        else:
-            return self._get_default_prompt()
+        # Lazy load use case if not already loaded
+        usecase_instance = self._get_or_create_usecase(usecase)
+        return usecase_instance.get_system_prompt(conversation)
     
     def is_usecase_registered(self, usecase: UseCase) -> bool:
-        """Check if a use case is registered."""
-        return usecase in self._registries
+        """
+        Check if a use case is registered (either loaded or available for lazy loading).
+        
+        Args:
+            usecase: The use case to check
+            
+        Returns:
+            True if registered or available, False otherwise
+        """
+        return usecase in self._registries or usecase in self._available_usecases
     
     def get_registered_usecases(self) -> List[UseCase]:
-        """Get a list of all registered use cases."""
-        return list(self._registries.keys())
+        """
+        Get a list of all available use cases (both loaded and available for lazy loading).
+        
+        Returns:
+            List of available use cases
+        """
+        return list(self._available_usecases)
     
     def clear_all_usecases(self) -> None:
-        """Clear all registered use cases."""
+        """Clear all registered use cases and instances."""
         self._registries.clear()
+        self._usecase_instances.clear()
         logger.info("Cleared all use cases")
     
     def get_usecase_instance(self, usecase: UseCase) -> Optional[BaseUseCase]:
         """
-        Get the use case instance for a given use case.
+        Get the use case instance for a given use case (lazy loads if needed).
         
         Args:
             usecase: The use case to get
             
         Returns:
-            BaseUseCase instance or None if not found
+            BaseUseCase instance or None if not available
         """
-        return self._usecase_instances.get(usecase)
+        try:
+            return self._get_or_create_usecase(usecase)
+        except FunctionExecutionException:
+            return None
     
     def _get_default_prompt(self) -> str:
         """
