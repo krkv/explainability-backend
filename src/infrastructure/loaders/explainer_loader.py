@@ -39,7 +39,8 @@ class ExplainerLoader:
         self, 
         model_path: str | Path, 
         dataset_path: str | Path,
-        explainer_type: str = "kernel"
+        explainer_type: str = "kernel",
+        target_variable: Optional[str] = None
     ) -> Any:
         """
         Load a SHAP explainer for the given model and dataset.
@@ -48,6 +49,7 @@ class ExplainerLoader:
             model_path: Path to the model file
             dataset_path: Path to the dataset file
             explainer_type: Type of SHAP explainer ("kernel", "tree", "linear")
+            target_variable: Optional name of target variable column to remove from dataset
             
         Returns:
             Loaded SHAP explainer
@@ -59,6 +61,8 @@ class ExplainerLoader:
         model_path_str = str(model_path)
         dataset_path_str = str(dataset_path)
         cache_key = f"shap_{explainer_type}_{model_path_str}_{dataset_path_str}"
+        if target_variable:
+            cache_key += f"_{target_variable}"
         
         # Check if already loaded
         if cache_key in self._loaded_explainers:
@@ -69,6 +73,11 @@ class ExplainerLoader:
             # Load model and dataset
             model = self.model_loader.load_model(model_path)
             dataset = self.data_loader.load_dataset(dataset_path)
+            
+            # Remove target variable if specified
+            if target_variable and target_variable in dataset.columns:
+                dataset = dataset.drop(columns=[target_variable]).copy()
+                logger.debug(f"Removed target variable '{target_variable}' from dataset for explainer")
             
             # Create explainer using implementation
             explainer = self._load_shap_explainer_impl(

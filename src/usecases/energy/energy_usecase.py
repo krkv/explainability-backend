@@ -74,7 +74,8 @@ class EnergyUseCase(BaseUseCase):
                 return self.explainer_loader.load_shap_explainer(
                     self.config.model_path,
                     self.config.dataset_path,
-                    explainer_type=self.config.shap_explainer_type
+                    explainer_type=self.config.shap_explainer_type,
+                    target_variable=self.config.target_variable
                 )
             except Exception as e:
                 logger.warning(f"Failed to use explainer loader, creating directly: {e}")

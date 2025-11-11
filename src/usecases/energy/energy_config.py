@@ -13,6 +13,9 @@ class EnergyConfig(BaseModel):
     dataset_path: Path = Path("instances/energy/data/summer_workday_test.csv")
     functions_json_path: Path = Path("instances/energy/functions.json")
     
+    # Dataset configuration
+    target_variable: str = 'y'
+    
     # DiCE configuration
     dice_continuous_features: List[str] = ['indoor_temperature', 'outdoor_temperature', 'past_electricity']
     dice_categorical_features: List[str] = []
