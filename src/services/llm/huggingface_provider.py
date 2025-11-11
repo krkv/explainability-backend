@@ -32,14 +32,16 @@ class HuggingFaceProvider(LLMProvider):
         self._initialize_client()
     
     def _initialize_client(self) -> None:
-        """Initialize the HuggingFace client exactly as in huggingface.py."""
+        """Initialize the HuggingFace client with the new router endpoint."""
         try:
+            # Initialize without model to use provider="auto" pattern (like eval_huggingface_hub.py)
+            # This uses the new router endpoint automatically
+            # Model will be specified in API calls
             self._client = InferenceClient(
-                self.model_name,
                 token=self.api_token,
             )
             self._is_available = True
-            logger.info(f"HuggingFace provider initialized with model: {self.model_name}")
+            logger.info(f"HuggingFace provider initialized with model: {self.model_name} using new router endpoint")
         except Exception as e:
             logger.error(f"Failed to initialize HuggingFace provider: {e}")
             self._is_available = False
@@ -111,11 +113,26 @@ class HuggingFaceProvider(LLMProvider):
   <|eot_id|><|start_header_id|>assistant<|end_header_id|>"""
         
         # Generate response using async wrapper
-        # Use asyncio.to_thread() instead of deprecated asyncio.get_event_loop()
-        response = await asyncio.to_thread(
-            self._client.text_generation, 
-            llama_prompt
+        # Create a model-specific client for this call
+        # Note: With huggingface_hub < 0.28.0, this may still use deprecated endpoint
+        # Upgrade to latest version: pip install --upgrade huggingface_hub
+        model_client = InferenceClient(
+            model=self.model_name,
+            token=self.api_token,
         )
+        try:
+            response = await asyncio.to_thread(
+                model_client.text_generation,
+                llama_prompt
+            )
+        except Exception as e:
+            error_msg = str(e)
+            if "410" in error_msg or "api-inference.huggingface.co" in error_msg:
+                logger.error(
+                    "HuggingFace API endpoint deprecated. Please upgrade huggingface_hub: "
+                    "pip install --upgrade huggingface_hub"
+                )
+            raise
         return response.strip()
     
     def get_model_name(self) -> str:
