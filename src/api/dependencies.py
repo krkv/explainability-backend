@@ -24,19 +24,7 @@ def validate_model(model_str: str) -> Model:
         HTTPException: If model is invalid
     """
     try:
-        # Map frontend format to enum
-        model_mapping = {
-            "Llama 3.3 70B Instruct": Model.LLAMA_3_3_70B,
-            "Gemini 2.0 Flash": Model.GEMINI_2_0_FLASH,
-            "Llama-3.3-70B-Instruct": Model.LLAMA_3_3_70B,
-            "Gemini-2.0-Flash": Model.GEMINI_2_0_FLASH,
-        }
-        
-        model = model_mapping.get(model_str)
-        if model:
-            return model
-        
-        # Try enum value match
+        # Match by enum value
         for model_enum in Model:
             if model_enum.value == model_str:
                 return model_enum

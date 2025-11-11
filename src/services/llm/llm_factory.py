@@ -38,6 +38,12 @@ def get_llm_provider(model: Model) -> Any:
             project_id="explainability-app",
             location="europe-north1"
         )
+    elif model == Model.GEMINI_2_5_FLASH:
+        provider = GoogleGeminiProvider(
+            model_name="gemini-2.5-flash",
+            project_id="explainability-app",
+            location="europe-north1"
+        )
     else:
         raise ValueError(f"Unsupported model: {model}")
     
