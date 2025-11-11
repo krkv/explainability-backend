@@ -3,7 +3,6 @@
 import shap
 import copy
 import numpy as np
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from src.core.exceptions import ModelLoadException, DataLoadException
@@ -35,9 +34,6 @@ class ExplainerLoader:
         self.data_loader = data_loader
         self.max_cache_size = max_cache_size
         self._loaded_explainers: Dict[str, Any] = {}
-        self._load_shap_explainer_cached = lru_cache(maxsize=max_cache_size)(
-            self._load_shap_explainer_impl
-        )
     
     def load_shap_explainer(
         self, 
@@ -74,8 +70,8 @@ class ExplainerLoader:
             model = self.model_loader.load_model(model_path)
             dataset = self.data_loader.load_dataset(dataset_path)
             
-            # Create explainer using cached implementation
-            explainer = self._load_shap_explainer_cached(
+            # Create explainer using implementation
+            explainer = self._load_shap_explainer_impl(
                 model, dataset, explainer_type
             )
             
@@ -228,7 +224,6 @@ class ExplainerLoader:
     def clear_cache(self) -> None:
         """Clear all loaded explainers from cache."""
         self._loaded_explainers.clear()
-        self._load_shap_explainer_cached.cache_clear()
         logger.info("Explainer cache cleared")
     
     def get_cache_info(self) -> Dict[str, Any]:
@@ -238,11 +233,8 @@ class ExplainerLoader:
         Returns:
             Dictionary with cache statistics
         """
-        cache_info = self._load_shap_explainer_cached.cache_info()
         return {
-            "hits": cache_info.hits,
-            "misses": cache_info.misses,
-            "maxsize": cache_info.maxsize,
-            "currsize": cache_info.currsize,
-            "loaded_explainers": len(self._loaded_explainers)
+            "loaded_explainers": len(self._loaded_explainers),
+            "max_cache_size": self.max_cache_size,
+            "cache_keys": list(self._loaded_explainers.keys())
         }
