@@ -216,8 +216,9 @@ class EnergyUseCase(BaseUseCase):
     When adding param values, only use param values given by user. Do not use any other values or make up any values.
     If you decide that no function(s) can be called, you should return an empty list [] as "function_calls".
       
-    Your free-form response in JSON field "freeform_response" is mandatory and it should be a short comment about what you are trying to achieve with chosen function calls. 
-    If user asked a question about data/model/prediction and it can not be answered with the available functions, your freeform_response should not try to answer this question. Just say that you are not able to answer this question and ask if user wants to see the list of available functions.
+    Your free-form response in JSON field "freeform_response" is mandatory.
+    If there are function calls to be invoked, "freeform_response" should be a addressed to a third party, giving a short explanation of how are you handling the user query. Do not name the functions.
+    If user asked a question about data/model/prediction and it can not be answered with the available functions, your freeform_response should not try to answer this question. Just address the user, say that you are not able to answer this question and ask if user wants to see the list of available functions.
 
     You are also given the full history of user's messages in this conversation.
     Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
