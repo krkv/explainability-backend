@@ -27,7 +27,7 @@ gcloud auth configure-docker ${LOCATION}-docker.pkg.dev --quiet
 
 # Build the Docker image
 echo "🔨 Building image..."
-docker build -t ${FULL_IMAGE_NAME} .
+docker build --platform linux/amd64 -t ${FULL_IMAGE_NAME} .
 
 # If a version tag was provided (not 'latest'), also tag as 'latest'
 if [ "${TAG}" != "latest" ]; then
