@@ -93,6 +93,18 @@ class HeartUseCase(BaseUseCase):
         """Lazy load and return global feature importances."""
         if self._global_feature_importances is None:
             import numpy as np
+            import os, pickle
+            
+            cache_path = self.config.global_fi_cache_path
+            if cache_path and os.path.exists(cache_path):
+                try:
+                    with open(cache_path, 'rb') as f:
+                        self._global_feature_importances = pickle.load(f)
+                        logger.debug("Global feature importances loaded from cache")
+                        return self._global_feature_importances
+                except Exception as e:
+                    logger.warning(f"Failed to load global feature importances from cache: {e}")
+            
             # Compute global SHAP values
             if self._global_explainer is None:
                 self._global_explainer = shap.Explainer(self.model.predict, self.dataset)
@@ -108,6 +120,14 @@ class HeartUseCase(BaseUseCase):
                     reverse=True
                 )
             )
+            
+            if cache_path:
+                try:
+                    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+                    with open(cache_path, 'wb') as f:
+                        pickle.dump(self._global_feature_importances, f)
+                except Exception as e:
+                    logger.warning(f"Failed to save global feature importances to cache: {e}")
             logger.debug("Global feature importances computed for HeartUseCase")
         return self._global_feature_importances
     
@@ -206,6 +226,8 @@ class HeartUseCase(BaseUseCase):
             target_variable=self.config.target_variable,
             class_names=self.config.class_names,
             feature_names=self.dataset.columns.tolist(),
+            shap_cache_path=self.config.shap_cache_path,
+            cf_cache_path=self.config.cf_cache_path,
         )
         
         return {
@@ -222,6 +244,9 @@ class HeartUseCase(BaseUseCase):
             'misclassified_cases': heart_funcs.misclassified_cases,
             'age_group_performance': heart_funcs.age_group_performance,
             'feature_interactions': heart_funcs.feature_interactions,
+            'count_all': heart_funcs.count_all,
+            'show_ids': heart_funcs.show_ids,
+            'show_one': heart_funcs.show_one,
         }
     
     def get_system_prompt(self, conversation: List[Dict[str, str]]) -> str:

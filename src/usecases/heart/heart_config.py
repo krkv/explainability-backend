@@ -14,6 +14,9 @@ class HeartConfig(BaseModel):
     dataset_path: Path = Path("instances/heart/data/test_set.csv")
     feature_metadata_path: Path = Path("instances/heart/data/feature_metadata.json")
     functions_json_path: Path = Path("instances/heart/functions.json")
+    shap_cache_path: Path = Path("instances/heart/data/shap_cache.pkl")
+    cf_cache_path: Path = Path("instances/heart/data/cf_cache.pkl")
+    global_fi_cache_path: Path = Path("instances/heart/data/global_fi_cache.pkl")
     
     # Dataset configuration
     target_variable: str = 'num'

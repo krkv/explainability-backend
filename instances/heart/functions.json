@@ -13,6 +13,47 @@
     {
         "type": "function",
         "function": {
+            "name": "count_all",
+            "description": "Count the number of data samples in the dataset. Can be used to count all data samples in the dataset and return the number.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_ids",
+            "description": "Show the IDs of all data samples in the dataset. Can be used to list IDs of all data samples in the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_one",
+            "description": "Show a data sample identified by an ID. Presents the original data points. Can be used to display a sample from the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The id of the single data sample requested"
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "confusion_matrix_stats",
             "description": "Return the confusion matrix for the model predictions, including true positives, false positives, etc.",
             "parameters": {

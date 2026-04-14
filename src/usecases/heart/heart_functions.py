@@ -32,6 +32,8 @@ class HeartFunctions:
         target_variable: str,
         class_names: List[str],
         feature_names: List[str],
+        shap_cache_path: str = None,
+        cf_cache_path: str = None,
     ):
         """
         Initialize heart functions with required dependencies.
@@ -51,6 +53,8 @@ class HeartFunctions:
             target_variable: Name of target variable
             class_names: List of class names
             feature_names: List of feature names
+            shap_cache_path: Path to SHAP cache pickle
+            cf_cache_path: Path to Counterfactuals cache pickle
         """
         self.model = model
         self.dataset = dataset
@@ -66,6 +70,32 @@ class HeartFunctions:
         self.target_variable = target_variable
         self.class_names = class_names
         self.feature_names = feature_names
+        self.shap_cache_path = shap_cache_path
+        self.cf_cache_path = cf_cache_path
+        
+        self._shap_cache = self._load_pickle(self.shap_cache_path)
+        self._cf_cache = self._load_pickle(self.cf_cache_path)
+
+    def _load_pickle(self, path):
+        if path:
+            import os, pickle
+            if os.path.exists(path):
+                try:
+                    with open(path, 'rb') as f:
+                        return pickle.load(f)
+                except Exception as e:
+                    logger.warning(f"Failed to load cache from {path}: {e}")
+        return {}
+
+    def _save_pickle(self, path, data):
+        if path:
+            import os, pickle
+            try:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, 'wb') as f:
+                    pickle.dump(data, f)
+            except Exception as e:
+                logger.warning(f"Failed to save cache to {path}: {e}")
     
     def get_model_parameters(self) -> Dict[str, Any]:
         """Returns the exact training hyperparameters of the model."""
@@ -102,13 +132,19 @@ class HeartFunctions:
         prediction = self.model.predict(patient_row)[0]
         probabilities = self.model.predict_proba(patient_row)[0].tolist()
         
+        prob_neg = probabilities[0]
+        prob_pos = probabilities[1]
+        
+        text = f"<p>Patient <code>ID</code> <var>{patient_id}</var> has a predicted risk of heart disease: <var>{self.class_names[prediction]}</var>.</p> "
+        text += f"<p>The prediction class probabilities are: {self.class_names[1].lower()} {int(round(prob_pos*100))}%, {self.class_names[0].lower()} {int(round(prob_neg*100))}%.</p>"
+        
         return {
             "data": {
                 "patient_id": patient_id,
                 "prediction": int(prediction),
                 "probabilities": probabilities
             },
-            "text": f"<p>Patient <code>ID</code> <var>{patient_id}</var> has a predicted risk of heart disease: <var>{self.class_names[prediction]}</var>.</p> <p>The prediction class (positive, negative) probabilities are: <var>{[round(prob, 2) for prob in probabilities]}</var></p>"
+            "text": text
         }
     
     def feature_importance_patient(self, patient_id: int) -> Dict[str, Any]:
@@ -119,16 +155,23 @@ class HeartFunctions:
                 "text": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."
             }
         
-        patient_row = self.dataset.loc[patient_id].to_frame().T
-        shap_values = self.explainer.shap_values(patient_row, nsamples=10_000, silent=True)
-        influences = shap_values.squeeze()
-        result = pd.DataFrame(influences, columns=['Influence'], index=self.dataset.columns).sort_values(
-            by='Influence', ascending=False
-        )
-        text = f"<p>For the patient with <code>ID</code> <var>{patient_id}</var> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
+        if patient_id in self._shap_cache:
+            influences, text = self._shap_cache[patient_id]
+        else:
+            patient_row = self.dataset.loc[patient_id].to_frame().T
+            shap_values = self.explainer.shap_values(patient_row, nsamples=10_000, silent=True)
+            influences_np = shap_values.squeeze()
+            result = pd.DataFrame(influences_np, columns=['Influence'], index=self.dataset.columns).sort_values(
+                by='Influence', ascending=False
+            )
+            text = f"<p>For the patient with <code>ID</code> <var>{patient_id}</var> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
+            influences = influences_np.tolist()
+            
+            self._shap_cache[patient_id] = (influences, text)
+            self._save_pickle(self.shap_cache_path, self._shap_cache)
         
         return {
-            "data": {"patient_id": patient_id, "feature_importance": influences.tolist()},
+            "data": {"patient_id": patient_id, "feature_importance": influences},
             "text": text
         }
     
@@ -303,6 +346,10 @@ class HeartFunctions:
         if patient_id not in self.dataset.index:
             return {"error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
         
+        if patient_id in self._cf_cache:
+            data, output_string = self._cf_cache[patient_id]
+            return {"data": data, "text": output_string}
+
         original_prediction = self.model.predict(self.dice_dataset.loc[[patient_id]])[0]
         
         cfe = self.dice_exp.generate_counterfactuals(
@@ -340,6 +387,9 @@ class HeartFunctions:
             "counterfactuals": final_cfes.to_dict(orient='records'),
             "new_predictions": [int(p) for p in new_predictions.tolist()]
         }
+        
+        self._cf_cache[patient_id] = (data, output_string)
+        self._save_pickle(self.cf_cache_path, self._cf_cache)
         
         return {"data": data, "text": output_string}
     
@@ -432,6 +482,38 @@ class HeartFunctions:
         data = {"top_feature_interactions": top_interactions}
         text = "<p>Top feature interactions based on correlation analysis:</p>" + tabulate(top_interactions.items(), headers=["Feature Interaction", "Correlation"], tablefmt='html', numalign="left")
         return {"data": data, "text": text}
+    
+    def count_all(self) -> Dict[str, Any]:
+        """Count all instances in the dataset."""
+        count = len(self.dataset)
+        return {
+            "data": {"count": count},
+            "text": f"<p>There are <var>{count}</var> instances in the dataset.</p>"
+        }
+
+    def show_ids(self) -> Dict[str, Any]:
+        """Show all available IDs."""
+        ids = self.dataset.index.get_level_values(0).unique().sort_values().tolist()
+        ids_str = ', '.join([f'<var>{id}</var>' for id in ids])
+        return {
+            "data": {"ids": ids},
+            "text": f"<p>Available <code>ID</code> values are: {ids_str}.</p>"
+        }
+    
+    def show_one(self, patient_id: int) -> Dict[str, Any]:
+        """Show data for a specific ID."""
+        if patient_id not in self.dataset.index:
+            return {
+                "error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset.",
+                "text": f"<p>There is no data for <code>ID</code> <var>{patient_id}</var>.</p>"
+            }
+        intro = f"<p>Here is the data for <code>ID</code> <var>{patient_id}</var>:</p>"
+        framed = self.dataset.loc[[patient_id]]
+        table = f"<p>{framed.to_html()}</p>"
+        return {
+            "data": {"patient_data": framed.to_dict(orient="records")[0]},
+            "text": intro + table
+        }
     
     # Helper methods
     
