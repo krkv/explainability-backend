@@ -1,4 +1,4 @@
-dice_ml==0.11
+dice_ml==0.12
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 gplearn==0.4.2
@@ -7,7 +7,7 @@ gplearn==0.4.2
 # For now, keeping >=0.27.1 but recommend: pip install --upgrade huggingface_hub
 huggingface_hub>=0.27.1
 numpy==1.26.4
-pandas==1.5.3
+pandas==2.2.3
 python-dotenv==1.0.1
 scikit-learn==1.3.2
 shap==0.47.0
