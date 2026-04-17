@@ -52,10 +52,8 @@ class AssistantService:
             FunctionExecutionException: If function execution fails
         """
         try:
-            # Log conversation for debugging
-            logger.info("=== ASSISTANT SERVICE CALL ===")
-            logger.info(f"Conversation length: {len(conversation)} messages")
-            logger.info(f"Conversation history: {conversation}")
+            latest_user_message = self._get_latest_user_message(conversation)
+            logger.info(f"Latest user message: {latest_user_message}")
             
             # Get LLM provider
             llm_provider = get_llm_provider(model)
@@ -63,6 +61,7 @@ class AssistantService:
             # Generate response from LLM (should return structured JSON)
             # Pass conversation directly - providers will handle system prompts internally
             llm_response = await llm_provider.generate_response(conversation, usecase)
+            logger.info(f"Generated LLM response: {llm_response}")
             
             # Parse structured JSON response
             structured_response = self._parse_structured_response(llm_response)
@@ -88,12 +87,20 @@ class AssistantService:
                 parse=parse_result
             )
             
+            logger.info(f"Final response returned to frontend: {response.model_dump()}")
             logger.info(f"Processed message for usecase {usecase.value}, model {model.value}")
             return response
             
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
             raise LLMProviderException(f"Failed to process message: {e}")
+
+    def _get_latest_user_message(self, conversation: List[Dict[str, str]]) -> str:
+        """Get the latest user message content from the conversation."""
+        for message in reversed(conversation):
+            if message.get("role") == "user":
+                return str(message.get("content", ""))
+        return ""
     
     def _parse_structured_response(self, llm_response: str) -> Dict[str, Any]:
         """
