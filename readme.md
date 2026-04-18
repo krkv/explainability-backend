@@ -8,7 +8,7 @@ A FastAPI-based backend service that provides an API for LLM-powered assistant r
 - **Explainable AI**: Provides explanations for ML model predictions using SHAP, DICE, and other XAI techniques
 - **Multiple Use Cases**: 
   - **Energy Consumption**: Analyze and explain energy consumption predictions
-  - **Heart Disease**: Analyze and explain heart disease prediction models
+  - **Heart Disease**: Analyze and explain predictions from the Cleveland heart disease dataset and baseline decision-tree model
 - **Function Calling**: LLM can execute specialized functions for model analysis, predictions, and explanations
 - **RESTful API**: Clean, well-documented FastAPI endpoints
 - **Production Ready**: Optimized Docker container for Google Cloud Run deployment
@@ -92,6 +92,18 @@ The application uses environment variables for configuration. Key settings:
 | `PORT` | Server port (Cloud Run sets this) | No | `8080` |
 
 Configuration is managed through `src/core/config.py` using Pydantic Settings.
+
+### Current Heart Use Case Artifacts
+
+The heart disease use case currently uses:
+
+- `instances/heart/model/heart_model.pkl`
+- `instances/heart/model/heart_model_metadata.json`
+- `instances/heart/data/train_set.csv`
+- `instances/heart/data/test_set.csv`
+- `instances/heart/data/feature_metadata.json`
+
+These artifacts are based on the published UCI Cleveland 14-attribute processed dataset, filtered to complete cases and converted to a binary target (`num == 0` -> `0`, `num > 0` -> `1`). The backend uses the saved holdout split in `test_set.csv` for runtime analysis.
 
 ## 🏃 Running the Application
 
@@ -257,8 +269,8 @@ Generate an LLM assistant response with function execution capabilities.
 ```
 
 **Supported Models**:
-- `Llama-3.3-70B-Instruct` (Hugging Face)
-- `Gemini-2.0-Flash` (Google)
+- `Gemini 2.0 Flash` (Google)
+- `Gemini 2.5 Flash` (Google)
 
 **Supported Use Cases**:
 - `Energy Consumption` or `energy`
@@ -310,7 +322,7 @@ explainability-backend/
 │   └── main.py           # FastAPI application entry point
 ├── instances/            # ML models, datasets, and configurations
 │   ├── energy/          # Energy consumption use case data
-│   └── heart/           # Heart disease use case data
+│   └── heart/           # Heart disease model, metadata, dataset splits, and function schema
 ├── tests/               # Test suite
 ├── Dockerfile           # Docker configuration for deployment
 ├── .dockerignore        # Files to exclude from Docker build
@@ -361,6 +373,7 @@ Log level can be configured via `LOG_LEVEL` environment variable.
 
 2. **Model Loading Errors**:
    - Verify `instances/` directory contains required model files
+   - For the heart use case, verify `instances/heart/model/heart_model.pkl` and `instances/heart/model/heart_model_metadata.json` exist
    - Check file paths in configuration
 
 3. **LLM API Errors**:

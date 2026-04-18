@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     
     # Model Paths
     energy_model_path: str = "instances/energy/model/custom_gp_model.pkl"
-    heart_model_path: str = "instances/heart/model/best_model_3_DecisionTreeClassifier.pkl"
+    heart_model_path: str = "instances/heart/model/heart_model.pkl"
     
     # Dataset Paths
     energy_dataset_path: str = "instances/energy/data/summer_workday_test.csv"

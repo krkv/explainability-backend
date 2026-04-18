@@ -1,21 +1,12 @@
 {
-  "id": {
-    "display_name": "Patient ID",
-    "description": "Unique patient identifier.",
-    "unit": null,
-    "kind": "categorical",
-    "aliases": ["patient id"],
-    "categories": {},
-    "transform": {
-      "type": "identity"
-    }
-  },
   "age": {
     "display_name": "Age",
     "description": "Age of the patient in years.",
     "unit": "years",
     "kind": "continuous",
-    "aliases": [],
+    "aliases": [
+      "patient age"
+    ],
     "categories": {},
     "transform": {
       "type": "identity"
@@ -26,7 +17,9 @@
     "description": "Sex of the patient.",
     "unit": null,
     "kind": "categorical",
-    "aliases": ["gender"],
+    "aliases": [
+      "gender"
+    ],
     "categories": {
       "0": {
         "label": "Female"
@@ -39,34 +32,25 @@
       "type": "identity"
     }
   },
-  "dataset": {
-    "display_name": "Dataset",
-    "description": "Source dataset identifier.",
-    "unit": null,
-    "kind": "categorical",
-    "aliases": [],
-    "categories": {},
-    "transform": {
-      "type": "identity"
-    }
-  },
   "cp": {
     "display_name": "Chest Pain Type",
-    "description": "Chest pain type derived from the UCI heart disease dataset.",
+    "description": "Chest pain type from the published Cleveland processed dataset.",
     "unit": null,
     "kind": "categorical",
-    "aliases": ["chest pain"],
+    "aliases": [
+      "chest pain"
+    ],
     "categories": {
-      "0": {
+      "1": {
         "label": "Typical angina"
       },
-      "1": {
+      "2": {
         "label": "Atypical angina"
       },
-      "2": {
+      "3": {
         "label": "Non-anginal pain"
       },
-      "3": {
+      "4": {
         "label": "Asymptomatic"
       }
     },
@@ -79,7 +63,10 @@
     "description": "Resting blood pressure on admission to the hospital.",
     "unit": "mm Hg",
     "kind": "continuous",
-    "aliases": ["blood pressure", "resting bp"],
+    "aliases": [
+      "blood pressure",
+      "resting bp"
+    ],
     "categories": {},
     "transform": {
       "type": "identity"
@@ -90,27 +77,28 @@
     "description": "Serum cholesterol level.",
     "unit": "mg/dl",
     "kind": "continuous",
-    "aliases": ["cholesterol"],
+    "aliases": [
+      "cholesterol"
+    ],
     "categories": {},
     "transform": {
       "type": "identity"
     }
   },
   "fbs": {
-    "display_name": "Fasting Blood Sugar",
+    "display_name": "Fasting Blood Sugar > 120 mg/dl",
     "description": "Whether fasting blood sugar is greater than 120 mg/dl.",
     "unit": null,
     "kind": "categorical",
-    "aliases": ["fasting blood sugar"],
+    "aliases": [
+      "fasting blood sugar"
+    ],
     "categories": {
       "0": {
-        "label": "Less than or equal to 120 mg/dl"
+        "label": "No"
       },
       "1": {
-        "label": "Greater than 120 mg/dl"
-      },
-      "2": {
-        "label": "Encoded category 2"
+        "label": "Yes"
       }
     },
     "transform": {
@@ -119,18 +107,21 @@
   },
   "restecg": {
     "display_name": "Resting ECG",
-    "description": "Resting electrocardiographic result using the processed UCI encoding.",
+    "description": "Resting electrocardiographic result.",
     "unit": null,
     "kind": "categorical",
-    "aliases": ["ecg", "rest ecg"],
+    "aliases": [
+      "ecg",
+      "rest ecg"
+    ],
     "categories": {
       "0": {
         "label": "Normal"
       },
-      "2": {
+      "1": {
         "label": "ST-T wave abnormality"
       },
-      "3": {
+      "2": {
         "label": "Left ventricular hypertrophy"
       }
     },
@@ -143,7 +134,9 @@
     "description": "Maximum heart rate achieved during exercise.",
     "unit": "bpm",
     "kind": "continuous",
-    "aliases": ["max heart rate"],
+    "aliases": [
+      "max heart rate"
+    ],
     "categories": {},
     "transform": {
       "type": "identity"
@@ -154,16 +147,15 @@
     "description": "Whether exercise induced angina is present.",
     "unit": null,
     "kind": "categorical",
-    "aliases": ["exercise angina"],
+    "aliases": [
+      "exercise angina"
+    ],
     "categories": {
       "0": {
         "label": "No"
       },
       "1": {
         "label": "Yes"
-      },
-      "2": {
-        "label": "Encoded category 2"
       }
     },
     "transform": {
@@ -175,7 +167,9 @@
     "description": "ST depression induced by exercise relative to rest.",
     "unit": null,
     "kind": "continuous",
-    "aliases": ["st depression"],
+    "aliases": [
+      "st depression"
+    ],
     "categories": {},
     "transform": {
       "type": "identity"
@@ -183,22 +177,19 @@
   },
   "slope": {
     "display_name": "ST Segment Slope",
-    "description": "Slope of the peak exercise ST segment using the processed UCI encoding.",
+    "description": "Slope of the peak exercise ST segment.",
     "unit": null,
     "kind": "categorical",
     "aliases": [],
     "categories": {
-      "0": {
+      "1": {
         "label": "Upsloping"
       },
-      "1": {
+      "2": {
         "label": "Flat"
       },
-      "2": {
-        "label": "Downsloping"
-      },
       "3": {
-        "label": "Encoded category 3"
+        "label": "Downsloping"
       }
     },
     "transform": {
@@ -231,22 +222,19 @@
   },
   "thal": {
     "display_name": "Thalassemia",
-    "description": "Thalassemia status using the processed UCI encoding.",
+    "description": "Thalassemia status in the published Cleveland processed dataset.",
     "unit": null,
     "kind": "categorical",
     "aliases": [],
     "categories": {
-      "0": {
+      "3": {
         "label": "Normal"
       },
-      "1": {
+      "6": {
         "label": "Fixed defect"
       },
-      "2": {
+      "7": {
         "label": "Reversible defect"
-      },
-      "3": {
-        "label": "Encoded category 3"
       }
     },
     "transform": {
@@ -255,10 +243,13 @@
   },
   "num": {
     "display_name": "Heart Disease",
-    "description": "Presence of heart disease.",
+    "description": "Binary heart disease target derived from the original UCI diagnosis label.",
     "unit": null,
     "kind": "categorical",
-    "aliases": ["target", "heart disease"],
+    "aliases": [
+      "target",
+      "heart disease"
+    ],
     "categories": {
       "0": {
         "label": "No heart disease"

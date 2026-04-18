@@ -9,8 +9,8 @@ class HeartConfig(BaseModel):
     """Configuration for heart use case."""
     
     instance_path: Path = Path("instances/heart")
-    model_path: Path = Path("instances/heart/model/best_model_3_DecisionTreeClassifier.pkl")
-    model_metadata_path: Path = Path("instances/heart/model/best_model_3_DecisionTreeClassifier_metadata.json")
+    model_path: Path = Path("instances/heart/model/heart_model.pkl")
+    model_metadata_path: Path = Path("instances/heart/model/heart_model_metadata.json")
     dataset_path: Path = Path("instances/heart/data/test_set.csv")
     feature_metadata_path: Path = Path("instances/heart/data/feature_metadata.json")
     functions_json_path: Path = Path("instances/heart/functions.json")
@@ -31,4 +31,3 @@ class HeartConfig(BaseModel):
     # SHAP configuration
     shap_explainer_type: str = 'kernel'
     shap_sample_size: int = 25
-

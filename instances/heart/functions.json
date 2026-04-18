@@ -3,7 +3,7 @@
         "type": "function",
         "function": {
             "name": "age_group_performance",
-            "description": "Return performance metrics for different age groups using user-facing display labels and thresholds derived from the configured feature adapter.",
+            "description": "Return performance metrics for different age groups in the dataset.",
             "parameters": {
                 "type": "object",
                 "properties": {}
@@ -36,7 +36,7 @@
         "type": "function",
         "function": {
             "name": "show_one",
-            "description": "Show a data sample identified by an ID using user-facing labels and values.",
+            "description": "Show a data sample identified by an ID. Presents the original data points. Can be used to display a sample from the dataset.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -66,7 +66,7 @@
         "type": "function",
         "function": {
             "name": "counterfactual",
-            "description": "Generate counterfactual examples for a patient that flip the prediction to a desired class, and present the suggested feature changes using user-facing labels and values.",
+            "description": "Generate counterfactual examples for a patient that flip the prediction to a desired class.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -85,7 +85,7 @@
         "type": "function",
         "function": {
             "name": "dataset_summary",
-            "description": "Return a summary of the dataset using user-facing labels and values, including average or most common feature values and optionally a comparison with a specific patient's features.",
+            "description": "Return a summary of the dataset including average feature values for all patients and optionally compare with a specific patient's features.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -167,7 +167,7 @@
         "type": "function",
         "function": {
             "name": "misclassified_cases",
-            "description": "Return statistics about misclassified samples and their common feature patterns using user-facing labels and values.",
+            "description": "Return statistics about misclassified samples and their common feature patterns.",
             "parameters": {
                 "type": "object",
                 "properties": {}
@@ -223,7 +223,7 @@
         "type": "function",
         "function": {
             "name": "what_if",
-            "description": "Simulate how changing a continuous feature by a user-facing amount would affect the prediction for a patient.",
+            "description": "Simulate how changing a specific feature value would affect the prediction for a patient.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -233,11 +233,11 @@
                     },
                     "feature": {
                         "type": "string",
-                        "description": "The name or alias of the continuous feature to modify."
+                        "description": "The name of the feature to modify."
                     },
                     "value_change": {
                         "type": "number",
-                        "description": "The amount to add or subtract from the feature, using the feature's natural user-facing unit when available."
+                        "description": "The value to add or subtract from the feature."
                     }
                 },
                 "required": [

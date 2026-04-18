@@ -1,0 +1,75 @@
+{
+  "model": "DecisionTreeClassifier",
+  "description": "Baseline DecisionTreeClassifier trained on the clean UCI Cleveland processed heart disease dataset.",
+  "training_data": {
+    "dataset": "UCI Heart Disease Cleveland (14 attributes, complete-case filtered, binary target)",
+    "source_file": "raw/processed.cleveland.data",
+    "training_size": 237,
+    "test_size": 60,
+    "feature_count": 13,
+    "target_column": "num",
+    "class_balance": {
+      "train": {
+        "0": 128,
+        "1": 109
+      },
+      "test": {
+        "0": 32,
+        "1": 28
+      }
+    }
+  },
+  "preprocessing": {
+    "complete_case_filter": true,
+    "target_binarization": "num == 0 -> 0, num in {1,2,3,4} -> 1",
+    "feature_scaling": "none",
+    "feature_reindexing": "none",
+    "split_strategy": {
+      "type": "stratified_holdout",
+      "test_size": 0.2,
+      "random_state": 42
+    }
+  },
+  "parameters": {
+    "ccp_alpha": 0.0,
+    "class_weight": null,
+    "criterion": "gini",
+    "max_depth": 4,
+    "max_features": null,
+    "max_leaf_nodes": null,
+    "min_impurity_decrease": 0.0,
+    "min_samples_leaf": 5,
+    "min_samples_split": 2,
+    "min_weight_fraction_leaf": 0.0,
+    "random_state": 42,
+    "splitter": "best"
+  },
+  "accuracy": 0.8,
+  "classification_report": {
+    "0": {
+      "precision": 0.7941176470588235,
+      "recall": 0.84375,
+      "f1-score": 0.8181818181818182,
+      "support": 32.0
+    },
+    "1": {
+      "precision": 0.8076923076923077,
+      "recall": 0.75,
+      "f1-score": 0.7777777777777779,
+      "support": 28.0
+    },
+    "accuracy": 0.8,
+    "macro avg": {
+      "precision": 0.8009049773755657,
+      "recall": 0.796875,
+      "f1-score": 0.797979797979798,
+      "support": 60.0
+    },
+    "weighted avg": {
+      "precision": 0.8004524886877828,
+      "recall": 0.8,
+      "f1-score": 0.7993265993265994,
+      "support": 60.0
+    }
+  }
+}
