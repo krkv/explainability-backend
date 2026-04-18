@@ -1,66 +1,274 @@
 {
   "id": {
-    "description": "Unique patient identifier",
-    "aliases": ["patient id"]
+    "display_name": "Patient ID",
+    "description": "Unique patient identifier.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["patient id"],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "age": {
-    "description": "Age of the patient in years",
-    "aliases": []
+    "display_name": "Age",
+    "description": "Age of the patient in years.",
+    "unit": "years",
+    "kind": "continuous",
+    "aliases": [],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "sex": {
-    "description": "Sex of the patient (1 = male, 0 = female)",
-    "aliases": ["gender"]
+    "display_name": "Sex",
+    "description": "Sex of the patient.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["gender"],
+    "categories": {
+      "0": {
+        "label": "Female"
+      },
+      "1": {
+        "label": "Male"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "dataset": {
-    "description": "Source dataset identifier",
-    "aliases": []
+    "display_name": "Dataset",
+    "description": "Source dataset identifier.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "cp": {
-    "description": "Chest pain type (0 to 3)",
-    "aliases": ["chest pain"]
+    "display_name": "Chest Pain Type",
+    "description": "Chest pain type derived from the UCI heart disease dataset.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["chest pain"],
+    "categories": {
+      "0": {
+        "label": "Typical angina"
+      },
+      "1": {
+        "label": "Atypical angina"
+      },
+      "2": {
+        "label": "Non-anginal pain"
+      },
+      "3": {
+        "label": "Asymptomatic"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "trestbps": {
-    "description": "Resting blood pressure (mm Hg)",
-    "aliases": ["blood pressure", "resting bp"]
+    "display_name": "Resting Blood Pressure",
+    "description": "Resting blood pressure on admission to the hospital.",
+    "unit": "mm Hg",
+    "kind": "continuous",
+    "aliases": ["blood pressure", "resting bp"],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "chol": {
-    "description": "Serum cholesterol in mg/dl",
-    "aliases": ["cholesterol"]
+    "display_name": "Serum Cholesterol",
+    "description": "Serum cholesterol level.",
+    "unit": "mg/dl",
+    "kind": "continuous",
+    "aliases": ["cholesterol"],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "fbs": {
-    "description": "Fasting blood sugar > 120 mg/dl (1 = true, 0 = false)",
-    "aliases": ["fasting blood sugar"]
+    "display_name": "Fasting Blood Sugar",
+    "description": "Whether fasting blood sugar is greater than 120 mg/dl.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["fasting blood sugar"],
+    "categories": {
+      "0": {
+        "label": "Less than or equal to 120 mg/dl"
+      },
+      "1": {
+        "label": "Greater than 120 mg/dl"
+      },
+      "2": {
+        "label": "Encoded category 2"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "restecg": {
-    "description": "Resting electrocardiographic results",
-    "aliases": ["ecg", "rest ecg"]
+    "display_name": "Resting ECG",
+    "description": "Resting electrocardiographic result using the processed UCI encoding.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["ecg", "rest ecg"],
+    "categories": {
+      "0": {
+        "label": "Normal"
+      },
+      "2": {
+        "label": "ST-T wave abnormality"
+      },
+      "3": {
+        "label": "Left ventricular hypertrophy"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "thalch": {
-    "description": "Maximum heart rate achieved",
-    "aliases": ["max heart rate"]
+    "display_name": "Maximum Heart Rate",
+    "description": "Maximum heart rate achieved during exercise.",
+    "unit": "bpm",
+    "kind": "continuous",
+    "aliases": ["max heart rate"],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "exang": {
-    "description": "Exercise induced angina (1 = yes, 0 = no)",
-    "aliases": ["exercise angina"]
+    "display_name": "Exercise Induced Angina",
+    "description": "Whether exercise induced angina is present.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["exercise angina"],
+    "categories": {
+      "0": {
+        "label": "No"
+      },
+      "1": {
+        "label": "Yes"
+      },
+      "2": {
+        "label": "Encoded category 2"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "oldpeak": {
-    "description": "ST depression induced by exercise",
-    "aliases": ["st depression"]
+    "display_name": "Oldpeak",
+    "description": "ST depression induced by exercise relative to rest.",
+    "unit": null,
+    "kind": "continuous",
+    "aliases": ["st depression"],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
   },
   "slope": {
-    "description": "Slope of the peak exercise ST segment",
-    "aliases": []
+    "display_name": "ST Segment Slope",
+    "description": "Slope of the peak exercise ST segment using the processed UCI encoding.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {
+      "0": {
+        "label": "Upsloping"
+      },
+      "1": {
+        "label": "Flat"
+      },
+      "2": {
+        "label": "Downsloping"
+      },
+      "3": {
+        "label": "Encoded category 3"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "ca": {
-    "description": "Number of major vessels (0–3) colored by fluoroscopy",
-    "aliases": []
+    "display_name": "Major Vessels",
+    "description": "Number of major vessels colored by fluoroscopy.",
+    "unit": "count",
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {
+      "0": {
+        "label": "0 vessels"
+      },
+      "1": {
+        "label": "1 vessel"
+      },
+      "2": {
+        "label": "2 vessels"
+      },
+      "3": {
+        "label": "3 vessels"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "thal": {
-    "description": "Thalassemia status (3 = normal; 6 = fixed defect; 7 = reversible defect)",
-    "aliases": []
+    "display_name": "Thalassemia",
+    "description": "Thalassemia status using the processed UCI encoding.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {
+      "0": {
+        "label": "Normal"
+      },
+      "1": {
+        "label": "Fixed defect"
+      },
+      "2": {
+        "label": "Reversible defect"
+      },
+      "3": {
+        "label": "Encoded category 3"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   },
   "num": {
-    "description": "Presence of heart disease (0 = no, 1 = yes)",
-    "aliases": ["target", "heart disease"]
+    "display_name": "Heart Disease",
+    "description": "Presence of heart disease.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": ["target", "heart disease"],
+    "categories": {
+      "0": {
+        "label": "No heart disease"
+      },
+      "1": {
+        "label": "Heart disease present"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
   }
 }

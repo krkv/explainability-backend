@@ -7,6 +7,7 @@ import dice_ml
 import pandas as pd
 from pathlib import Path
 from typing import Dict, Callable, List, Any
+from src.core.feature_value_adapter import FeatureValueAdapter
 from src.usecases.base.base_usecase import BaseUseCase
 from src.usecases.heart.heart_config import HeartConfig
 from src.usecases.heart.heart_functions import HeartFunctions
@@ -46,6 +47,9 @@ class HeartUseCase(BaseUseCase):
         self._model_metadata: Dict[str, Any] = None
         self._feature_metadata: Dict[str, Any] = None
         self._alias_lookup: Dict[str, str] = None
+        self._feature_adapter: FeatureValueAdapter = None
+        self._display_dataset: pd.DataFrame = None
+        self._display_dataset_full: pd.DataFrame = None
         self._global_explainer: Any = None
         self._global_shap_values: Any = None
         self._global_feature_importances: Dict[str, float] = None
@@ -87,6 +91,32 @@ class HeartUseCase(BaseUseCase):
             }
             logger.debug("Alias lookup created for HeartUseCase")
         return self._alias_lookup
+
+    @property
+    def feature_adapter(self) -> FeatureValueAdapter:
+        """Lazy load and return the feature value adapter."""
+        if self._feature_adapter is None:
+            self._feature_adapter = FeatureValueAdapter(self.feature_metadata)
+            logger.debug("Feature adapter created for HeartUseCase")
+        return self._feature_adapter
+
+    @property
+    def display_dataset(self) -> pd.DataFrame:
+        """Lazy load and return the display-space dataset without target variable."""
+        if self._display_dataset is None:
+            self._display_dataset = self.feature_adapter.to_display_frame(self.dataset, features=self.dataset.columns)
+            logger.debug("Display dataset loaded for HeartUseCase")
+        return self._display_dataset
+
+    @property
+    def display_dataset_full(self) -> pd.DataFrame:
+        """Lazy load and return the display-space full dataset."""
+        if self._display_dataset_full is None:
+            display_frame = self.dataset_full.copy()
+            feature_columns = [column for column in self.dataset.columns if column in display_frame.columns]
+            self._display_dataset_full = self.feature_adapter.to_display_frame(display_frame, features=feature_columns)
+            logger.debug("Display full dataset loaded for HeartUseCase")
+        return self._display_dataset_full
     
     @property
     def global_feature_importances(self) -> Dict[str, float]:
@@ -215,10 +245,13 @@ class HeartUseCase(BaseUseCase):
             model=self.model,
             dataset=self.dataset,
             dataset_full=self.dataset_full,
+            display_dataset=self.display_dataset,
+            display_dataset_full=self.display_dataset_full,
             y_values=self.y_values,
             explainer=self.explainer,
             dice_exp=self.dice_exp,
             dice_dataset=self._get_dice_dataset(),
+            feature_adapter=self.feature_adapter,
             model_metadata=self.model_metadata,
             feature_metadata=self.feature_metadata,
             alias_lookup=self.alias_lookup,
@@ -256,7 +289,11 @@ class HeartUseCase(BaseUseCase):
             functions = json.load(f)
         
         # Get dataset description
-        dataset_json = self.dataset.describe().to_json()
+        dataset_json = self.display_dataset.describe(include='all').fillna("").to_json()
+        feature_catalog_json = json.dumps(
+            self.feature_adapter.build_feature_catalog(self.dataset.columns.tolist()),
+            indent=2
+        )
         
         # JSON schema for structured responses
         response_schema = {
@@ -282,9 +319,13 @@ class HeartUseCase(BaseUseCase):
         
         system_prompt = f"""
     Your name is Claire. You are a trustworthy data science assistant that helps user to understand the data, model and predictions for a machine learning model application use case in medical sector.
-    Here is the description of the dataset:
+    Here is the description of the dataset in user-facing display units and labels:
     
     {dataset_json}
+
+    Here is a concise feature catalog with user-facing labels, units, and category descriptions:
+
+    {feature_catalog_json}
 
     The model and the dataset are not available to you directly, but you have access to a set of functions that can be invoked to help the user.
     Here is the list of functions that can be invoked. ONLY these functions can be called:
@@ -315,4 +356,3 @@ class HeartUseCase(BaseUseCase):
     """
         
         return system_prompt
-
