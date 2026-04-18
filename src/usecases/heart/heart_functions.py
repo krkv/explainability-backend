@@ -156,32 +156,41 @@ class HeartFunctions:
             }
         
         if patient_id in self._shap_cache:
-            influences, text = self._shap_cache[patient_id]
+            cache_entry = self._shap_cache[patient_id]
+            influences = cache_entry[0] if isinstance(cache_entry, tuple) else cache_entry
         else:
             patient_row = self.dataset.loc[patient_id].to_frame().T
             shap_values = self.explainer.shap_values(patient_row, nsamples=10_000, silent=True)
-            influences_np = shap_values.squeeze()
-            result = pd.DataFrame(influences_np, columns=['Influence'], index=self.dataset.columns).sort_values(
-                by='Influence', ascending=False
-            )
-            text = f"<p>For the patient with <code>ID</code> <var>{patient_id}</var> the feature importances are:</p>" + f"<p>{result.to_html()}</p>"
-            influences = influences_np.tolist()
+            influences = shap_values.squeeze().tolist()
             
-            self._shap_cache[patient_id] = (influences, text)
+            self._shap_cache[patient_id] = influences
             self._save_pickle(self.shap_cache_path, self._shap_cache)
+
+        labeled_influences = self._label_feature_scores(influences)
+        result = pd.DataFrame(labeled_influences.items(), columns=['Feature', 'Importance']).sort_values(
+            by='Importance', ascending=False
+        )
+        text = (
+            f"<p>For the patient with <code>ID</code> <var>{patient_id}</var> the feature importances are:</p>"
+            + self._table_html(result)
+        )
         
         return {
-            "data": {"patient_id": patient_id, "feature_importance": influences},
+            "data": {"patient_id": patient_id, "feature_importance": labeled_influences},
             "text": text
         }
     
     def feature_importance_global(self) -> Dict[str, Any]:
         """Returns SHAP-based feature importance scores (global)."""
-        result_html = pd.DataFrame(self.global_feature_importances.items(), columns=['Feature', 'Importance']).to_html(index=False)
-        text = "<p>Global feature importances based on SHAP values are:</p>" + f"{result_html}"
+        labeled_importances = {
+            self._feature_label(feature): importance
+            for feature, importance in self.global_feature_importances.items()
+        }
+        result_html = self._table_html(pd.DataFrame(labeled_importances.items(), columns=['Feature', 'Importance']))
+        text = "<p>Global feature importances based on SHAP values are:</p>" + result_html
         
         return {
-            "data": {"global_feature_importance": self.global_feature_importances},
+            "data": {"global_feature_importance": labeled_importances},
             "text": text
         }
     
@@ -189,9 +198,9 @@ class HeartFunctions:
         """Compare patient's features to average features, or return only group-level averages."""
         feature_columns = [f for f in self.dataset.columns]
         
-        avg_hd = self.dataset_full[self.dataset_full[self.target_variable] == 1][feature_columns].mean().round(3).to_dict()
-        avg_nohd = self.dataset_full[self.dataset_full[self.target_variable] == 0][feature_columns].mean().round(3).to_dict()
-        avg_all = self.dataset_full[feature_columns].mean().round(3).to_dict()
+        avg_hd = self._summarize_group(self.dataset_full[self.dataset_full[self.target_variable] == 1][feature_columns])
+        avg_nohd = self._summarize_group(self.dataset_full[self.dataset_full[self.target_variable] == 0][feature_columns])
+        avg_all = self._summarize_group(self.dataset_full[feature_columns])
         
         result = {
             "comparison": {
@@ -201,18 +210,18 @@ class HeartFunctions:
             }
         }
         
-        text = "<p>Average features for patients with heart disease:</p>" + tabulate(avg_hd.items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
-        text += "<p>Average features for patients without heart disease:</p>" + tabulate(avg_nohd.items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
-        text += "<p>Average features for all patients:</p>" + tabulate(avg_all.items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
+        text = "<p>Average features for patients with heart disease:</p>" + self._dict_table_html(avg_hd)
+        text += "<p>Average features for patients without heart disease:</p>" + self._dict_table_html(avg_nohd)
+        text += "<p>Average features for all patients:</p>" + self._dict_table_html(avg_all)
         
         if patient_id is not None:
             try:
-                patient_row = self.dataset.iloc[[patient_id]]
-                patient_features = patient_row[feature_columns].iloc[0].round(3).to_dict()
+                patient_row = self.dataset.loc[[patient_id]]
+                patient_features = self._display_record(patient_row[feature_columns].iloc[0].to_dict())
                 result["patient_id"] = patient_id
                 result["comparison"]["patient"] = patient_features
-                text += f"<p>Patient <code>ID</code> <var>{patient_id}</var> features:</p>" + tabulate(patient_features.items(), headers=["Feature", "Value"], tablefmt='html', numalign="left")
-            except IndexError:
+                text += f"<p>Patient <code>ID</code> <var>{patient_id}</var> features:</p>" + self._dict_table_html(patient_features)
+            except KeyError:
                 return {
                     "error": f"Patient <code>ID</code> <var>{patient_id}</var> is out of range. Dataset has <var>{len(self.dataset)}</var> patients."
                 }
@@ -273,11 +282,11 @@ class HeartFunctions:
                         "error": f"Metric <code>{m}</code> is not recognized. Valid metrics are: <code>{', '.join(metric_mapping.keys())}</code>"
                     }
             data = {key: all_metrics[key] for key in normalized_metrics}
-            text = "<p>Selected performance metrics are:</p>" + tabulate(data.items(), headers=["Metric", "Value"], tablefmt='html', numalign="left")
+            text = "<p>Selected performance metrics are:</p>" + self._dict_table_html(data, key_header="Metric")
             return {"text": text, "data": data}
         else:
             data = all_metrics
-            text = "<p>All performance metrics are:</p>" + tabulate(data.items(), headers=["Metric", "Value"], tablefmt='html', numalign="left")
+            text = "<p>All performance metrics are:</p>" + self._dict_table_html(data, key_header="Metric")
             return {"text": text, "data": data}
     
     def confusion_matrix_stats(self) -> Dict[str, Any]:
@@ -293,7 +302,7 @@ class HeartFunctions:
                 "false_negatives": int(fn),
                 "true_positives": int(tp)
             }
-            text = f"<p>Confusion matrix statistics:</p>" + tabulate(data.items(), headers=["Statistic", "Count"], tablefmt='html', numalign="left")
+            text = f"<p>Confusion matrix statistics:</p>" + self._dict_table_html(data, key_header="Statistic", value_header="Count")
             return {"text": text, "data": data}
         else:
             data = {
@@ -326,7 +335,7 @@ class HeartFunctions:
         
         data = {
             "patient_id": patient_id,
-            "feature_modified": feature_key,
+            "feature_modified": self._feature_label(feature_key),
             "value_change": value_change,
             "original_prediction": original_prediction,
             "new_prediction": new_prediction,
@@ -335,7 +344,7 @@ class HeartFunctions:
                 "new": new_prob
             }
         }
-        text = f"<p>For patient <code>ID</code> <var>{patient_id}</var>, modifying feature <code>{feature_key}</code> by <var>{value_change}</var> results in:</p>"
+        text = f"<p>For patient <code>ID</code> <var>{patient_id}</var>, modifying feature <code>{self._feature_label(feature_key)}</code> by <var>{value_change}</var> results in:</p>"
         text += f"<p>Original prediction: <var>{self.class_names[original_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in original_prob]}</var></p>"
         text += f"<p>New prediction: <var>{self.class_names[new_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in new_prob]}</var></p>"
         
@@ -347,7 +356,23 @@ class HeartFunctions:
             return {"error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
         
         if patient_id in self._cf_cache:
-            data, output_string = self._cf_cache[patient_id]
+            cache_entry = self._cf_cache[patient_id]
+            if isinstance(cache_entry, tuple):
+                cache_entry = cache_entry[0]
+            counterfactual_records = cache_entry.get("counterfactuals_model", cache_entry.get("counterfactuals", []))
+            new_predictions = [int(p) for p in cache_entry["new_predictions"]]
+            data = {
+                "patient_id": patient_id,
+                "original_prediction": int(cache_entry["original_prediction"]),
+                "counterfactuals": [self._display_record(record) for record in counterfactual_records],
+                "new_predictions": new_predictions,
+            }
+            output_string = self._build_counterfactual_text(
+                patient_id=patient_id,
+                original_prediction=int(cache_entry["original_prediction"]),
+                counterfactual_records=counterfactual_records,
+                new_predictions=new_predictions,
+            )
             return {"data": data, "text": output_string}
 
         original_prediction = self.model.predict(self.dice_dataset.loc[[patient_id]])[0]
@@ -366,29 +391,32 @@ class HeartFunctions:
         new_predictions = self.model.predict(final_cfes)
         original_instance = self.dice_dataset.loc[[patient_id]]
         
-        output_string = f"<p>The original prediction for the data sample with <code>ID</code> <var>{patient_id}</var> is <samp>{self.class_names[original_prediction]}</samp>.</p>"
-        output_string += "<p>Here are some options to change the prediction of this instance.</p>"
-        output_string += "<ul>"
-        output_string += "<li>First, if you"
-        transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
-        
-        for i, c_id in enumerate(final_cfe_ids):
-            if i < 3 and i < len(final_cfe_ids):
-                if i != 0:
-                    output_string += f"<li>{random.choice(transition_words)} if you"
-                output_string += self._get_change_string(final_cfes.loc[[c_id]], original_instance)
-                new_prediction = new_predictions[i]
-                output_string += f", the model will predict <samp>{self.class_names[new_prediction]}</samp>.</li>"
-        output_string += "</ul>"
+        counterfactual_records = final_cfes.to_dict(orient='records')
+        output_string = self._build_counterfactual_text(
+            patient_id=patient_id,
+            original_prediction=int(original_prediction),
+            counterfactual_records=counterfactual_records,
+            new_predictions=[int(p) for p in new_predictions.tolist()],
+        )
+
+        display_counterfactuals = [
+            self._display_record(record)
+            for record in counterfactual_records
+        ]
         
         data = {
             "patient_id": patient_id,
             "original_prediction": int(original_prediction),
-            "counterfactuals": final_cfes.to_dict(orient='records'),
+            "counterfactuals": display_counterfactuals,
             "new_predictions": [int(p) for p in new_predictions.tolist()]
         }
         
-        self._cf_cache[patient_id] = (data, output_string)
+        self._cf_cache[patient_id] = {
+            "patient_id": patient_id,
+            "original_prediction": int(original_prediction),
+            "counterfactuals_model": counterfactual_records,
+            "new_predictions": [int(p) for p in new_predictions.tolist()],
+        }
         self._save_pickle(self.cf_cache_path, self._cf_cache)
         
         return {"data": data, "text": output_string}
@@ -404,28 +432,27 @@ class HeartFunctions:
         misclassified_df = df_copy[df_copy["misclassified"]]
         correctly_classified_df = df_copy[~df_copy["misclassified"]]
         
+        misclassified_summary = self._summarize_group(
+            misclassified_df.drop(columns=["predicted", "misclassified"], errors="ignore")
+        ) if not misclassified_df.empty else {}
+        correctly_classified_summary = self._summarize_group(
+            correctly_classified_df.drop(columns=["predicted", "misclassified"], errors="ignore")
+        ) if not correctly_classified_df.empty else {}
+
         data = {
             "false_positives": int(((y_pred == 1) & (self.y_values == 0)).sum()),
             "false_negatives": int(((y_pred == 0) & (self.y_values == 1)).sum()),
             "feature_distribution": {
-                "misclassified_cases": misclassified_df
-                .drop(columns=["predicted", "misclassified"], errors="ignore")
-                .select_dtypes(include=[np.number])
-                .mean()
-                .to_dict(),
-                "correctly_classified_cases": correctly_classified_df
-                .drop(columns=["predicted", "misclassified"], errors="ignore")
-                .select_dtypes(include=[np.number])
-                .mean()
-                .to_dict()
+                "misclassified_cases": misclassified_summary,
+                "correctly_classified_cases": correctly_classified_summary,
             }
         }
         
         text = "<p>Misclassified cases statistics:</p>"
         text += f"<p>False Positives: <var>{data['false_positives']}</var></p>"
         text += f"<p>False Negatives: <var>{data['false_negatives']}</var></p>"
-        text += "<p>Feature distribution for misclassified cases:</p>" + tabulate(data["feature_distribution"]["misclassified_cases"].items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
-        text += "<p>Feature distribution for correctly classified cases:</p>" + tabulate(data["feature_distribution"]["correctly_classified_cases"].items(), headers=["Feature", "Average"], tablefmt='html', numalign="left")
+        text += "<p>Feature distribution for misclassified cases:</p>" + self._dict_table_html(data["feature_distribution"]["misclassified_cases"])
+        text += "<p>Feature distribution for correctly classified cases:</p>" + self._dict_table_html(data["feature_distribution"]["correctly_classified_cases"])
         
         return {"data": data, "text": text}
     
@@ -437,9 +464,9 @@ class HeartFunctions:
         y_pred = self.model.predict(self.dataset)
         
         age_groups = {
-            "<40": self.dataset[self.dataset["age"] < 0.4],
-            "40-60": self.dataset[(self.dataset["age"] >= 0.4) & (self.dataset["age"] <= 0.6)],
-            ">60": self.dataset[self.dataset["age"] > 0.6]
+            "<40": self.dataset[self.dataset["age"] < 40],
+            "40-60": self.dataset[(self.dataset["age"] >= 40) & (self.dataset["age"] <= 60)],
+            ">60": self.dataset[self.dataset["age"] > 60]
         }
         
         results = {}
@@ -473,14 +500,14 @@ class HeartFunctions:
         feature_names = correlation_matrix.columns.tolist()
         
         interaction_dict = {
-            f"{feature_names[i]} & {feature_names[j]}": float(correlation_matrix.iloc[i, j])
+            f"{self._feature_label(feature_names[i])} & {self._feature_label(feature_names[j])}": float(correlation_matrix.iloc[i, j])
             for i in range(len(feature_names)) for j in range(i + 1, len(feature_names))
         }
         
         top_interactions = dict(sorted(interaction_dict.items(), key=lambda x: abs(x[1]), reverse=True)[:5])
         
         data = {"top_feature_interactions": top_interactions}
-        text = "<p>Top feature interactions based on correlation analysis:</p>" + tabulate(top_interactions.items(), headers=["Feature Interaction", "Correlation"], tablefmt='html', numalign="left")
+        text = "<p>Top feature interactions based on correlation analysis:</p>" + self._dict_table_html(top_interactions, key_header="Feature", value_header="Correlation")
         return {"data": data, "text": text}
     
     def count_all(self) -> Dict[str, Any]:
@@ -508,14 +535,87 @@ class HeartFunctions:
                 "text": f"<p>There is no data for <code>ID</code> <var>{patient_id}</var>.</p>"
             }
         intro = f"<p>Here is the data for <code>ID</code> <var>{patient_id}</var>:</p>"
-        framed = self.dataset.loc[[patient_id]]
-        table = f"<p>{framed.to_html()}</p>"
+        patient_data = self._display_record(self.dataset.loc[patient_id].to_dict())
+        framed = pd.DataFrame(patient_data.items(), columns=["Feature", "Value"])
+        table = self._table_html(framed)
         return {
-            "data": {"patient_data": framed.to_dict(orient="records")[0]},
+            "data": {"patient_data": patient_data},
             "text": intro + table
         }
     
     # Helper methods
+
+    def _feature_label(self, feature: str) -> str:
+        metadata = self.feature_metadata.get(feature, {})
+        return metadata.get("display_name", feature)
+
+    def _display_value(self, feature: str, value: Any) -> Any:
+        if pd.isna(value):
+            return value
+
+        categories = self.feature_metadata.get(feature, {}).get("categories", {})
+        possible_keys = [str(value)]
+        if isinstance(value, (int, np.integer)):
+            possible_keys.insert(0, str(int(value)))
+        elif isinstance(value, (float, np.floating)):
+            if float(value).is_integer():
+                possible_keys.insert(0, str(int(value)))
+            value = round(float(value), 3)
+
+        for key in possible_keys:
+            if key in categories:
+                return categories[key].get("label", key)
+        return value
+
+    def _display_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            self._feature_label(feature): self._display_value(feature, value)
+            for feature, value in record.items()
+        }
+
+    def _dict_table_html(self, record: Dict[str, Any], key_header: str = "Feature", value_header: str = "Value") -> str:
+        frame = pd.DataFrame(record.items(), columns=[key_header, value_header])
+        return self._table_html(frame)
+
+    def _table_html(self, frame: pd.DataFrame) -> str:
+        return f"<p>{frame.to_html(index=False)}</p>"
+
+    def _summarize_group(self, frame: pd.DataFrame) -> Dict[str, Any]:
+        summary = {}
+        for feature in frame.columns:
+            metadata = self.feature_metadata.get(feature, {})
+            kind = metadata.get("kind", "continuous")
+            if kind == "continuous":
+                summary[self._feature_label(feature)] = round(float(frame[feature].mean()), 3)
+            else:
+                modes = frame[feature].mode(dropna=True)
+                summary[self._feature_label(feature)] = self._display_value(feature, modes.iloc[0] if not modes.empty else None)
+        return summary
+
+    def _label_feature_scores(self, influences: List[float]) -> Dict[str, float]:
+        return {
+            self._feature_label(feature): float(influences[index])
+            for index, feature in enumerate(self.dataset.columns)
+        }
+
+    def _build_counterfactual_text(
+        self,
+        patient_id: int,
+        original_prediction: int,
+        counterfactual_records: List[Dict[str, Any]],
+        new_predictions: List[int],
+    ) -> str:
+        output_string = f"<p>The original prediction for the data sample with <code>ID</code> <var>{patient_id}</var> is <samp>{self.class_names[original_prediction]}</samp>.</p>"
+        output_string += "<p>Here are some options to change the prediction of this instance.</p><ul>"
+        transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
+        original_instance = self.dice_dataset.loc[[patient_id]]
+
+        for i, counterfactual_record in enumerate(counterfactual_records[:3]):
+            prefix = "First, if you" if i == 0 else f"{random.choice(transition_words)} if you"
+            counterfactual_frame = pd.DataFrame([counterfactual_record])
+            output_string += f"<li>{prefix}{self._get_change_string(counterfactual_frame, original_instance)}, the model will predict <samp>{self.class_names[new_predictions[i]]}</samp>.</li>"
+        output_string += "</ul>"
+        return output_string
     
     def _get_change_string(self, cfe: pd.DataFrame, original_instance: pd.DataFrame) -> str:
         """Build a string describing changes between counterfactual and original instance."""
@@ -536,10 +636,10 @@ class HeartFunctions:
                     inc_dec = " increase"
                 else:
                     inc_dec = " decrease"
-                change_string += f"{inc_dec} <code>{feature}</code> to <var>{str(round(cfe_f, 2))}</var>"
+                display_value = self._display_value(feature, cfe_f)
+                change_string += f"{inc_dec} <code>{self._feature_label(feature)}</code> to <var>{display_value}</var>"
                 change_string += " and "
         
         if change_string.endswith(" and "):
             change_string = change_string[:-5]
         return change_string
-

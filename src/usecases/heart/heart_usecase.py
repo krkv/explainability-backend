@@ -83,7 +83,7 @@ class HeartUseCase(BaseUseCase):
             self._alias_lookup = {
                 alias.lower(): feat
                 for feat, meta in self.feature_metadata.items()
-                for alias in ([feat] + meta.get("aliases", []))
+                for alias in ([feat, meta.get("display_name", feat)] + meta.get("aliases", []))
             }
             logger.debug("Alias lookup created for HeartUseCase")
         return self._alias_lookup
@@ -315,4 +315,3 @@ class HeartUseCase(BaseUseCase):
     """
         
         return system_prompt
-
