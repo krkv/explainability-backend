@@ -697,6 +697,29 @@ class HeartFunctions:
             stats_rows.append(row)
         return stats_rows
 
+    def _summarize_group(self, dataframe: pd.DataFrame) -> Dict[str, Any]:
+        """Summarize a cohort with readable feature-level aggregates."""
+        summary: Dict[str, Any] = {}
+
+        for feature in dataframe.columns:
+            metadata = self.feature_metadata.get(feature, {})
+            kind = metadata.get("kind", "continuous")
+            series = dataframe[feature].dropna()
+
+            if series.empty:
+                continue
+
+            if kind == "continuous":
+                value: Any = round(float(series.mean()), 3)
+            else:
+                modes = series.mode(dropna=True)
+                value = modes.iloc[0] if not modes.empty else None
+                value = self._display_value(feature, value)
+
+            summary[self._feature_label(feature)] = value
+
+        return summary
+
     def _sorted_categories(self, categories: Dict[str, Any]) -> List[Any]:
         return sorted(categories.items(), key=lambda item: self._category_sort_key(item[0]))
 

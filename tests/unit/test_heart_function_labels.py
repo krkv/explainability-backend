@@ -133,6 +133,69 @@ def build_heart_functions():
     )
 
 
+def test_misclassified_cases_summarizes_groups_with_display_labels():
+    dataset = pd.DataFrame(
+        {
+            "age": [54, 62, 49],
+            "trestbps": [140, 150, 130],
+            "sex": [1, 0, 1],
+        },
+        index=[10, 11, 12],
+    )
+    dataset_full = dataset.copy()
+    dataset_full["num"] = [0, 1, 1]
+    metadata = build_feature_metadata()
+
+    class MixedPredictionModel:
+        def predict(self, dataframe):
+            return np.array([0, 0, 1], dtype=int)
+
+        def predict_proba(self, dataframe):
+            return np.tile(np.array([[0.75, 0.25]]), (len(dataframe), 1))
+
+    heart_functions = HeartFunctions(
+        model=MixedPredictionModel(),
+        dataset=dataset,
+        dataset_full=dataset_full,
+        y_values=dataset_full["num"],
+        explainer=Mock(),
+        dice_exp=Mock(),
+        dice_dataset=dataset.copy(),
+        model_metadata={"description": "Test model", "parameters": {}},
+        feature_metadata=metadata,
+        alias_lookup={
+            "age": "age",
+            "patient age": "age",
+            "trestbps": "trestbps",
+            "blood pressure": "trestbps",
+            "resting blood pressure": "trestbps",
+            "sex": "sex",
+            "gender": "sex",
+        },
+        global_feature_importances={"age": 0.7, "trestbps": 0.2, "sex": 0.1},
+        target_variable="num",
+        class_names=["NEGATIVE", "POSITIVE"],
+        feature_names=["age", "trestbps", "sex"],
+    )
+
+    response = heart_functions.misclassified_cases()
+
+    assert response["data"]["false_positives"] == 0
+    assert response["data"]["false_negatives"] == 1
+    assert response["data"]["feature_distribution"]["misclassified_cases"] == {
+        "Age": 62.0,
+        "Resting Blood Pressure": 150.0,
+        "Sex": "Female",
+    }
+    assert response["data"]["feature_distribution"]["correctly_classified_cases"] == {
+        "Age": 51.5,
+        "Resting Blood Pressure": 135.0,
+        "Sex": "Male",
+    }
+    assert "Resting Blood Pressure" in response["text"]
+    assert "_summarize_group" not in response["text"]
+
+
 def test_show_one_uses_display_names_and_feature_value_rows():
     heart_functions = build_heart_functions()
 
