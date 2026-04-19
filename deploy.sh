@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Configuration (matching build-and-push.sh)
 PROJECT_ID="explainability-app"
 LOCATION="europe-north1"
@@ -28,7 +30,7 @@ echo "🚀 Deploying ${IMAGE_NAME} with image: ${FULL_IMAGE_NAME}"
 gcloud run deploy ${IMAGE_NAME} \
 --image=${FULL_IMAGE_NAME} \
 --min-instances=0 \
+--allow-unauthenticated \
 --set-env-vars=HF_TOKEN="${HF_TOKEN}" \
---region=us-central1 \
---project=${PROJECT_ID} \
-&& gcloud run services update-traffic ${IMAGE_NAME} --to-latest
+--region=${LOCATION} \
+--project=${PROJECT_ID}
