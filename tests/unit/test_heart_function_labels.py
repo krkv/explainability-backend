@@ -130,7 +130,67 @@ def build_heart_functions():
         target_variable="num",
         class_names=["NEGATIVE", "POSITIVE"],
         feature_names=["age", "trestbps", "sex"],
+        functions_catalog=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "available_functions",
+                    "description": "Get a formatted list of all available heart use case functions.",
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "predict",
+                    "description": "Predict the class and probability scores for a specific patient using their ID.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "patient_id": {
+                                "type": "integer",
+                                "description": "The ID of the patient to predict.",
+                            }
+                        },
+                        "required": ["patient_id"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "dataset_summary",
+                    "description": "Return one table with overall dataset statistics for each feature.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "patient_id": {
+                                "type": "integer",
+                                "description": "Optional patient ID to include.",
+                            }
+                        },
+                        "required": [],
+                    },
+                },
+            },
+        ],
     )
+
+
+def test_available_functions_returns_formatted_catalog():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.available_functions()
+
+    available = response["data"]["available_functions"]
+    assert [item["name"] for item in available] == [
+        "available_functions",
+        "predict",
+        "dataset_summary",
+    ]
+    assert available[1]["signature"] == "predict(patient_id=...)"
+    assert available[2]["signature"] == "dataset_summary(patient_id=optional)"
+    assert "<code>predict(patient_id=...)</code>" in response["text"]
+    assert "Return one table with overall dataset statistics" in response["text"]
 
 
 def test_misclassified_cases_summarizes_groups_with_display_labels():
@@ -391,3 +451,55 @@ def test_heart_usecase_alias_lookup_includes_display_name(tmp_path):
 
     assert usecase.alias_lookup["resting blood pressure"] == "trestbps"
     assert usecase.alias_lookup["sex"] == "sex"
+
+
+def test_heart_usecase_registers_available_functions(tmp_path):
+    metadata_path = tmp_path / "feature_metadata.json"
+    metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+
+    functions_path = tmp_path / "functions.json"
+    functions_path.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "available_functions",
+                        "description": "Get a formatted list of all available heart use case functions.",
+                    },
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    config = HeartConfig(
+        dataset_path=Path("unused.csv"),
+        feature_metadata_path=metadata_path,
+        functions_json_path=functions_path,
+        shap_cache_path=tmp_path / "shap_cache.pkl",
+        cf_cache_path=tmp_path / "cf_cache.pkl",
+        global_fi_cache_path=tmp_path / "global_fi_cache.pkl",
+    )
+
+    model_loader = Mock()
+    data_loader = Mock()
+    explainer_loader = Mock()
+    dataset = pd.DataFrame({"age": [54], "sex": [1], "trestbps": [140], "num": [0]}, index=[10])
+    model_loader.load_model.return_value = DummyHeartModel()
+    data_loader.load_dataset.return_value = dataset
+
+    usecase = HeartUseCase(
+        model_loader=model_loader,
+        data_loader=data_loader,
+        explainer_loader=explainer_loader,
+        config=config,
+    )
+    usecase._explainer = Mock()
+    usecase._dice_exp = Mock()
+    usecase._dice_dataset = dataset.drop(columns=["num"]).copy()
+    usecase._global_feature_importances = {"age": 0.7, "trestbps": 0.2, "sex": 0.1}
+
+    functions = usecase.get_functions()
+
+    assert "available_functions" in functions

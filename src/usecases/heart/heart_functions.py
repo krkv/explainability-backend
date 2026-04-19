@@ -32,6 +32,7 @@ class HeartFunctions:
         target_variable: str,
         class_names: List[str],
         feature_names: List[str],
+        functions_catalog: Optional[List[Dict[str, Any]]] = None,
         shap_cache_path: str = None,
         cf_cache_path: str = None,
     ):
@@ -70,11 +71,61 @@ class HeartFunctions:
         self.target_variable = target_variable
         self.class_names = class_names
         self.feature_names = feature_names
+        self.functions_catalog = functions_catalog or []
         self.shap_cache_path = shap_cache_path
         self.cf_cache_path = cf_cache_path
         
         self._shap_cache = self._load_pickle(self.shap_cache_path)
         self._cf_cache = self._load_pickle(self.cf_cache_path)
+
+    def available_functions(self) -> Dict[str, Any]:
+        """Return a formatted list of the available heart use case functions."""
+        function_items = []
+
+        for entry in self.functions_catalog:
+            function = entry.get("function", {})
+            name = function.get("name")
+            description = function.get("description", "")
+            if not name:
+                continue
+
+            properties = function.get("parameters", {}).get("properties", {})
+            required = set(function.get("parameters", {}).get("required", []))
+            signature_parts = []
+            parameter_details = []
+
+            for param_name, param_schema in properties.items():
+                signature_parts.append(
+                    f"{param_name}=..."
+                    if param_name in required else f"{param_name}=optional"
+                )
+                parameter_details.append(
+                    {
+                        "name": param_name,
+                        "required": param_name in required,
+                        "description": param_schema.get("description", ""),
+                    }
+                )
+
+            signature = f"{name}({', '.join(signature_parts)})" if signature_parts else f"{name}()"
+            function_items.append(
+                {
+                    "name": name,
+                    "signature": signature,
+                    "description": description,
+                    "parameters": parameter_details,
+                }
+            )
+
+        text = "<p>Here are the available functions:</p><ul>"
+        for item in function_items:
+            text += f"<li><code>{item['signature']}</code>: {item['description']}</li>"
+        text += "</ul><p>Let me know which one you want to use.</p>"
+
+        return {
+            "data": {"available_functions": function_items},
+            "text": text,
+        }
 
     def _load_pickle(self, path):
         if path:

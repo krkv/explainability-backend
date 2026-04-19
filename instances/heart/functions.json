@@ -2,6 +2,13 @@
     {
         "type": "function",
         "function": {
+            "name": "available_functions",
+            "description": "Get a formatted list of all available heart use case functions."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "age_group_performance",
             "description": "Return performance metrics for different age groups in the dataset.",
             "parameters": {

@@ -211,6 +211,9 @@ class HeartUseCase(BaseUseCase):
     
     def _create_functions(self) -> Dict[str, Callable]:
         """Create function registry for heart use case."""
+        with open(self.config.functions_json_path, 'r') as f:
+            functions_catalog = json.load(f)
+
         heart_funcs = HeartFunctions(
             model=self.model,
             dataset=self.dataset,
@@ -226,11 +229,13 @@ class HeartUseCase(BaseUseCase):
             target_variable=self.config.target_variable,
             class_names=self.config.class_names,
             feature_names=self.dataset.columns.tolist(),
+            functions_catalog=functions_catalog,
             shap_cache_path=self.config.shap_cache_path,
             cf_cache_path=self.config.cf_cache_path,
         )
         
         return {
+            'available_functions': heart_funcs.available_functions,
             'get_model_parameters': heart_funcs.get_model_parameters,
             'get_model_description': heart_funcs.get_model_description,
             'predict': heart_funcs.predict,
@@ -304,6 +309,7 @@ class HeartUseCase(BaseUseCase):
     If you decide to invoke one or several of the available functions, you MUST include them in the JSON response field "function_calls" in format "[func_name1(params_name1=params_value1, params_name2=params_value2...),func_name1(params_name1=params_value1, params_name2=params_value2...)]".
     When adding param values, only use param values given by user. Do not use any other values or make up any values.
     If you decide that no function(s) can be called, you should return an empty list [] as "function_calls".
+    If the user asks to see the list of available functions or asks what functions you can use, call <code>available_functions()</code>.
       
     Your free-form response in JSON field "freeform_response" is mandatory and it should be a short comment about what you are trying to achieve with chosen function calls. 
     If user asked a question about data/model/prediction and it can not be answered with the available functions, your freeform_response should not try to answer this question. Just say that you are not able to answer this question and ask if user wants to see the list of available functions.
