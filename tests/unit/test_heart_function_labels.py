@@ -196,6 +196,69 @@ def test_misclassified_cases_summarizes_groups_with_display_labels():
     assert "_summarize_group" not in response["text"]
 
 
+def test_age_group_performance_handles_non_contiguous_patient_ids():
+    dataset = pd.DataFrame(
+        {
+            "age": [35, 50, 70],
+            "trestbps": [120, 130, 140],
+            "sex": [1, 0, 1],
+        },
+        index=[10, 11, 12],
+    )
+    dataset_full = dataset.copy()
+    dataset_full["num"] = [0, 1, 1]
+    metadata = build_feature_metadata()
+
+    class MixedPredictionModel:
+        def predict(self, dataframe):
+            return np.array([0, 1, 0], dtype=int)
+
+        def predict_proba(self, dataframe):
+            return np.tile(np.array([[0.75, 0.25]]), (len(dataframe), 1))
+
+    heart_functions = HeartFunctions(
+        model=MixedPredictionModel(),
+        dataset=dataset,
+        dataset_full=dataset_full,
+        y_values=dataset_full["num"],
+        explainer=Mock(),
+        dice_exp=Mock(),
+        dice_dataset=dataset.copy(),
+        model_metadata={"description": "Test model", "parameters": {}},
+        feature_metadata=metadata,
+        alias_lookup={
+            "age": "age",
+            "patient age": "age",
+            "trestbps": "trestbps",
+            "blood pressure": "trestbps",
+            "resting blood pressure": "trestbps",
+            "sex": "sex",
+            "gender": "sex",
+        },
+        global_feature_importances={"age": 0.7, "trestbps": 0.2, "sex": 0.1},
+        target_variable="num",
+        class_names=["NEGATIVE", "POSITIVE"],
+        feature_names=["age", "trestbps", "sex"],
+    )
+
+    response = heart_functions.age_group_performance()
+
+    assert set(response["data"].keys()) == {"<40", "40-60", ">60"}
+    assert response["data"]["<40"]["accuracy"] == 1.0
+    assert response["data"]["40-60"]["accuracy"] == 1.0
+    assert response["data"][">60"]["accuracy"] == 0.0
+
+
+def test_what_if_rejects_non_string_feature_gracefully():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.what_if(10, 123, 1.0)
+
+    assert "error" in response
+    assert "not found in patient data" in response["error"]
+    assert "<p>Feature <code>123</code> not found in patient data.</p>" == response["text"]
+
+
 def test_show_one_uses_display_names_and_feature_value_rows():
     heart_functions = build_heart_functions()
 

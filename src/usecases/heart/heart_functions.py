@@ -372,15 +372,21 @@ class HeartFunctions:
     
     def what_if(self, patient_id: int, feature: str, value_change: float) -> Dict[str, Any]:
         """Simulates how changing a single feature affects predictions."""
-        feature_key = self.alias_lookup.get(feature.lower(), feature)
+        feature_key = self._resolve_feature_name(feature)
         
         if patient_id not in self.dataset.index:
-            return {"error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."}
+            return {
+                "error": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset.",
+                "text": f"<p>Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset.</p>",
+            }
         
         patient_row = self.dataset.loc[patient_id].to_frame().T
         
-        if feature_key not in patient_row.columns:
-            return {"error": f"Feature <code>{feature}</code> not found in patient data."}
+        if feature_key is None or feature_key not in patient_row.columns:
+            return {
+                "error": f"Feature <code>{feature}</code> not found in patient data.",
+                "text": f"<p>Feature <code>{feature}</code> not found in patient data.</p>",
+            }
         
         modified_row = patient_row.copy()
         modified_row[feature_key] += value_change
@@ -519,7 +525,7 @@ class HeartFunctions:
         if "age" not in self.dataset.columns:
             return {"error": f"Required column <code>age</code> is missing from dataset."}
         
-        y_pred = self.model.predict(self.dataset)
+        y_pred = pd.Series(self.model.predict(self.dataset), index=self.dataset.index)
         
         age_groups = {
             "<40": self.dataset[self.dataset["age"] < 40],
@@ -531,7 +537,7 @@ class HeartFunctions:
         for group, subset in age_groups.items():
             if not subset.empty:
                 y_true_group = self.y_values[subset.index]
-                y_pred_group = y_pred[subset.index]
+                y_pred_group = y_pred.loc[subset.index]
                 
                 results[group] = {
                     "accuracy": float(accuracy_score(y_true_group, y_pred_group)),
