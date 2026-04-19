@@ -237,6 +237,7 @@ class HeartUseCase(BaseUseCase):
             'feature_importance_patient': heart_funcs.feature_importance_patient,
             'feature_importance_global': heart_funcs.feature_importance_global,
             'dataset_summary': heart_funcs.dataset_summary,
+            'define_feature': heart_funcs.define_feature,
             'performance_metrics': heart_funcs.performance_metrics,
             'confusion_matrix_stats': heart_funcs.confusion_matrix_stats,
             'what_if': heart_funcs.what_if,

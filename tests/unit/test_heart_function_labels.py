@@ -24,18 +24,37 @@ def build_feature_metadata():
     return {
         "age": {
             "display_name": "Age",
+            "description": "Age of the patient in years.",
+            "unit": "years",
             "kind": "continuous",
             "aliases": ["patient age"],
             "categories": {},
         },
         "trestbps": {
             "display_name": "Resting Blood Pressure",
+            "description": "Resting blood pressure on admission to the hospital.",
+            "unit": "mm Hg",
             "kind": "continuous",
             "aliases": ["blood pressure"],
             "categories": {},
         },
+        "cp": {
+            "display_name": "Chest Pain Type",
+            "description": "Chest pain type from the published Cleveland processed dataset.",
+            "unit": None,
+            "kind": "categorical",
+            "aliases": ["chest pain"],
+            "categories": {
+                "1": {"label": "Typical angina"},
+                "2": {"label": "Atypical angina"},
+                "3": {"label": "Non-anginal pain"},
+                "4": {"label": "Asymptomatic"},
+            },
+        },
         "sex": {
             "display_name": "Sex",
+            "description": "Sex of the patient.",
+            "unit": None,
             "kind": "categorical",
             "aliases": ["gender"],
             "categories": {
@@ -45,11 +64,26 @@ def build_feature_metadata():
         },
         "num": {
             "display_name": "Heart Disease",
+            "description": "Binary heart disease target derived from the original UCI diagnosis label.",
+            "unit": None,
             "kind": "categorical",
             "aliases": ["heart disease"],
             "categories": {
                 "0": {"label": "No heart disease"},
                 "1": {"label": "Heart disease present"},
+            },
+        },
+        "ca": {
+            "display_name": "Major Vessels",
+            "description": "Number of major vessels colored by fluoroscopy.",
+            "unit": "count",
+            "kind": "categorical",
+            "aliases": [],
+            "categories": {
+                "0": {"label": "0 vessels"},
+                "1": {"label": "1 vessel"},
+                "2": {"label": "2 vessels"},
+                "3": {"label": "3 vessels"},
             },
         },
     }
@@ -84,8 +118,12 @@ def build_heart_functions():
             "trestbps": "trestbps",
             "blood pressure": "trestbps",
             "resting blood pressure": "trestbps",
+            "cp": "cp",
+            "chest pain": "cp",
+            "chest pain type": "cp",
             "sex": "sex",
             "gender": "sex",
+            "major vessels": "ca",
             "heart disease": "num",
         },
         global_feature_importances={"age": 0.7, "trestbps": 0.2, "sex": 0.1},
@@ -116,11 +154,55 @@ def test_dataset_summary_uses_display_names():
 
     response = heart_functions.dataset_summary()
 
-    summary = response["data"]["comparison"]["all_patients_average"]
-    assert "Age" in summary
-    assert "Resting Blood Pressure" in summary
-    assert "Sex" in summary
+    summary_rows = response["data"]["dataset_statistics"]
+    labels = {row["Feature"] for row in summary_rows}
+    assert "Age" in labels
+    assert "Resting Blood Pressure" in labels
+    assert "Sex" in labels
+    assert "heart_disease_average" not in response["data"]
+    assert "Mean / Mode" in response["text"]
     assert "trestbps" not in response["text"]
+
+
+def test_define_feature_returns_feature_definition_for_alias():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.define_feature("blood pressure")
+
+    assert response["data"]["feature"] == "trestbps"
+    assert response["data"]["display_name"] == "Resting Blood Pressure"
+    assert response["data"]["description"] == "Resting blood pressure on admission to the hospital."
+    assert response["data"]["unit"] == "mm Hg"
+    assert "Resting Blood Pressure" in response["text"]
+    assert "mm Hg" in response["text"]
+
+
+def test_define_feature_returns_categories_for_categorical_feature():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.define_feature("chest pain")
+
+    assert response["data"]["feature"] == "cp"
+    assert response["data"]["categories"] == {
+        "1": "Typical angina",
+        "2": "Atypical angina",
+        "3": "Non-anginal pain",
+        "4": "Asymptomatic",
+    }
+    assert "Typical angina" in response["text"]
+    assert "Asymptomatic" in response["text"]
+
+
+def test_define_feature_returns_definition_for_display_name():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.define_feature("Major Vessels")
+
+    assert response["data"]["feature"] == "ca"
+    assert response["data"]["display_name"] == "Major Vessels"
+    assert response["data"]["categories"]["3"] == "3 vessels"
+    assert "Major Vessels" in response["text"]
+    assert "0 vessels" in response["text"]
 
 
 def test_feature_importance_patient_returns_labeled_data_even_from_legacy_cache():

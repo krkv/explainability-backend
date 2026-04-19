@@ -195,38 +195,96 @@ class HeartFunctions:
         }
     
     def dataset_summary(self, patient_id: Optional[int] = None) -> Dict[str, Any]:
-        """Compare patient's features to average features, or return only group-level averages."""
-        feature_columns = [f for f in self.dataset.columns]
-        
-        avg_hd = self._summarize_group(self.dataset_full[self.dataset_full[self.target_variable] == 1][feature_columns])
-        avg_nohd = self._summarize_group(self.dataset_full[self.dataset_full[self.target_variable] == 0][feature_columns])
-        avg_all = self._summarize_group(self.dataset_full[feature_columns])
-        
-        result = {
-            "comparison": {
-                "heart_disease_average": avg_hd,
-                "non_heart_disease_average": avg_nohd,
-                "all_patients_average": avg_all
-            }
-        }
-        
-        text = "<p>Average features for patients with heart disease:</p>" + self._dict_table_html(avg_hd)
-        text += "<p>Average features for patients without heart disease:</p>" + self._dict_table_html(avg_nohd)
-        text += "<p>Average features for all patients:</p>" + self._dict_table_html(avg_all)
-        
+        """Return a single table with overall dataset statistics."""
+        stats_rows = self._build_dataset_statistics()
+        stats_columns = [
+            "Feature",
+            "Type",
+            "Count",
+            "Mean / Mode",
+            "Std",
+            "Min",
+            "25%",
+            "50%",
+            "75%",
+            "Max",
+            "Categories",
+        ]
+        stats_table = pd.DataFrame(stats_rows, columns=stats_columns)
+        result = {"dataset_statistics": stats_rows}
+
+        text = "<p>Here are the overall dataset statistics for each feature:</p>"
+        text += self._table_html(stats_table)
+
         if patient_id is not None:
             try:
-                patient_row = self.dataset.loc[[patient_id]]
-                patient_features = self._display_record(patient_row[feature_columns].iloc[0].to_dict())
-                result["patient_id"] = patient_id
-                result["comparison"]["patient"] = patient_features
+                patient_features = self._display_record(self.dataset.loc[patient_id].to_dict())
+                result["patient"] = {
+                    "patient_id": patient_id,
+                    "features": patient_features,
+                }
                 text += f"<p>Patient <code>ID</code> <var>{patient_id}</var> features:</p>" + self._dict_table_html(patient_features)
             except KeyError:
                 return {
-                    "error": f"Patient <code>ID</code> <var>{patient_id}</var> is out of range. Dataset has <var>{len(self.dataset)}</var> patients."
+                    "error": f"Patient <code>ID</code> <var>{patient_id}</var> is out of range. Dataset has <var>{len(self.dataset)}</var> patients.",
+                    "text": f"<p>Patient <code>ID</code> <var>{patient_id}</var> is out of range. Dataset has <var>{len(self.dataset)}</var> patients.</p>",
                 }
-        
+
         return {"data": result, "text": text}
+
+    def define_feature(self, feature: str) -> Dict[str, Any]:
+        """Return the metadata-backed definition for a feature."""
+        canonical_feature = self._resolve_feature_name(feature)
+        if canonical_feature is None:
+            available_features = ", ".join(
+                f"<code>{self._feature_label(name)}</code>" for name in self.dataset.columns
+            )
+            return {
+                "error": f"Feature '{feature}' not found in metadata.",
+                "text": (
+                    f"<p>I could not find a feature matching <code>{feature}</code>.</p>"
+                    f"<p>Available features are: {available_features}.</p>"
+                ),
+            }
+
+        metadata = self.feature_metadata.get(canonical_feature, {})
+        display_name = metadata.get("display_name", canonical_feature)
+        description = metadata.get("description", "No description available.")
+        unit = metadata.get("unit")
+        kind = metadata.get("kind", "continuous")
+        aliases = metadata.get("aliases", [])
+        categories = metadata.get("categories", {})
+
+        category_rows = [
+            {"Code": code, "Label": details.get("label", code)}
+            for code, details in self._sorted_categories(categories)
+        ]
+
+        data = {
+            "feature": canonical_feature,
+            "display_name": display_name,
+            "description": description,
+            "unit": unit,
+            "kind": kind,
+            "aliases": aliases,
+            "categories": {
+                code: details.get("label", code)
+                for code, details in self._sorted_categories(categories)
+            },
+        }
+
+        text = f"<p><code>{display_name}</code>: {description}</p>"
+        if unit:
+            text += f"<p>Unit: <var>{unit}</var>.</p>"
+        if aliases:
+            text += "<p>Also referred to as: " + ", ".join(
+                f"<code>{alias}</code>" for alias in aliases
+            ) + ".</p>"
+        if category_rows:
+            text += "<p>Available categories are:</p>"
+            text += self._table_html(pd.DataFrame(category_rows, columns=["Code", "Label"]))
+
+        return {"data": data, "text": text}
     
     def performance_metrics(self, metrics: Optional[List[str]] = None) -> Dict[str, Any]:
         """Computes and returns selected performance metrics, including AUC-ROC."""
@@ -573,6 +631,18 @@ class HeartFunctions:
             for feature, value in record.items()
         }
 
+    def _resolve_feature_name(self, feature: str) -> Optional[str]:
+        if not isinstance(feature, str):
+            return None
+        normalized = feature.strip().lower()
+        if not normalized:
+            return None
+        if normalized in self.alias_lookup:
+            return self.alias_lookup[normalized]
+        if normalized in self.feature_metadata:
+            return normalized
+        return None
+
     def _dict_table_html(self, record: Dict[str, Any], key_header: str = "Feature", value_header: str = "Value") -> str:
         frame = pd.DataFrame(record.items(), columns=[key_header, value_header])
         return self._table_html(frame)
@@ -580,17 +650,61 @@ class HeartFunctions:
     def _table_html(self, frame: pd.DataFrame) -> str:
         return f"<p>{frame.to_html(index=False)}</p>"
 
-    def _summarize_group(self, frame: pd.DataFrame) -> Dict[str, Any]:
-        summary = {}
-        for feature in frame.columns:
+    def _build_dataset_statistics(self) -> List[Dict[str, Any]]:
+        stats_rows = []
+        for feature in self.dataset.columns:
             metadata = self.feature_metadata.get(feature, {})
             kind = metadata.get("kind", "continuous")
+            series = self.dataset[feature].dropna()
+            row = {
+                "Feature": self._feature_label(feature),
+                "Type": kind,
+                "Count": int(series.count()),
+                "Mean / Mode": "",
+                "Std": "",
+                "Min": "",
+                "25%": "",
+                "50%": "",
+                "75%": "",
+                "Max": "",
+                "Categories": "",
+            }
+
             if kind == "continuous":
-                summary[self._feature_label(feature)] = round(float(frame[feature].mean()), 3)
+                row.update(
+                    {
+                        "Mean / Mode": round(float(series.mean()), 3),
+                        "Std": round(float(series.std()), 3) if len(series) > 1 else 0.0,
+                        "Min": round(float(series.min()), 3),
+                        "25%": round(float(series.quantile(0.25)), 3),
+                        "50%": round(float(series.quantile(0.5)), 3),
+                        "75%": round(float(series.quantile(0.75)), 3),
+                        "Max": round(float(series.max()), 3),
+                    }
+                )
             else:
-                modes = frame[feature].mode(dropna=True)
-                summary[self._feature_label(feature)] = self._display_value(feature, modes.iloc[0] if not modes.empty else None)
-        return summary
+                modes = series.mode(dropna=True)
+                categories = metadata.get("categories", {})
+                row["Mean / Mode"] = self._display_value(
+                    feature,
+                    modes.iloc[0] if not modes.empty else None,
+                )
+                row["Categories"] = ", ".join(
+                    details.get("label", code)
+                    for code, details in self._sorted_categories(categories)
+                )
+
+            stats_rows.append(row)
+        return stats_rows
+
+    def _sorted_categories(self, categories: Dict[str, Any]) -> List[Any]:
+        return sorted(categories.items(), key=lambda item: self._category_sort_key(item[0]))
+
+    def _category_sort_key(self, value: str) -> Any:
+        try:
+            return (0, float(value))
+        except (TypeError, ValueError):
+            return (1, str(value))
 
     def _label_feature_scores(self, influences: List[float]) -> Dict[str, float]:
         return {

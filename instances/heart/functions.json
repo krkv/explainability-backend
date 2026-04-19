@@ -85,16 +85,65 @@
         "type": "function",
         "function": {
             "name": "dataset_summary",
-            "description": "Return a summary of the dataset including average feature values for all patients and optionally compare with a specific patient's features.",
+            "description": "Return one table with overall dataset statistics for each feature, similar to a dataset describe view, and optionally include one patient's feature values.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "patient_id": {
                         "type": "integer",
-                        "description": "Optional. ID (row index) of the patient to compare to average values."
+                        "description": "Optional. ID (row index) of the patient to show alongside the overall dataset statistics."
                     }
                 },
                 "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "define_feature",
+            "description": "Return the definition of a dataset feature from metadata, including description, unit, aliases, and categorical options. Use this for questions like what a feature means or what categories it has, for example blood pressure or chest pain types.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "feature": {
+                        "type": "string",
+                        "description": "Feature to define. Choose one of the supported heart dataset features from this enum.",
+                        "enum": [
+                            "age",
+                            "Age",
+                            "sex",
+                            "Sex",
+                            "cp",
+                            "Chest Pain Type",
+                            "trestbps",
+                            "Resting Blood Pressure",
+                            "chol",
+                            "Serum Cholesterol",
+                            "fbs",
+                            "Fasting Blood Sugar > 120 mg/dl",
+                            "restecg",
+                            "Resting ECG",
+                            "thalch",
+                            "Maximum Heart Rate",
+                            "exang",
+                            "Exercise Induced Angina",
+                            "oldpeak",
+                            "Oldpeak",
+                            "slope",
+                            "ST Segment Slope",
+                            "ca",
+                            "Major Vessels",
+                            "thal",
+                            "Thalassemia",
+                            "num",
+                            "Heart Disease"
+                        ]
+                    }
+                },
+                "required": [
+                    "feature"
+                ]
             }
         }
     },
