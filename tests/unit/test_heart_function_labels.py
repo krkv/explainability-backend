@@ -20,6 +20,17 @@ class DummyHeartModel:
         return np.tile(np.array([[0.75, 0.25]]), (len(dataframe), 1))
 
 
+class CategoricalWhatIfModel:
+    def predict(self, dataframe):
+        positive = (dataframe["cp"].to_numpy() >= 3).astype(int)
+        return positive
+
+    def predict_proba(self, dataframe):
+        positive_prob = np.where(dataframe["cp"].to_numpy() >= 3, 0.8, 0.2)
+        negative_prob = 1 - positive_prob
+        return np.column_stack([negative_prob, positive_prob])
+
+
 def build_feature_metadata():
     return {
         "age": {
@@ -176,6 +187,52 @@ def build_heart_functions():
     )
 
 
+def build_heart_functions_with_cp():
+    dataset = pd.DataFrame(
+        {
+            "age": [54],
+            "trestbps": [140],
+            "cp": [4],
+            "sex": [1],
+        },
+        index=[10],
+    )
+    dataset_full = dataset.copy()
+    dataset_full["num"] = [1]
+    metadata = build_feature_metadata()
+
+    return HeartFunctions(
+        model=CategoricalWhatIfModel(),
+        dataset=dataset,
+        dataset_full=dataset_full,
+        y_values=dataset_full["num"],
+        explainer=Mock(),
+        dice_exp=Mock(),
+        dice_dataset=dataset.copy(),
+        model_metadata={"description": "Test model", "parameters": {}},
+        feature_metadata=metadata,
+        alias_lookup={
+            "age": "age",
+            "patient age": "age",
+            "trestbps": "trestbps",
+            "blood pressure": "trestbps",
+            "resting blood pressure": "trestbps",
+            "cp": "cp",
+            "chest pain": "cp",
+            "chest pain type": "cp",
+            "sex": "sex",
+            "gender": "sex",
+            "major vessels": "ca",
+            "heart disease": "num",
+        },
+        global_feature_importances={"age": 0.7, "trestbps": 0.2, "cp": 0.15, "sex": 0.1},
+        target_variable="num",
+        class_names=["NEGATIVE", "POSITIVE"],
+        feature_names=["age", "trestbps", "cp", "sex"],
+        functions_catalog=[],
+    )
+
+
 def test_available_functions_returns_formatted_catalog():
     heart_functions = build_heart_functions()
 
@@ -317,6 +374,31 @@ def test_what_if_rejects_non_string_feature_gracefully():
     assert "error" in response
     assert "not found in patient data" in response["error"]
     assert "<p>Feature <code>123</code> not found in patient data.</p>" == response["text"]
+
+
+def test_what_if_accepts_categorical_label_shorthand():
+    heart_functions = build_heart_functions_with_cp()
+
+    response = heart_functions.what_if(10, "chest pain", "typical")
+
+    assert response["data"]["feature_modified"] == "Chest Pain Type"
+    assert response["data"]["value_change"] == "typical"
+    assert response["data"]["original_value"] == "Asymptomatic"
+    assert response["data"]["new_value"] == "Typical angina"
+    assert response["data"]["original_prediction"] == 1
+    assert response["data"]["new_prediction"] == 0
+    assert "changing <code>Chest Pain Type</code> from <var>Asymptomatic</var> to <var>Typical angina</var>" in response["text"]
+
+
+def test_what_if_returns_available_categories_for_unknown_categorical_label():
+    heart_functions = build_heart_functions_with_cp()
+
+    response = heart_functions.what_if(10, "chest pain", "mystery")
+
+    assert "error" in response
+    assert "not recognized" in response["error"]
+    assert "Typical angina" in response["text"]
+    assert "Asymptomatic" in response["text"]
 
 
 def test_show_one_uses_display_names_and_feature_value_rows():
@@ -503,3 +585,64 @@ def test_heart_usecase_registers_available_functions(tmp_path):
     functions = usecase.get_functions()
 
     assert "available_functions" in functions
+
+
+def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):
+    metadata_path = tmp_path / "feature_metadata.json"
+    metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+
+    functions_path = tmp_path / "functions.json"
+    functions_path.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "what_if",
+                        "description": "Simulate how changing a specific feature value would affect the prediction for a patient.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "patient_id": {"type": "integer"},
+                                "feature": {"type": "string"},
+                                "value_change": {
+                                    "anyOf": [{"type": "number"}, {"type": "string"}]
+                                },
+                            },
+                            "required": ["patient_id", "feature", "value_change"],
+                        },
+                    },
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    config = HeartConfig(
+        dataset_path=Path("unused.csv"),
+        feature_metadata_path=metadata_path,
+        functions_json_path=functions_path,
+        shap_cache_path=tmp_path / "shap_cache.pkl",
+        cf_cache_path=tmp_path / "cf_cache.pkl",
+        global_fi_cache_path=tmp_path / "global_fi_cache.pkl",
+    )
+
+    model_loader = Mock()
+    data_loader = Mock()
+    explainer_loader = Mock()
+    dataset = pd.DataFrame({"age": [54], "sex": [1], "cp": [4], "trestbps": [140], "num": [1]}, index=[10])
+    model_loader.load_model.return_value = DummyHeartModel()
+    data_loader.load_dataset.return_value = dataset
+
+    usecase = HeartUseCase(
+        model_loader=model_loader,
+        data_loader=data_loader,
+        explainer_loader=explainer_loader,
+        config=config,
+    )
+
+    prompt = usecase.get_system_prompt([{"role": "user", "content": "What if chest pain was typical?"}])
+
+    assert "feature metadata with display names, aliases, descriptions, and categorical options" in prompt
+    assert 'value_change="Typical angina"' in prompt
+    assert "Convert those into the appropriate function arguments instead of refusing" in prompt

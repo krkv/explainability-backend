@@ -263,6 +263,7 @@ class HeartUseCase(BaseUseCase):
         
         # Get dataset description
         dataset_json = self.dataset.describe().to_json()
+        feature_metadata_json = json.dumps(self.feature_metadata, indent=2)
         
         # JSON schema for structured responses
         response_schema = {
@@ -292,6 +293,10 @@ class HeartUseCase(BaseUseCase):
     
     {dataset_json}
 
+    Here is the feature metadata with display names, aliases, descriptions, and categorical options:
+
+    {feature_metadata_json}
+
     The model and the dataset are not available to you directly, but you have access to a set of functions that can be invoked to help the user.
     Here is the list of functions that can be invoked. ONLY these functions can be called:
 
@@ -307,7 +312,9 @@ class HeartUseCase(BaseUseCase):
     Please use double quotes for the keys and values in the JSON response. Do not use single quotes.
    
     If you decide to invoke one or several of the available functions, you MUST include them in the JSON response field "function_calls" in format "[func_name1(params_name1=params_value1, params_name2=params_value2...),func_name1(params_name1=params_value1, params_name2=params_value2...)]".
-    When adding param values, only use param values given by user. Do not use any other values or make up any values.
+    When adding param values, preserve the user's intent and only use values supported by the user message, function catalog, or feature metadata. You may normalize a user's wording to the matching canonical feature name or categorical label/code shown in the metadata. Do not invent unsupported values.
+    Users may refer to features by display name, alias, or shorthand label, for example "chest pain", "blood pressure", or "typical". Convert those into the appropriate function arguments instead of refusing.
+    For what_if on categorical features, pass the desired category label or code as a string, for example value_change="Typical angina". For numeric features, pass a numeric change.
     If you decide that no function(s) can be called, you should return an empty list [] as "function_calls".
     If the user asks to see the list of available functions or asks what functions you can use, call <code>available_functions()</code>.
       

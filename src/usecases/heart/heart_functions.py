@@ -1,11 +1,13 @@
 """Heart use case functions refactored from instances/heart/executive.py."""
 
-import pandas as pd
-import json
 import copy
+import json
 import random
+import re
+from typing import Any, Dict, List, Optional
+
 import numpy as np
-from typing import Optional, Dict, Any, List
+import pandas as pd
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 from tabulate import tabulate
 from src.core.logging_config import get_logger
@@ -421,7 +423,7 @@ class HeartFunctions:
             text = f"<p>Confusion matrix for multi-class classification:</p>" + tabulate(cm, headers=self.class_names, tablefmt='html', numalign="left")
             return {"text": text, "data": data}
     
-    def what_if(self, patient_id: int, feature: str, value_change: float) -> Dict[str, Any]:
+    def what_if(self, patient_id: int, feature: str, value_change: Any) -> Dict[str, Any]:
         """Simulates how changing a single feature affects predictions."""
         feature_key = self._resolve_feature_name(feature)
         
@@ -440,18 +442,60 @@ class HeartFunctions:
             }
         
         modified_row = patient_row.copy()
-        modified_row[feature_key] += value_change
+        current_value = patient_row[feature_key].iloc[0]
+        feature_label = self._feature_label(feature_key)
+        feature_kind = self.feature_metadata.get(feature_key, {}).get("kind", "continuous")
+
+        if feature_kind == "categorical" and not isinstance(value_change, (int, float, np.integer, np.floating)):
+            resolved_value = self._resolve_category_value(feature_key, value_change)
+            if resolved_value is None:
+                available_categories = ", ".join(
+                    f"<code>{details.get('label', code)}</code>"
+                    for code, details in self._sorted_categories(
+                        self.feature_metadata.get(feature_key, {}).get("categories", {})
+                    )
+                )
+                return {
+                    "error": (
+                        f"Category <code>{value_change}</code> is not recognized for feature "
+                        f"<code>{feature_label}</code>."
+                    ),
+                    "text": (
+                        f"<p>I could not match <code>{value_change}</code> to a valid category for "
+                        f"<code>{feature_label}</code>.</p>"
+                        f"<p>Available categories are: {available_categories}.</p>"
+                    ),
+                }
+            modified_row[feature_key] = resolved_value
+        else:
+            if not isinstance(value_change, (int, float, np.integer, np.floating)):
+                return {
+                    "error": (
+                        f"Feature <code>{feature_label}</code> requires a numeric change, "
+                        f"but received <code>{value_change}</code>."
+                    ),
+                    "text": (
+                        f"<p>Feature <code>{feature_label}</code> requires a numeric change, "
+                        f"but received <code>{value_change}</code>.</p>"
+                    ),
+                }
+            modified_row[feature_key] += value_change
         
         original_prediction = int(self.model.predict(patient_row)[0])
         new_prediction = int(self.model.predict(modified_row)[0])
         
         original_prob = self.model.predict_proba(patient_row)[0].tolist()
         new_prob = self.model.predict_proba(modified_row)[0].tolist()
+
+        original_value = self._display_value(feature_key, current_value)
+        new_value = self._display_value(feature_key, modified_row[feature_key].iloc[0])
         
         data = {
             "patient_id": patient_id,
-            "feature_modified": self._feature_label(feature_key),
+            "feature_modified": feature_label,
             "value_change": value_change,
+            "original_value": original_value,
+            "new_value": new_value,
             "original_prediction": original_prediction,
             "new_prediction": new_prediction,
             "probability_change": {
@@ -459,7 +503,17 @@ class HeartFunctions:
                 "new": new_prob
             }
         }
-        text = f"<p>For patient <code>ID</code> <var>{patient_id}</var>, modifying feature <code>{self._feature_label(feature_key)}</code> by <var>{value_change}</var> results in:</p>"
+        if feature_kind == "categorical" and not isinstance(value_change, (int, float, np.integer, np.floating)):
+            text = (
+                f"<p>For patient <code>ID</code> <var>{patient_id}</var>, changing "
+                f"<code>{feature_label}</code> from <var>{original_value}</var> to "
+                f"<var>{new_value}</var> results in:</p>"
+            )
+        else:
+            text = (
+                f"<p>For patient <code>ID</code> <var>{patient_id}</var>, modifying feature "
+                f"<code>{feature_label}</code> by <var>{value_change}</var> results in:</p>"
+            )
         text += f"<p>Original prediction: <var>{self.class_names[original_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in original_prob]}</var></p>"
         text += f"<p>New prediction: <var>{self.class_names[new_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in new_prob]}</var></p>"
         
@@ -699,6 +753,54 @@ class HeartFunctions:
         if normalized in self.feature_metadata:
             return normalized
         return None
+
+    def _resolve_category_value(self, feature: str, value: Any) -> Optional[Any]:
+        categories = self.feature_metadata.get(feature, {}).get("categories", {})
+        normalized_value = self._normalize_lookup_value(value)
+        if not normalized_value:
+            return None
+        value_tokens = normalized_value.split()
+
+        exact_matches: List[str] = []
+        partial_matches: List[str] = []
+
+        for code, details in self._sorted_categories(categories):
+            label = details.get("label", code)
+            normalized_code = self._normalize_lookup_value(code)
+            normalized_label = self._normalize_lookup_value(label)
+
+            if normalized_value in {normalized_code, normalized_label}:
+                exact_matches.append(code)
+                continue
+
+            label_tokens = normalized_label.split()
+            if value_tokens and all(token in label_tokens for token in value_tokens):
+                partial_matches.append(code)
+
+        if len(exact_matches) == 1:
+            return self._coerce_category_code(feature, exact_matches[0])
+        if len(partial_matches) == 1:
+            return self._coerce_category_code(feature, partial_matches[0])
+        return None
+
+    def _coerce_category_code(self, feature: str, code: str) -> Any:
+        series = self.dataset[feature]
+        if pd.api.types.is_integer_dtype(series.dtype):
+            try:
+                return int(float(code))
+            except (TypeError, ValueError):
+                return code
+        if pd.api.types.is_float_dtype(series.dtype):
+            try:
+                return float(code)
+            except (TypeError, ValueError):
+                return code
+        return code
+
+    def _normalize_lookup_value(self, value: Any) -> str:
+        normalized = str(value).strip().lower()
+        normalized = normalized.replace("_", " ").replace("-", " ")
+        return re.sub(r"\s+", " ", normalized)
 
     def _dict_table_html(self, record: Dict[str, Any], key_header: str = "Feature", value_header: str = "Value") -> str:
         frame = pd.DataFrame(record.items(), columns=[key_header, value_header])
