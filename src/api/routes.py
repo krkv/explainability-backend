@@ -12,6 +12,7 @@ from src.api.dependencies import (
     validate_usecase,
     AssistantServiceDep,
 )
+from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -83,10 +84,15 @@ async def get_assistant_response(
     except ValueError as e:
         logger.error(f"Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+    except UpstreamRateLimitException as e:
+        logger.warning(f"LLM provider temporarily rate limited: {e}")
+        raise HTTPException(status_code=503, detail=str(e))
+    except LLMProviderException as e:
+        logger.error(f"LLM provider error: {e}", exc_info=True)
+        raise HTTPException(status_code=502, detail=str(e))
     except Exception as e:
         logger.error(f"Failed to generate assistant response: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
-

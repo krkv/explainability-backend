@@ -5,7 +5,7 @@ import json
 from unittest.mock import Mock, AsyncMock, patch
 from src.services.assistant.assistant_service import AssistantService
 from src.core.constants import UseCase, Model
-from src.core.exceptions import LLMProviderException, FunctionExecutionException
+from src.core.exceptions import LLMProviderException, FunctionExecutionException, UpstreamRateLimitException
 from src.domain.entities.assistant_response import AssistantResponse
 
 
@@ -236,5 +236,24 @@ class TestAssistantService:
                     usecase=UseCase.ENERGY,
                     model=Model.LLAMA_3_3_70B
                 )
-            assert "Failed to process message" in str(exc_info.value)
+            assert str(exc_info.value) == "LLM error"
 
+    @pytest.mark.asyncio
+    async def test_process_message_preserves_upstream_rate_limit_exception(
+        self, assistant_service, sample_conversation
+    ):
+        """Test that upstream rate limit errors are preserved for the API layer."""
+        with patch('src.services.assistant.assistant_service.get_llm_provider') as mock_get_provider:
+            mock_provider = AsyncMock()
+            mock_provider.generate_response = AsyncMock(
+                side_effect=UpstreamRateLimitException("Rate limited")
+            )
+            mock_get_provider.return_value = mock_provider
+
+            with pytest.raises(UpstreamRateLimitException) as exc_info:
+                await assistant_service.process_message(
+                    conversation=sample_conversation,
+                    usecase=UseCase.ENERGY,
+                    model=Model.LLAMA_3_3_70B
+                )
+            assert str(exc_info.value) == "Rate limited"

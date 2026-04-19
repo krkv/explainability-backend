@@ -91,6 +91,8 @@ class AssistantService:
             logger.info(f"Processed message for usecase {usecase.value}, model {model.value}")
             return response
             
+        except LLMProviderException:
+            raise
         except Exception as e:
             logger.error(f"Failed to process message: {e}")
             raise LLMProviderException(f"Failed to process message: {e}")

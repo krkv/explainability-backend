@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 from src.domain.interfaces.llm_provider import LLMProvider
 from src.core.constants import UseCase
-from src.core.exceptions import LLMProviderException
+from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -14,6 +14,10 @@ logger = get_logger(__name__)
 
 class GoogleGeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation using exact patterns from googlecloud.py."""
+
+    _MAX_RETRIES = 3
+    _BASE_RETRY_DELAY_SECONDS = 1.0
+    _MAX_RETRY_DELAY_SECONDS = 8.0
     
     def __init__(self, model_name: str, project_id: str, location: str, api_key: Optional[str] = None):
         """
@@ -73,15 +77,54 @@ class GoogleGeminiProvider(LLMProvider):
             raise LLMProviderException("Google Gemini provider is not available")
         
         try:
-            # Use the exact same pattern as googlecloud.py
-            response = await self._generate_google_cloud_response(conversation, usecase.value)
+            # Retry transient quota/rate-limit errors from Vertex AI.
+            response = await self._generate_with_retry(conversation, usecase.value)
+
+            if not response or not response.strip():
+                raise LLMProviderException("Empty response content from Google Gemini API")
             
             logger.debug(f"Generated response from Google Gemini: {len(response)} characters")
             return response
             
+        except LLMProviderException:
+            raise
         except Exception as e:
             logger.error(f"Google Gemini generation failed: {e}")
             raise LLMProviderException(f"Failed to generate response: {e}")
+
+    async def _generate_with_retry(self, conversation: List[Dict[str, str]], usecase: str) -> str:
+        """Retry transient upstream rate-limit failures with exponential backoff."""
+        last_error: Optional[Exception] = None
+
+        for attempt in range(self._MAX_RETRIES):
+            try:
+                return await self._generate_google_cloud_response(conversation, usecase)
+            except Exception as e:
+                last_error = e
+
+                if not self._is_resource_exhausted_error(e):
+                    raise
+
+                if attempt == self._MAX_RETRIES - 1:
+                    break
+
+                delay = min(
+                    self._BASE_RETRY_DELAY_SECONDS * (2 ** attempt),
+                    self._MAX_RETRY_DELAY_SECONDS,
+                )
+                logger.warning(
+                    "Google Gemini rate limited by Vertex AI; retrying in %.1f seconds "
+                    "(attempt %s/%s)",
+                    delay,
+                    attempt + 1,
+                    self._MAX_RETRIES,
+                )
+                await asyncio.sleep(delay)
+
+        raise UpstreamRateLimitException(
+            "Google Gemini rate limit exceeded. Vertex AI returned RESOURCE_EXHAUSTED (429). "
+            "Please retry shortly."
+        ) from last_error
     
     async def _generate_google_cloud_response(self, conversation: List[Dict[str, str]], usecase: str) -> str:
         """
@@ -146,6 +189,27 @@ class GoogleGeminiProvider(LLMProvider):
             config=config
         )
         return response.text
+
+    def _is_resource_exhausted_error(self, error: Exception) -> bool:
+        """Best-effort detection for Vertex AI quota and rate-limit failures."""
+        error_text = str(error).upper()
+
+        if "RESOURCE_EXHAUSTED" in error_text:
+            return True
+        if "429" in error_text:
+            return True
+
+        status_code = getattr(error, "status_code", None)
+        if status_code == 429:
+            return True
+
+        code = getattr(error, "code", None)
+        if code == 429:
+            return True
+        if isinstance(code, str) and code.upper() == "RESOURCE_EXHAUSTED":
+            return True
+
+        return False
     
     def get_model_name(self) -> str:
         """

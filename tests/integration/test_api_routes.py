@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from unittest.mock import Mock, AsyncMock, patch
 from src.main import app
 from src.core.constants import UseCase, Model
+from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 
 
 @pytest.fixture
@@ -158,8 +159,6 @@ class TestAssistantResponseEndpoint:
         self, mock_get_service, client
     ):
         """Test assistant response when service raises an error."""
-        from src.core.exceptions import LLMProviderException
-        
         service = Mock()
         service.process_message = AsyncMock(
             side_effect=LLMProviderException("Service error")
@@ -176,8 +175,32 @@ class TestAssistantResponseEndpoint:
         
         response = client.post("/getAssistantResponse", json=request_data)
         
-        assert response.status_code == 500
+        assert response.status_code == 502
         assert "error" in response.json()["detail"].lower()
+
+    @patch('src.api.dependencies.get_assistant_service')
+    def test_get_assistant_response_upstream_rate_limit(
+        self, mock_get_service, client
+    ):
+        """Test upstream rate limit errors are returned as temporary unavailability."""
+        service = Mock()
+        service.process_message = AsyncMock(
+            side_effect=UpstreamRateLimitException("Rate limited")
+        )
+        mock_get_service.return_value = service
+
+        request_data = {
+            "conversation": [
+                {"role": "user", "content": "Hello"}
+            ],
+            "model": "Gemini 2.0 Flash",
+            "usecase": "Energy Consumption"
+        }
+
+        response = client.post("/getAssistantResponse", json=request_data)
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Rate limited"
     
     @patch('src.api.dependencies.get_assistant_service')
     def test_get_assistant_response_case_insensitive_usecase(
@@ -197,4 +220,3 @@ class TestAssistantResponseEndpoint:
         response = client.post("/getAssistantResponse", json=request_data)
         
         assert response.status_code == 200
-

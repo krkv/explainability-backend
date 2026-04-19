@@ -5,7 +5,7 @@ from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from src.services.llm.huggingface_provider import HuggingFaceProvider
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 from src.core.constants import UseCase
-from src.core.exceptions import LLMProviderException
+from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 
 
 class TestHuggingFaceProvider:
@@ -157,7 +157,7 @@ class TestGoogleGeminiProvider:
     @pytest.mark.asyncio
     async def test_generate_response_client_error(self, provider):
         """Test handling of client errors."""
-        provider._client.models.generate_content = AsyncMock(
+        provider._generate_google_cloud_response = AsyncMock(
             side_effect=Exception("API error")
         )
         
@@ -169,12 +169,43 @@ class TestGoogleGeminiProvider:
     @pytest.mark.asyncio
     async def test_generate_response_empty_content(self, provider):
         """Test handling of empty response content."""
-        provider._client.models.generate_content = AsyncMock(
-            return_value=Mock(text="")
-        )
+        provider._generate_google_cloud_response = AsyncMock(return_value="")
         
         conversation = [{"role": "user", "content": "Test"}]
         
         with pytest.raises(LLMProviderException):
             await provider.generate_response(conversation, UseCase.HEART)
 
+    @pytest.mark.asyncio
+    async def test_generate_response_retries_resource_exhausted_then_succeeds(self, provider):
+        """Test transient Vertex AI rate limits are retried."""
+        provider._generate_google_cloud_response = AsyncMock(
+            side_effect=[
+                Exception("429 RESOURCE_EXHAUSTED"),
+                '{"function_calls": [], "freeform_response": "Recovered"}',
+            ]
+        )
+
+        conversation = [{"role": "user", "content": "Test"}]
+
+        with patch('src.services.llm.google_gemini_provider.asyncio.sleep', new=AsyncMock()) as mock_sleep:
+            response = await provider.generate_response(conversation, UseCase.HEART)
+
+        assert "Recovered" in response
+        assert provider._generate_google_cloud_response.await_count == 2
+        mock_sleep.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_generate_response_resource_exhausted_raises_rate_limit_exception(self, provider):
+        """Test persistent Vertex AI rate limits raise an explicit upstream exception."""
+        provider._generate_google_cloud_response = AsyncMock(
+            side_effect=Exception("429 RESOURCE_EXHAUSTED")
+        )
+
+        conversation = [{"role": "user", "content": "Test"}]
+
+        with patch('src.services.llm.google_gemini_provider.asyncio.sleep', new=AsyncMock()):
+            with pytest.raises(UpstreamRateLimitException) as exc_info:
+                await provider.generate_response(conversation, UseCase.HEART)
+
+        assert "RESOURCE_EXHAUSTED (429)" in str(exc_info.value)

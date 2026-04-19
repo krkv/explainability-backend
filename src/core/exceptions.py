@@ -26,6 +26,11 @@ class LLMProviderException(ExplainabilityException):
     pass
 
 
+class UpstreamRateLimitException(LLMProviderException):
+    """Raised when an upstream LLM provider is temporarily rate limited."""
+    pass
+
+
 class ModelLoadException(ExplainabilityException):
     """Raised when model fails to load."""
     pass
@@ -34,4 +39,3 @@ class ModelLoadException(ExplainabilityException):
 class DataLoadException(ExplainabilityException):
     """Raised when dataset fails to load."""
     pass
-
