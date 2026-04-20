@@ -7,6 +7,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from src.core.config import settings
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -38,12 +39,17 @@ class LangfuseObservability:
         self._noop_observation = _NoopObservation()
 
     def _get_base_url(self) -> Optional[str]:
-        return os.getenv("LANGFUSE_BASE_URL") or os.getenv("LANGFUSE_HOST")
+        return (
+            os.getenv("LANGFUSE_BASE_URL")
+            or os.getenv("LANGFUSE_HOST")
+            or settings.langfuse_base_url
+            or settings.langfuse_host
+        )
 
     def _has_credentials(self) -> bool:
         return bool(
-            os.getenv("LANGFUSE_PUBLIC_KEY")
-            and os.getenv("LANGFUSE_SECRET_KEY")
+            (os.getenv("LANGFUSE_PUBLIC_KEY") or settings.langfuse_public_key)
+            and (os.getenv("LANGFUSE_SECRET_KEY") or settings.langfuse_secret_key)
             and self._get_base_url()
         )
 
@@ -61,6 +67,13 @@ class LangfuseObservability:
 
         try:
             base_url = self._get_base_url()
+            public_key = os.getenv("LANGFUSE_PUBLIC_KEY") or settings.langfuse_public_key
+            secret_key = os.getenv("LANGFUSE_SECRET_KEY") or settings.langfuse_secret_key
+
+            if public_key:
+                os.environ.setdefault("LANGFUSE_PUBLIC_KEY", public_key)
+            if secret_key:
+                os.environ.setdefault("LANGFUSE_SECRET_KEY", secret_key)
             if base_url:
                 os.environ.setdefault("LANGFUSE_BASE_URL", base_url)
 

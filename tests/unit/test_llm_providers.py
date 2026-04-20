@@ -200,6 +200,9 @@ class TestGoogleGeminiProvider:
         assert "freeform_response" in response
         assert config.automatic_function_calling is not None
         assert config.automatic_function_calling.disable is True
+        assert config.tool_config is not None
+        assert config.tool_config.function_calling_config is not None
+        assert config.tool_config.function_calling_config.mode == "NONE"
 
     @pytest.mark.asyncio
     async def test_generate_response_retries_resource_exhausted_then_succeeds(self, provider):

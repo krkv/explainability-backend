@@ -109,13 +109,15 @@ class AssistantService:
                     parse_result = ""
                     if function_calls:
                         with observability.start_observation(
-                            name="execute-function-calls",
+                            name="backend-execute-function-calls",
                             as_type="tool",
                         ) as function_span:
                             function_span.update(
                                 input={
                                     "function_calls": function_calls,
                                     "usecase": usecase.value,
+                                    "execution_origin": "backend",
+                                    "source": "parsed_llm_json_response",
                                 }
                             )
 
@@ -125,6 +127,7 @@ class AssistantService:
                                     output={
                                         "function_call_count": len(function_calls),
                                         "parse_result": truncate_for_trace(parse_result),
+                                        "execution_origin": "backend",
                                     }
                                 )
                             except FunctionExecutionException as e:

@@ -165,6 +165,9 @@ class GoogleGeminiProvider(LLMProvider):
             automatic_function_calling=types.AutomaticFunctionCallingConfig(
                 disable=True,
             ),
+            tool_config=types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(mode="NONE"),
+            ),
         )
 
         logger.info(
@@ -184,6 +187,9 @@ class GoogleGeminiProvider(LLMProvider):
                     "latest_user_message": latest_user_message,
                     "conversation_length": len(conversation),
                     "response_mime_type": "application/json",
+                    "automatic_function_calling_disabled": True,
+                    "tool_calling_mode": "NONE",
+                    "tools_supplied": False,
                 },
                 metadata={
                     "provider": "google_gemini",
@@ -200,11 +206,19 @@ class GoogleGeminiProvider(LLMProvider):
             )
 
             response_text = raw_response.text or ""
+            raw_function_calls = getattr(raw_response, "function_calls", None) or []
+            automatic_function_calling_history = (
+                getattr(raw_response, "automatic_function_calling_history", None) or []
+            )
             update_payload = {
                 "output": truncate_for_trace(response_text),
                 "metadata": {
                     "provider": "google_gemini",
                     "usecase": usecase,
+                    "automaticFunctionCallingDisabled": True,
+                    "toolCallingMode": "NONE",
+                    "nativeFunctionCallPartsCount": len(raw_function_calls),
+                    "automaticFunctionCallingHistoryCount": len(automatic_function_calling_history),
                 },
             }
 

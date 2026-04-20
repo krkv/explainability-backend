@@ -1,9 +1,8 @@
 """Configuration management using pydantic-settings."""
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from enum import Enum
 from typing import Optional
-from pathlib import Path
 
 
 class Model(str, Enum):
@@ -30,6 +29,12 @@ class UseCase(str, Enum):
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
     
     # LLM Configuration
     hf_token: Optional[str] = None
@@ -51,6 +56,12 @@ class Settings(BaseSettings):
     
     # Logging
     log_level: str = "INFO"
+
+    # Langfuse
+    langfuse_public_key: Optional[str] = None
+    langfuse_secret_key: Optional[str] = None
+    langfuse_base_url: Optional[str] = None
+    langfuse_host: Optional[str] = None
     
     # API Configuration
     api_host: str = "0.0.0.0"
@@ -58,11 +69,6 @@ class Settings(BaseSettings):
     api_title: str = "Explainability Assistant Backend"
     api_description: str = "LLM-powered assistant for ML model explanations"
     api_version: str = "2.0.0"
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "ignore"  # Ignore extra environment variables
 
 
 # Global settings instance
