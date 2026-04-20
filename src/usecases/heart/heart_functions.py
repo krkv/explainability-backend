@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from tabulate import tabulate
+from src.core.html_formatting import dataframe_to_html, format_html_number, tabulate_html
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -160,7 +160,7 @@ class HeartFunctions:
             ]
             return {
                 "data": self.model_metadata["parameters"],
-                "text": "<p>Model training hyperparameters are:</p>" + tabulate(table, headers, tablefmt='html')
+                "text": "<p>Model training hyperparameters are:</p>" + tabulate_html(table, headers)
             }
         return {"error": "Model parameters not found in metadata."}
     
@@ -189,7 +189,11 @@ class HeartFunctions:
         prob_pos = probabilities[1]
         
         text = f"<p>Patient <code>ID</code> <var>{patient_id}</var> has a predicted risk of heart disease: <var>{self.class_names[prediction]}</var>.</p> "
-        text += f"<p>The prediction class probabilities are: {self.class_names[1].lower()} {int(round(prob_pos*100))}%, {self.class_names[0].lower()} {int(round(prob_neg*100))}%.</p>"
+        text += (
+            f"<p>The prediction class probabilities are: {self.class_names[1].lower()} "
+            f"{format_html_number(prob_pos * 100)}%, {self.class_names[0].lower()} "
+            f"{format_html_number(prob_neg * 100)}%.</p>"
+        )
         
         return {
             "data": {
@@ -420,7 +424,11 @@ class HeartFunctions:
                 "confusion_matrix": cm.tolist(),
                 "classes": self.class_names
             }
-            text = f"<p>Confusion matrix for multi-class classification:</p>" + tabulate(cm, headers=self.class_names, tablefmt='html', numalign="left")
+            text = f"<p>Confusion matrix for multi-class classification:</p>" + tabulate_html(
+                cm,
+                headers=self.class_names,
+                numalign="left",
+            )
             return {"text": text, "data": data}
     
     def what_if(self, patient_id: int, feature: str, value_change: Any) -> Dict[str, Any]:
@@ -506,16 +514,22 @@ class HeartFunctions:
         if feature_kind == "categorical" and not isinstance(value_change, (int, float, np.integer, np.floating)):
             text = (
                 f"<p>For patient <code>ID</code> <var>{patient_id}</var>, changing "
-                f"<code>{feature_label}</code> from <var>{original_value}</var> to "
-                f"<var>{new_value}</var> results in:</p>"
+                f"<code>{feature_label}</code> from <var>{self._html_value(original_value)}</var> to "
+                f"<var>{self._html_value(new_value)}</var> results in:</p>"
             )
         else:
             text = (
                 f"<p>For patient <code>ID</code> <var>{patient_id}</var>, modifying feature "
-                f"<code>{feature_label}</code> by <var>{value_change}</var> results in:</p>"
+                f"<code>{feature_label}</code> by <var>{self._html_value(value_change)}</var> results in:</p>"
             )
-        text += f"<p>Original prediction: <var>{self.class_names[original_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in original_prob]}</var></p>"
-        text += f"<p>New prediction: <var>{self.class_names[new_prediction]}</var> with probabilities: <var>{[round(prob, 2) for prob in new_prob]}</var></p>"
+        text += (
+            f"<p>Original prediction: <var>{self.class_names[original_prediction]}</var> "
+            f"with probabilities: <var>{self._html_list(original_prob)}</var></p>"
+        )
+        text += (
+            f"<p>New prediction: <var>{self.class_names[new_prediction]}</var> "
+            f"with probabilities: <var>{self._html_list(new_prob)}</var></p>"
+        )
         
         return {"data": data, "text": text}
     
@@ -657,7 +671,7 @@ class HeartFunctions:
             [group, results[group]["accuracy"], results[group]["precision"], results[group]["recall"], results[group]["f1_score"]]
             for group in results
         ]
-        text += tabulate(table, headers=headers, tablefmt='html', numalign="left")
+        text += tabulate_html(table, headers=headers, numalign="left")
         
         return {"data": results, "text": text}
     
@@ -729,7 +743,7 @@ class HeartFunctions:
         elif isinstance(value, (float, np.floating)):
             if float(value).is_integer():
                 possible_keys.insert(0, str(int(value)))
-            value = round(float(value), 3)
+            value = round(float(value), 2)
 
         for key in possible_keys:
             if key in categories:
@@ -807,7 +821,15 @@ class HeartFunctions:
         return self._table_html(frame)
 
     def _table_html(self, frame: pd.DataFrame) -> str:
-        return f"<p>{frame.to_html(index=False)}</p>"
+        return f"<p>{dataframe_to_html(frame, index=False)}</p>"
+
+    def _html_value(self, value: Any) -> str:
+        if isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, bool):
+            return format_html_number(value)
+        return str(value)
+
+    def _html_list(self, values: List[Any]) -> str:
+        return "[" + ", ".join(self._html_value(value) for value in values) + "]"
 
     def _build_dataset_statistics(self) -> List[Dict[str, Any]]:
         stats_rows = []
@@ -832,13 +854,13 @@ class HeartFunctions:
             if kind == "continuous":
                 row.update(
                     {
-                        "Mean / Mode": round(float(series.mean()), 3),
-                        "Std": round(float(series.std()), 3) if len(series) > 1 else 0.0,
-                        "Min": round(float(series.min()), 3),
-                        "25%": round(float(series.quantile(0.25)), 3),
-                        "50%": round(float(series.quantile(0.5)), 3),
-                        "75%": round(float(series.quantile(0.75)), 3),
-                        "Max": round(float(series.max()), 3),
+                        "Mean / Mode": round(float(series.mean()), 2),
+                        "Std": round(float(series.std()), 2) if len(series) > 1 else 0.0,
+                        "Min": round(float(series.min()), 2),
+                        "25%": round(float(series.quantile(0.25)), 2),
+                        "50%": round(float(series.quantile(0.5)), 2),
+                        "75%": round(float(series.quantile(0.75)), 2),
+                        "Max": round(float(series.max()), 2),
                     }
                 )
             else:
@@ -869,7 +891,7 @@ class HeartFunctions:
                 continue
 
             if kind == "continuous":
-                value: Any = round(float(series.mean()), 3)
+                value = round(float(series.mean()), 2)
             else:
                 modes = series.mode(dropna=True)
                 value = modes.iloc[0] if not modes.empty else None
@@ -933,7 +955,10 @@ class HeartFunctions:
                 else:
                     inc_dec = " decrease"
                 display_value = self._display_value(feature, cfe_f)
-                change_string += f"{inc_dec} <code>{self._feature_label(feature)}</code> to <var>{display_value}</var>"
+                change_string += (
+                    f"{inc_dec} <code>{self._feature_label(feature)}</code> "
+                    f"to <var>{self._html_value(display_value)}</var>"
+                )
                 change_string += " and "
         
         if change_string.endswith(" and "):

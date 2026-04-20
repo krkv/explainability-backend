@@ -5,6 +5,7 @@ import copy
 import numpy as np
 from typing import Optional
 from sklearn.metrics import explained_variance_score, mean_squared_error, mean_absolute_error
+from src.core.html_formatting import dataframe_to_html, format_html_number
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -73,7 +74,7 @@ class EnergyFunctions:
     def about_dataset_in_depth(self) -> str:
         """Provide detailed statistics about the dataset."""
         text = "<p>Here are the statistics of each feature in the dataset:</p>"
-        text += f"<p>{self.dataset.describe().round(2).to_html()}</p>"
+        text += self._table_html(self.dataset.describe())
         return text
     
     def about_model(self) -> str:
@@ -164,7 +165,7 @@ class EnergyFunctions:
             'past_electricity': 'past electricity'
         })
         framed = pd.DataFrame(renamed)
-        table = f"<p>{framed.loc[id].to_frame().T.to_html()}</p>"
+        table = self._table_html(framed.loc[id].to_frame().T)
         return intro + table
     
     def show_group(
@@ -207,7 +208,7 @@ class EnergyFunctions:
             'past_electricity': 'past electricity'
         })
         renamed.sort_index(inplace=True)
-        table = f"<p>{renamed.to_html()}</p>"
+        table = self._table_html(renamed)
         return intro + table
     
     def predict_one(self, id) -> str:
@@ -216,8 +217,10 @@ class EnergyFunctions:
             return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
         data = self.dataset.loc[id].to_frame().T
         prediction = self.model.predict(data)
-        rounded = round(prediction[0], 2)
-        return f"<p>The prediction for <code>ID</code> <var>{id}</var> is <samp>{rounded}</samp>.</p>"
+        return (
+            f"<p>The prediction for <code>ID</code> <var>{id}</var> is "
+            f"<samp>{self._format_number(prediction[0])}</samp>.</p>"
+        )
     
     def predict_group(
         self,
@@ -256,7 +259,7 @@ class EnergyFunctions:
         prediction = self.model.predict(data)
         framed = pd.DataFrame(prediction, columns=['prediction'], index=data.index)
         framed.sort_index(inplace=True)
-        table = f"<p>{framed.to_html()}</p>"
+        table = self._table_html(framed)
         return intro + table
     
     def predict_new(self, indoor_temperature: float, outdoor_temperature: float, past_electricity: float) -> str:
@@ -264,10 +267,11 @@ class EnergyFunctions:
         data = pd.DataFrame([[indoor_temperature, outdoor_temperature, past_electricity]],
                            columns=['indoor_temperature', 'outdoor_temperature', 'past_electricity'])
         prediction = self.model.predict(data)
-        rounded = round(prediction[0], 2)
         text = "<p>Let's consider a new data sample with the following features:</p>"
-        text += f"<p><ul>{''.join([f'<li><code>{feature}</code> = <var>{self._extract_value(value)}</var></li>' for feature, value in data.to_dict().items()])}</ul><p>"
-        text += f"<p>The model prediction for the new data will be <samp>{rounded}</samp>.</p>"
+        text += (
+            f"<p><ul>{''.join([f'<li><code>{feature}</code> = <var>{self._format_value(self._extract_value(value))}</var></li>' for feature, value in data.to_dict().items()])}</ul><p>"
+        )
+        text += f"<p>The model prediction for the new data will be <samp>{self._format_number(prediction[0])}</samp>.</p>"
         return text
     
     def mistake_one(self, id) -> str:
@@ -276,11 +280,13 @@ class EnergyFunctions:
             return f"<p>There is no data for <code>ID</code> <var>{id}</var>.</p>"
         data = self.dataset.loc[id].to_frame().T
         prediction = self.model.predict(data)[0]
-        rounded = round(prediction, 2)
         actual = self.y_values.loc[id]
-        text = f"<p>The prediction for <code>ID</code> <var>{id}</var> is <samp>{rounded}</samp>.</p>"
-        text += f"<p>The actual value is <samp>{actual}</samp>.</p>"
-        text += f"<p>The error is <samp>{round(abs(actual - prediction), 2)}</samp>.</p>"
+        text = (
+            f"<p>The prediction for <code>ID</code> <var>{id}</var> is "
+            f"<samp>{self._format_number(prediction)}</samp>.</p>"
+        )
+        text += f"<p>The actual value is <samp>{self._format_number(actual)}</samp>.</p>"
+        text += f"<p>The error is <samp>{self._format_number(abs(actual - prediction))}</samp>.</p>"
         return text
     
     def mistake_group(
@@ -325,7 +331,7 @@ class EnergyFunctions:
         framed['actual'] = labels
         framed = framed[['actual', 'prediction', 'error']]
         framed.sort_index(inplace=True)
-        table = f"<p>{framed.to_html()}</p>"
+        table = self._table_html(framed)
         return intro + table
     
     def explain_one(self, id) -> str:
@@ -339,7 +345,7 @@ class EnergyFunctions:
             by='influence', key=abs, ascending=False
         )
         text = f"<p>For the instance with <code>ID</code> <var>{id}</var> the feature importances are:</p>"
-        text += f"<p>{result.to_html()}</p>"
+        text += self._table_html(result)
         return text
     
     def explain_group(
@@ -388,7 +394,7 @@ class EnergyFunctions:
                 result.loc[idx, f"influence of {feature}"] = influences.loc[feature, 'influence']
         
         result.sort_index(inplace=True)
-        table = f"<p>{result.to_html()}</p>"
+        table = self._table_html(result)
         return intro + table
     
     def cfes_one(self, id) -> str:
@@ -413,7 +419,10 @@ class EnergyFunctions:
         new_predictions = self.model.predict(final_cfes)
         original_instance = self.dice_dataset.loc[[id]]
         
-        output_string = f"<p>The original prediction for the data sample with <code>ID</code> <var>{id}</var> is <samp>{str(round(original_prediction, 2))}</samp>.</p>"
+        output_string = (
+            f"<p>The original prediction for the data sample with <code>ID</code> <var>{id}</var> "
+            f"is <samp>{self._format_number(original_prediction)}</samp>.</p>"
+        )
         output_string += "<p>Here are some options to change the prediction of this instance."
         output_string += "<p>First, if you"
         transition_words = ["Further,", "Also,", "In addition,", "Furthermore,"]
@@ -423,8 +432,7 @@ class EnergyFunctions:
                 if i != 0:
                     output_string += f"<p>{np.random.choice(transition_words)} if you"
                 output_string += self._get_change_string(final_cfes.loc[[c_id]], original_instance)
-                new_prediction = str(round(new_predictions[i], 2))
-                output_string += f", the model will predict <samp>{new_prediction}</samp>.</p>"
+                output_string += f", the model will predict <samp>{self._format_number(new_predictions[i])}</samp>.</p>"
         
         return output_string
     
@@ -457,10 +465,14 @@ class EnergyFunctions:
             new_prediction = list(new_prediction.values())[0]
         
         text = f"<p>For the data sample with <code>ID</code> <var>{id}</var>, the original features are:</p>"
-        text += f"<ul>{''.join([f'<li><code>{feature}</code> = <var>{self._extract_value(value)}</var></li>' for feature, value in original_instance.to_dict().items()])}</ul>"
-        text += f"<p>The model predicts <samp>{str(round(original_prediction, 2))}</samp> for this instance.</p>"
-        text += f"<p>Let's change the features to: <ul>{''.join([f'<li><code>{feature}</code> = <var>{self._extract_value(value)}</var></li>' for feature, value in changed_instance.to_dict().items()])}</ul></p>"
-        text += f"<p>Then the model will predict <samp>{str(round(new_prediction, 2))}</samp>.</p>"
+        text += (
+            f"<ul>{''.join([f'<li><code>{feature}</code> = <var>{self._format_value(self._extract_value(value))}</var></li>' for feature, value in original_instance.to_dict().items()])}</ul>"
+        )
+        text += f"<p>The model predicts <samp>{self._format_number(original_prediction)}</samp> for this instance.</p>"
+        text += (
+            f"<p>Let's change the features to: <ul>{''.join([f'<li><code>{feature}</code> = <var>{self._format_value(self._extract_value(value))}</var></li>' for feature, value in changed_instance.to_dict().items()])}</ul></p>"
+        )
+        text += f"<p>Then the model will predict <samp>{self._format_number(new_prediction)}</samp>.</p>"
         return text
     
     # Helper methods
@@ -477,17 +489,17 @@ class EnergyFunctions:
         """Format group filtering description."""
         text = "<p>Grouping the data as follows:<ul>"
         if indoor_temperature_min is not None:
-            text += f"<li><code>indoor temperature</code> is more than <var>{indoor_temperature_min}</var></li>"
+            text += f"<li><code>indoor temperature</code> is more than <var>{self._format_number(indoor_temperature_min)}</var></li>"
         if indoor_temperature_max is not None:
-            text += f"<li><code>indoor temperature</code> is less than <var>{indoor_temperature_max}</var></li>"
+            text += f"<li><code>indoor temperature</code> is less than <var>{self._format_number(indoor_temperature_max)}</var></li>"
         if outdoor_temperature_min is not None:
-            text += f"<li><code>outdoor temperature</code> is more than <var>{outdoor_temperature_min}</var></li>"
+            text += f"<li><code>outdoor temperature</code> is more than <var>{self._format_number(outdoor_temperature_min)}</var></li>"
         if outdoor_temperature_max is not None:
-            text += f"<li><code>outdoor temperature</code> is less than <var>{outdoor_temperature_max}</var></li>"
+            text += f"<li><code>outdoor temperature</code> is less than <var>{self._format_number(outdoor_temperature_max)}</var></li>"
         if past_electricity_min is not None:
-            text += f"<li><code>past electricity</code> is more than <var>{past_electricity_min}</var></li>"
+            text += f"<li><code>past electricity</code> is more than <var>{self._format_number(past_electricity_min)}</var></li>"
         if past_electricity_max is not None:
-            text += f"<li><code>past electricity</code> is less than <var>{past_electricity_max}</var></li>"
+            text += f"<li><code>past electricity</code> is less than <var>{self._format_number(past_electricity_max)}</var></li>"
         text += "</ul></p>"
         return text
     
@@ -510,7 +522,7 @@ class EnergyFunctions:
                     inc_dec = " increase"
                 else:
                     inc_dec = " decrease"
-                change_string += f"{inc_dec} <code>{feature}</code> to <var>{str(round(cfe_f, 2))}</var>"
+                change_string += f"{inc_dec} <code>{feature}</code> to <var>{self._format_number(cfe_f)}</var>"
                 change_string += " and "
         
         # Strip off last " and "
@@ -524,3 +536,13 @@ class EnergyFunctions:
             return list(value.values())[0]
         return value
 
+    def _format_number(self, value) -> str:
+        return format_html_number(value)
+
+    def _format_value(self, value) -> str:
+        if isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, bool):
+            return self._format_number(value)
+        return str(value)
+
+    def _table_html(self, frame: pd.DataFrame) -> str:
+        return f"<p>{dataframe_to_html(frame)}</p>"
