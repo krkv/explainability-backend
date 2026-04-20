@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     # LLM Configuration
     hf_token: Optional[str] = None
     google_project: str = "explainability-app"
-    google_location: str = "europe-north1"
+    google_location: str = "us-central1"
     
     # Paths
     instances_path: str = "instances"

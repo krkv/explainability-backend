@@ -2,10 +2,12 @@
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from src.core.constants import Model
 from src.services.llm.huggingface_provider import HuggingFaceProvider
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
+from src.services.llm.llm_factory import get_llm_provider, clear_providers
 
 
 class TestHuggingFaceProvider:
@@ -232,3 +234,24 @@ class TestGoogleGeminiProvider:
                 await provider.generate_response(conversation, UseCase.HEART)
 
         assert "RESOURCE_EXHAUSTED (429)" in str(exc_info.value)
+
+
+class TestLLMFactory:
+    """Test cases for the LLM factory."""
+
+    def teardown_method(self):
+        """Reset singleton provider cache between tests."""
+        clear_providers()
+
+    def test_get_llm_provider_uses_configured_google_location(self):
+        """Test Gemini providers use the configured project and location."""
+        with patch('src.services.llm.llm_factory.GoogleGeminiProvider') as mock_provider_class:
+            with patch('src.services.llm.llm_factory.settings.google_project', "test-project"):
+                with patch('src.services.llm.llm_factory.settings.google_location', "us-central1"):
+                    get_llm_provider(Model.GEMINI_2_0_FLASH)
+
+        mock_provider_class.assert_called_once_with(
+            model_name="gemini-2.0-flash-001",
+            project_id="test-project",
+            location="us-central1",
+        )

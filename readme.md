@@ -68,7 +68,7 @@ A FastAPI-based backend service that provides an API for LLM-powered assistant r
    
    # Google Cloud Configuration (for Gemini)
    GOOGLE_PROJECT="explainability-app"
-   GOOGLE_LOCATION="europe-north1"
+   GOOGLE_LOCATION="us-central1"
    
    # Logging (optional)
    LOG_LEVEL="INFO"
@@ -87,7 +87,7 @@ The application uses environment variables for configuration. Key settings:
 |----------|-------------|----------|---------|
 | `HF_TOKEN` | Hugging Face API token | Yes (for HF models) | - |
 | `GOOGLE_PROJECT` | Google Cloud project ID | No | `explainability-app` |
-| `GOOGLE_LOCATION` | Google Cloud region | No | `europe-north1` |
+| `GOOGLE_LOCATION` | Google Cloud region | No | `us-central1` |
 | `LOG_LEVEL` | Logging level | No | `INFO` |
 | `PORT` | Server port (Cloud Run sets this) | No | `8080` |
 
