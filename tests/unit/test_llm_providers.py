@@ -177,6 +177,26 @@ class TestGoogleGeminiProvider:
             await provider.generate_response(conversation, UseCase.HEART)
 
     @pytest.mark.asyncio
+    async def test_generate_google_cloud_response_disables_automatic_function_calling(self, provider):
+        """Test automatic function calling is disabled on Gemini requests."""
+        mock_registry = Mock()
+        mock_registry.get_system_prompt.return_value = "System prompt"
+        provider._generate_sync = Mock(
+            return_value='{"function_calls": [], "freeform_response": "Response"}'
+        )
+
+        conversation = [{"role": "user", "content": "Test"}]
+
+        with patch('src.services.service_factory.get_usecase_registry', return_value=mock_registry):
+            response = await provider._generate_google_cloud_response(conversation, UseCase.HEART.value)
+
+        config = provider._generate_sync.call_args.args[1]
+
+        assert "freeform_response" in response
+        assert config.automatic_function_calling is not None
+        assert config.automatic_function_calling.disable is True
+
+    @pytest.mark.asyncio
     async def test_generate_response_retries_resource_exhausted_then_succeeds(self, provider):
         """Test transient Vertex AI rate limits are retried."""
         provider._generate_google_cloud_response = AsyncMock(

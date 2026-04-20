@@ -28,7 +28,6 @@ class FunctionExecutorService(FunctionExecutor):
         """
         self.usecase_registry = usecase_registry
         self._parsers: Dict[str, FunctionParser] = {}
-        logger.info("FunctionExecutorService initialized")
     
     def execute_calls(self, function_calls: List[str], usecase: UseCase) -> str:
         """

@@ -48,7 +48,6 @@ def get_llm_provider(model: Model) -> Any:
         raise ValueError(f"Unsupported model: {model}")
     
     _providers[model] = provider
-    logger.info(f"Created LLM provider for model: {model.value}")
     return provider
 
 
@@ -85,4 +84,3 @@ def clear_providers() -> None:
     """Clear all cached provider instances."""
     global _providers
     _providers.clear()
-    logger.info("Cleared all LLM provider instances")

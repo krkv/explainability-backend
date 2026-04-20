@@ -85,7 +85,6 @@ class ExplainerLoader:
             )
             
             self._loaded_explainers[cache_key] = explainer
-            logger.info(f"SHAP explainer loaded successfully: {cache_key}")
             return explainer
             
         except Exception as e:
@@ -191,7 +190,6 @@ class ExplainerLoader:
             dice_explainer = dice_ml.Dice(dice_data, dice_model, method="random")
             
             self._loaded_explainers[cache_key] = dice_explainer
-            logger.info(f"DiCE explainer loaded successfully: {cache_key}")
             return dice_explainer
             
         except Exception as e:
@@ -219,7 +217,6 @@ class ExplainerLoader:
         """
         if cache_key in self._loaded_explainers:
             del self._loaded_explainers[cache_key]
-            logger.info(f"Explainer unloaded from memory: {cache_key}")
     
     def get_loaded_explainers(self) -> List[str]:
         """
@@ -233,7 +230,6 @@ class ExplainerLoader:
     def clear_cache(self) -> None:
         """Clear all loaded explainers from cache."""
         self._loaded_explainers.clear()
-        logger.info("Explainer cache cleared")
     
     def get_cache_info(self) -> Dict[str, Any]:
         """

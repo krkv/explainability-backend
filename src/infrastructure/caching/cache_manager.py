@@ -45,25 +45,20 @@ class CacheManager:
     
     def clear_all_caches(self) -> None:
         """Clear all caches."""
-        logger.info("Clearing all caches")
         self.model_loader.clear_cache()
         self.data_loader.clear_cache()
         self.explainer_loader.clear_cache()
-        logger.info("All caches cleared")
     
     def clear_model_cache(self) -> None:
         """Clear model cache only."""
-        logger.info("Clearing model cache")
         self.model_loader.clear_cache()
     
     def clear_data_cache(self) -> None:
         """Clear dataset cache only."""
-        logger.info("Clearing dataset cache")
         self.data_loader.clear_cache()
     
     def clear_explainer_cache(self) -> None:
         """Clear explainer cache only."""
-        logger.info("Clearing explainer cache")
         self.explainer_loader.clear_cache()
     
     def get_memory_usage_estimate(self) -> Dict[str, Any]:
@@ -122,11 +117,6 @@ class CacheManager:
                 f"exceeds limit ({max_memory_mb} MB). Clearing caches."
             )
             self.clear_all_caches()
-        else:
-            logger.info(
-                f"Memory usage ({memory_usage['total_memory_mb']:.2f} MB) "
-                f"is within limit ({max_memory_mb} MB)"
-            )
     
     def get_loaded_resources(self) -> Dict[str, Any]:
         """

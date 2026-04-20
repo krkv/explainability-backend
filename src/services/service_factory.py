@@ -1,13 +1,10 @@
 """Factory for creating and managing singleton instances of all service layer components."""
 
 from typing import Any, Dict, Optional
-from src.core.logging_config import get_logger
 from src.services.usecase.usecase_registry_service import UseCaseRegistryService
 from src.services.function.function_executor_service import FunctionExecutorService
 from src.services.assistant.assistant_service import AssistantService
 from src.services.llm.llm_factory import get_provider_info
-
-logger = get_logger(__name__)
 
 # Singleton instances
 _usecase_registry: Optional[UseCaseRegistryService] = None
@@ -25,7 +22,6 @@ def get_usecase_registry() -> UseCaseRegistryService:
     global _usecase_registry
     if _usecase_registry is None:
         _usecase_registry = UseCaseRegistryService()
-        logger.info("Created UseCaseRegistryService singleton")
     return _usecase_registry
 
 
@@ -40,7 +36,6 @@ def get_function_executor() -> FunctionExecutorService:
     if _function_executor is None:
         usecase_registry = get_usecase_registry()
         _function_executor = FunctionExecutorService(usecase_registry)
-        logger.info("Created FunctionExecutorService singleton")
     return _function_executor
 
 
@@ -56,7 +51,6 @@ def get_assistant_service() -> AssistantService:
         usecase_registry = get_usecase_registry()
         function_executor = get_function_executor()
         _assistant_service = AssistantService(function_executor, usecase_registry)
-        logger.info("Created AssistantService singleton")
     return _assistant_service
 
 
@@ -90,4 +84,3 @@ def clear_all_services() -> None:
     from src.services.llm.llm_factory import clear_providers
     clear_providers()
     
-    logger.info("Cleared all service instances")

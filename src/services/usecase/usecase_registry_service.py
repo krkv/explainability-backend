@@ -3,12 +3,9 @@
 from typing import Dict, Callable, Any, List, Optional
 from src.core.constants import UseCase
 from src.core.exceptions import FunctionExecutionException
-from src.core.logging_config import get_logger
 from src.domain.interfaces.usecase_registry import UseCaseRegistry
 from src.domain.entities.message import Message
 from src.usecases.base.base_usecase import BaseUseCase
-
-logger = get_logger(__name__)
 
 
 class UseCaseRegistryService(UseCaseRegistry):
@@ -27,7 +24,6 @@ class UseCaseRegistryService(UseCaseRegistry):
         self._usecase_instances: Dict[UseCase, BaseUseCase] = {}
         # Track which use cases are available (but not yet loaded)
         self._available_usecases = {UseCase.ENERGY, UseCase.HEART}
-        logger.info("UseCaseRegistryService initialized (lazy loading enabled)")
     
     def _get_or_create_usecase(self, usecase: UseCase) -> BaseUseCase:
         """
@@ -51,7 +47,6 @@ class UseCaseRegistryService(UseCaseRegistry):
             raise FunctionExecutionException(f"Usecase '{usecase.value}' is not available.")
         
         # Lazy load the use case
-        logger.info(f"Lazy loading use case: {usecase.value}")
         from src.infrastructure.factory import get_model_loader, get_data_loader, get_explainer_loader
         
         model_loader = get_model_loader()
@@ -78,7 +73,6 @@ class UseCaseRegistryService(UseCaseRegistry):
         # Store instance and register functions
         self._usecase_instances[usecase] = usecase_instance
         self._registries[usecase] = usecase_instance.get_functions()
-        logger.info(f"Loaded and registered {usecase.value} use case with {len(self._registries[usecase])} functions")
         
         return usecase_instance
     
@@ -96,7 +90,6 @@ class UseCaseRegistryService(UseCaseRegistry):
             raise ValueError("Functions must be a dictionary.")
         
         self._registries[usecase] = functions
-        logger.info(f"Registered {len(functions)} functions for usecase '{usecase.value}'")
     
     def register_usecase_functions(self, usecase: UseCase, functions: Dict[str, Callable]):
         """
@@ -188,7 +181,6 @@ class UseCaseRegistryService(UseCaseRegistry):
         """Clear all registered use cases and instances."""
         self._registries.clear()
         self._usecase_instances.clear()
-        logger.info("Cleared all use cases")
     
     def get_usecase_instance(self, usecase: UseCase) -> Optional[BaseUseCase]:
         """

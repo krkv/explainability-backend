@@ -50,7 +50,6 @@ class GoogleGeminiProvider(LLMProvider):
                 location=self.location,
             )
             self._is_available = True
-            logger.info(f"Google Gemini provider initialized with model: {self.model_name}")
         except Exception as e:
             logger.error(f"Failed to initialize Google Gemini provider: {e}")
             self._is_available = False
@@ -161,6 +160,21 @@ class GoogleGeminiProvider(LLMProvider):
             system_instruction=system_prompt,
             response_mime_type='application/json',
             response_schema=Response,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(
+                disable=True,
+            ),
+        )
+
+        logger.info(
+            "LLM request [provider=google_gemini model=%s usecase=%s]: %s",
+            self.model_name,
+            usecase,
+            {
+                "system_instruction": system_prompt,
+                "contents": user_input,
+                "response_mime_type": "application/json",
+                "automatic_function_calling_disabled": True,
+            },
         )
         
         # Generate response using async wrapper
@@ -169,6 +183,12 @@ class GoogleGeminiProvider(LLMProvider):
             self._generate_sync, 
             user_input,
             generate_content_config
+        )
+        logger.info(
+            "LLM response [provider=google_gemini model=%s usecase=%s]: %s",
+            self.model_name,
+            usecase,
+            response,
         )
         return response
     

@@ -50,7 +50,6 @@ class CachedModelLoader(ModelLoader):
             # Load model using cached implementation
             model = self._load_model_cached(model_path_str)
             self._loaded_models[model_path_str] = model
-            logger.info(f"Model loaded successfully: {model_path_str}")
             return model
         except Exception as e:
             logger.error(f"Failed to load model {model_path_str}: {e}")
@@ -101,7 +100,6 @@ class CachedModelLoader(ModelLoader):
         model_path_str = str(model_path)
         if model_path_str in self._loaded_models:
             del self._loaded_models[model_path_str]
-            logger.info(f"Model unloaded from memory: {model_path_str}")
     
     def get_loaded_models(self) -> List[str]:
         """
@@ -116,7 +114,6 @@ class CachedModelLoader(ModelLoader):
         """Clear all loaded models from cache."""
         self._loaded_models.clear()
         self._load_model_cached.cache_clear()
-        logger.info("Model cache cleared")
     
     def get_cache_info(self) -> Dict[str, Any]:
         """

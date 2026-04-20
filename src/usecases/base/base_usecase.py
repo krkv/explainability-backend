@@ -92,7 +92,6 @@ class BaseUseCase(ABC):
         """
         if self._functions is None:
             self._functions = self._create_functions()
-            logger.info(f"Functions registered for {self.__class__.__name__}: {len(self._functions)} functions")
         return self._functions
     
     @abstractmethod
@@ -142,4 +141,3 @@ class BaseUseCase(ABC):
             System prompt string
         """
         pass
-

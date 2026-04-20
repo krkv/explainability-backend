@@ -49,7 +49,6 @@ class CachedDataLoader(DataLoader):
             # Load dataset using cached implementation
             dataset = self._load_dataset_cached(dataset_path_str)
             self._loaded_datasets[dataset_path_str] = dataset
-            logger.info(f"Dataset loaded successfully: {dataset_path_str} ({len(dataset)} rows)")
             return dataset
         except Exception as e:
             logger.error(f"Failed to load dataset {dataset_path_str}: {e}")
@@ -105,7 +104,6 @@ class CachedDataLoader(DataLoader):
         dataset_path_str = str(dataset_path)
         if dataset_path_str in self._loaded_datasets:
             del self._loaded_datasets[dataset_path_str]
-            logger.info(f"Dataset unloaded from memory: {dataset_path_str}")
     
     def get_loaded_datasets(self) -> List[str]:
         """
@@ -120,7 +118,6 @@ class CachedDataLoader(DataLoader):
         """Clear all loaded datasets from cache."""
         self._loaded_datasets.clear()
         self._load_dataset_cached.cache_clear()
-        logger.info("Dataset cache cleared")
     
     def get_cache_info(self) -> Dict[str, Any]:
         """

@@ -32,12 +32,8 @@ def setup_logging(log_level: Optional[str] = None) -> None:
     )
     
     # Set specific logger levels
-    logging.getLogger("uvicorn").setLevel(logging.INFO)
-    logging.getLogger("fastapi").setLevel(logging.INFO)
-    
-    # Log configuration
-    logger = logging.getLogger(__name__)
-    logger.info(f"Logging configured with level: {level}")
+    logging.getLogger("uvicorn").setLevel(logging.WARNING)
+    logging.getLogger("fastapi").setLevel(logging.WARNING)
 
 
 def get_logger(name: str) -> logging.Logger:

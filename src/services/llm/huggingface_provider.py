@@ -39,7 +39,6 @@ class HuggingFaceProvider(LLMProvider):
                 token=self.api_token,
             )
             self._is_available = True
-            logger.info(f"HuggingFace provider initialized with model: {self.model_name}")
         except Exception as e:
             logger.error(f"Failed to initialize HuggingFace provider: {e}")
             self._is_available = False
@@ -115,7 +114,12 @@ class HuggingFaceProvider(LLMProvider):
         
         # Generate response using chat.completions.create()
         try:
-            logger.debug(f"Calling HuggingFace API with model: {self.model_name}, messages count: {len(messages)}")
+            logger.info(
+                "LLM request [provider=huggingface model=%s usecase=%s]: %s",
+                self.model_name,
+                usecase,
+                messages,
+            )
             completion = await asyncio.to_thread(
                 self._client.chat.completions.create,
                 model=self.model_name,
@@ -150,6 +154,13 @@ class HuggingFaceProvider(LLMProvider):
             if response.endswith("```"):
                 response = response[:-3]   # Remove closing ```
             response = response.strip()
+
+            logger.info(
+                "LLM response [provider=huggingface model=%s usecase=%s]: %s",
+                self.model_name,
+                usecase,
+                response,
+            )
             
             return response
             

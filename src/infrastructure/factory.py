@@ -1,14 +1,10 @@
 """Factory functions for creating infrastructure components."""
 
 from typing import Optional
-from src.core.config import settings
-from src.core.logging_config import get_logger
 from src.infrastructure.loaders.model_loader import CachedModelLoader
 from src.infrastructure.loaders.data_loader import CachedDataLoader
 from src.infrastructure.loaders.explainer_loader import ExplainerLoader
 from src.infrastructure.caching.cache_manager import CacheManager
-
-logger = get_logger(__name__)
 
 # Global instances (singleton pattern)
 _model_loader: Optional[CachedModelLoader] = None
@@ -27,7 +23,6 @@ def get_model_loader() -> CachedModelLoader:
     global _model_loader
     if _model_loader is None:
         _model_loader = CachedModelLoader(max_cache_size=10)  # Default cache size
-        logger.info("Model loader created")
     return _model_loader
 
 
@@ -41,7 +36,6 @@ def get_data_loader() -> CachedDataLoader:
     global _data_loader
     if _data_loader is None:
         _data_loader = CachedDataLoader(max_cache_size=10)  # Default cache size
-        logger.info("Data loader created")
     return _data_loader
 
 
@@ -61,7 +55,6 @@ def get_explainer_loader() -> ExplainerLoader:
             data_loader=data_loader,
             max_cache_size=10  # Default cache size
         )
-        logger.info("Explainer loader created")
     return _explainer_loader
 
 
@@ -82,7 +75,6 @@ def get_cache_manager() -> CacheManager:
             data_loader=data_loader,
             explainer_loader=explainer_loader
         )
-        logger.info("Cache manager created")
     return _cache_manager
 
 
@@ -98,4 +90,3 @@ def reset_infrastructure() -> None:
     _explainer_loader = None
     _cache_manager = None
     
-    logger.info("Infrastructure components reset")

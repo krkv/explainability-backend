@@ -52,8 +52,6 @@ async def get_assistant_response(
         HTTPException: If request validation fails or processing fails
     """
     try:
-        logger.info(f"Processing request - Model: {request.model}, UseCase: {request.usecase}")
-        
         # Validate model and usecase
         model = validate_model(request.model)
         usecase = validate_usecase(request.usecase)
