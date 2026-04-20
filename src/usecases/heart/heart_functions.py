@@ -169,7 +169,7 @@ class HeartFunctions:
         if "description" in self.model_metadata:
             return {
                 "data": self.model_metadata["description"],
-                "text": f"<p>Model description is: {self.model_metadata['description']}</p>"
+                "text": f"<p>Model description is: {self.model_metadata['description']}. Would you like to see the model training parameters?</p>"
             }
         return {"error": "Model description not found in metadata."}
     
@@ -273,7 +273,9 @@ class HeartFunctions:
         text = "<p>Here are the overall dataset statistics for each feature:</p>"
         text += self._table_html(stats_table)
 
-        if patient_id is not None:
+        if patient_id is None:
+            text += "<p>Would you like to learn more about some of these features?</p>"
+        else:
             try:
                 patient_features = self._display_record(self.dataset.loc[patient_id].to_dict())
                 result["patient"] = {
