@@ -5,9 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router
 from src.core.logging_config import setup_logging
 from src.core.constants import APIEndpoints
+from src.core.observability import observability
+from src.core.logging_config import get_logger
 
 # Setup logging first
 setup_logging()
+logger = get_logger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -34,11 +37,19 @@ app.include_router(router)
 @app.on_event("startup")
 async def startup():
     """Startup tasks."""
+    if observability.initialize():
+        logger.info("Langfuse tracing enabled")
+    else:
+        logger.info(
+            "Langfuse tracing disabled. Set LANGFUSE_PUBLIC_KEY, "
+            "LANGFUSE_SECRET_KEY, and LANGFUSE_BASE_URL to enable it."
+        )
 
 
 @app.on_event("shutdown")
 async def shutdown():
     """Shutdown tasks."""
+    observability.flush()
 
 
 @app.get("/")

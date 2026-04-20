@@ -1,10 +1,11 @@
 """FastAPI routes for API endpoints."""
 
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Header, HTTPException
 from src.api.schemas import (
     AssistantRequest,
     AssistantResponseWrapper,
-    AssistantResponse,
     HealthResponse,
 )
 from src.api.dependencies import (
@@ -14,6 +15,7 @@ from src.api.dependencies import (
 )
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.core.logging_config import get_logger
+from src.core.observability import TraceContext
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -34,6 +36,9 @@ async def ready():
 async def get_assistant_response(
     request: AssistantRequest,
     assistant_service: AssistantServiceDep,
+    x_session_id: Optional[str] = Header(default=None, alias="X-Session-ID"),
+    x_user_id: Optional[str] = Header(default=None, alias="X-User-ID"),
+    x_request_id: Optional[str] = Header(default=None, alias="X-Request-ID"),
 ):
     """
     Generate assistant response with function execution.
@@ -71,6 +76,11 @@ async def get_assistant_response(
             conversation=conversation_dict,
             usecase=usecase,
             model=model,
+            trace_context=TraceContext(
+                session_id=x_session_id,
+                user_id=x_user_id,
+                request_id=x_request_id,
+            ),
         )
         
         # Wrap response in legacy format for backward compatibility

@@ -182,7 +182,10 @@ class TestGoogleGeminiProvider:
         mock_registry = Mock()
         mock_registry.get_system_prompt.return_value = "System prompt"
         provider._generate_sync = Mock(
-            return_value='{"function_calls": [], "freeform_response": "Response"}'
+            return_value=Mock(
+                text='{"function_calls": [], "freeform_response": "Response"}',
+                usage_metadata=None,
+            )
         )
 
         conversation = [{"role": "user", "content": "Test"}]

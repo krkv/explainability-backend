@@ -8,6 +8,7 @@ from src.domain.interfaces.llm_provider import LLMProvider
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.core.logging_config import get_logger
+from src.core.observability import get_last_user_message, observability, truncate_for_trace
 
 logger = get_logger(__name__)
 
@@ -151,9 +152,10 @@ class GoogleGeminiProvider(LLMProvider):
         usecase_enum = UseCase.from_string(usecase)
         registry = get_usecase_registry()
         system_prompt = registry.get_system_prompt(usecase_enum, conversation)
-        
+
         # Get user input from the last message
         user_input = conversation[len(conversation) - 1]['content']
+        latest_user_message = truncate_for_trace(get_last_user_message(conversation))
         
         # Configure generation exactly as in googlecloud.py
         generate_content_config = types.GenerateContentConfig(
@@ -166,33 +168,61 @@ class GoogleGeminiProvider(LLMProvider):
         )
 
         logger.info(
-            "LLM request [provider=google_gemini model=%s usecase=%s]: %s",
+            "Sending Google Gemini request [model=%s usecase=%s conversation_length=%s]",
             self.model_name,
             usecase,
-            {
-                "system_instruction": system_prompt,
-                "contents": user_input,
-                "response_mime_type": "application/json",
-                "automatic_function_calling_disabled": True,
-            },
+            len(conversation),
         )
-        
-        # Generate response using async wrapper
-        # Use asyncio.to_thread() instead of deprecated asyncio.get_event_loop()
-        response = await asyncio.to_thread(
-            self._generate_sync, 
-            user_input,
-            generate_content_config
-        )
-        logger.info(
-            "LLM response [provider=google_gemini model=%s usecase=%s]: %s",
-            self.model_name,
-            usecase,
-            response,
-        )
-        return response
+
+        with observability.start_observation(
+            name="google-gemini-generate-content",
+            as_type="generation",
+            model=self.model_name,
+        ) as generation:
+            generation.update(
+                input={
+                    "latest_user_message": latest_user_message,
+                    "conversation_length": len(conversation),
+                    "response_mime_type": "application/json",
+                },
+                metadata={
+                    "provider": "google_gemini",
+                    "usecase": usecase,
+                },
+            )
+
+            # Generate response using async wrapper
+            # Use asyncio.to_thread() instead of deprecated asyncio.get_event_loop()
+            raw_response = await asyncio.to_thread(
+                self._generate_sync,
+                user_input,
+                generate_content_config,
+            )
+
+            response_text = raw_response.text or ""
+            update_payload = {
+                "output": truncate_for_trace(response_text),
+                "metadata": {
+                    "provider": "google_gemini",
+                    "usecase": usecase,
+                },
+            }
+
+            usage_details = self._extract_usage_details(getattr(raw_response, "usage_metadata", None))
+            if usage_details:
+                update_payload["usage_details"] = usage_details
+
+            generation.update(**update_payload)
+
+            logger.info(
+                "Received Google Gemini response [model=%s usecase=%s response_length=%s]",
+                self.model_name,
+                usecase,
+                len(response_text),
+            )
+            return response_text
     
-    def _generate_sync(self, user_input: str, config: types.GenerateContentConfig) -> str:
+    def _generate_sync(self, user_input: str, config: types.GenerateContentConfig) -> Any:
         """
         Synchronous generation method.
         
@@ -208,7 +238,7 @@ class GoogleGeminiProvider(LLMProvider):
             contents=user_input,
             config=config
         )
-        return response.text
+        return response
 
     def _is_resource_exhausted_error(self, error: Exception) -> bool:
         """Best-effort detection for Vertex AI quota and rate-limit failures."""
@@ -230,6 +260,25 @@ class GoogleGeminiProvider(LLMProvider):
             return True
 
         return False
+
+    def _extract_usage_details(self, usage_metadata: Any) -> Optional[Dict[str, int]]:
+        """Map Gemini usage metadata to Langfuse usage details."""
+        if usage_metadata is None:
+            return None
+
+        input_tokens = getattr(usage_metadata, "prompt_token_count", None)
+        output_tokens = getattr(usage_metadata, "candidates_token_count", None)
+        total_tokens = getattr(usage_metadata, "total_token_count", None)
+
+        usage_details = {}
+        if input_tokens is not None:
+            usage_details["input_tokens"] = int(input_tokens)
+        if output_tokens is not None:
+            usage_details["output_tokens"] = int(output_tokens)
+        if total_tokens is not None:
+            usage_details["total_tokens"] = int(total_tokens)
+
+        return usage_details or None
     
     def get_model_name(self) -> str:
         """

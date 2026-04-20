@@ -8,6 +8,7 @@ from src.domain.interfaces.llm_provider import LLMProvider
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException
 from src.core.logging_config import get_logger
+from src.core.observability import get_last_user_message, observability, truncate_for_trace
 
 logger = get_logger(__name__)
 
@@ -93,6 +94,7 @@ class HuggingFaceProvider(LLMProvider):
         usecase_enum = UseCase.from_string(usecase)
         registry = get_usecase_registry()
         system_prompt = registry.get_system_prompt(usecase_enum, conversation)
+        latest_user_message = truncate_for_trace(get_last_user_message(conversation))
         
         # Build messages array with system prompt and conversation history
         messages = [
@@ -115,54 +117,86 @@ class HuggingFaceProvider(LLMProvider):
         # Generate response using chat.completions.create()
         try:
             logger.info(
-                "LLM request [provider=huggingface model=%s usecase=%s]: %s",
+                "Sending HuggingFace request [model=%s usecase=%s conversation_length=%s]",
                 self.model_name,
                 usecase,
-                messages,
+                len(conversation),
             )
-            completion = await asyncio.to_thread(
-                self._client.chat.completions.create,
-                model=self.model_name,
-                messages=messages
-            )
-            
-            logger.debug(f"Completion received: {completion}")
-            
-            # Extract response text from completion
-            if not completion.choices or len(completion.choices) == 0:
-                logger.error(f"No choices in completion: {completion}")
-                raise LLMProviderException("No choices returned from HuggingFace API")
-            
-            message = completion.choices[0].message
-            if not message:
-                logger.error(f"No message in completion choices: {completion.choices[0]}")
-                raise LLMProviderException("No message in completion choices")
-            
-            response = message.content
-            if not response:
-                logger.error(f"Empty response from HuggingFace. Completion object: {completion}, Message: {message}")
-                raise LLMProviderException("Empty response content from HuggingFace API")
-            
-            logger.debug(f"HuggingFace response length: {len(response)} characters, first 200 chars: {response[:200]}")
-            
-            # Clean up response - remove markdown code blocks if present
-            response = response.strip()
-            if response.startswith("```json"):
-                response = response[7:]  # Remove ```json
-            elif response.startswith("```"):
-                response = response[3:]   # Remove ```
-            if response.endswith("```"):
-                response = response[:-3]   # Remove closing ```
-            response = response.strip()
 
-            logger.info(
-                "LLM response [provider=huggingface model=%s usecase=%s]: %s",
-                self.model_name,
-                usecase,
-                response,
-            )
-            
-            return response
+            with observability.start_observation(
+                name="huggingface-chat-completion",
+                as_type="generation",
+                model=self.model_name,
+            ) as generation:
+                generation.update(
+                    input={
+                        "latest_user_message": latest_user_message,
+                        "conversation_length": len(conversation),
+                        "message_count": len(messages),
+                    },
+                    metadata={
+                        "provider": "huggingface",
+                        "usecase": usecase,
+                    },
+                )
+
+                completion = await asyncio.to_thread(
+                    self._client.chat.completions.create,
+                    model=self.model_name,
+                    messages=messages,
+                )
+
+                logger.debug(f"Completion received: {completion}")
+
+                # Extract response text from completion
+                if not completion.choices or len(completion.choices) == 0:
+                    logger.error(f"No choices in completion: {completion}")
+                    raise LLMProviderException("No choices returned from HuggingFace API")
+
+                message = completion.choices[0].message
+                if not message:
+                    logger.error(f"No message in completion choices: {completion.choices[0]}")
+                    raise LLMProviderException("No message in completion choices")
+
+                response = message.content
+                if not response:
+                    logger.error(f"Empty response from HuggingFace. Completion object: {completion}, Message: {message}")
+                    raise LLMProviderException("Empty response content from HuggingFace API")
+
+                logger.debug(f"HuggingFace response length: {len(response)} characters, first 200 chars: {response[:200]}")
+
+                # Clean up response - remove markdown code blocks if present
+                response = response.strip()
+                if response.startswith("```json"):
+                    response = response[7:]  # Remove ```json
+                elif response.startswith("```"):
+                    response = response[3:]   # Remove ```
+                if response.endswith("```"):
+                    response = response[:-3]   # Remove closing ```
+                response = response.strip()
+
+                update_payload = {
+                    "output": truncate_for_trace(response),
+                    "metadata": {
+                        "provider": "huggingface",
+                        "usecase": usecase,
+                    },
+                }
+
+                usage_details = self._extract_usage_details(getattr(completion, "usage", None))
+                if usage_details:
+                    update_payload["usage_details"] = usage_details
+
+                generation.update(**update_payload)
+
+                logger.info(
+                    "Received HuggingFace response [model=%s usecase=%s response_length=%s]",
+                    self.model_name,
+                    usecase,
+                    len(response),
+                )
+
+                return response
             
         except LLMProviderException:
             # Re-raise our custom exceptions
@@ -176,6 +210,25 @@ class HuggingFaceProvider(LLMProvider):
                     "pip install --upgrade huggingface_hub"
                 )
             raise LLMProviderException(f"HuggingFace API call failed: {e}") from e
+
+    def _extract_usage_details(self, usage: Any) -> Optional[Dict[str, int]]:
+        """Map HuggingFace usage payloads to Langfuse usage details."""
+        if usage is None:
+            return None
+
+        input_tokens = getattr(usage, "prompt_tokens", None)
+        output_tokens = getattr(usage, "completion_tokens", None)
+        total_tokens = getattr(usage, "total_tokens", None)
+
+        usage_details = {}
+        if input_tokens is not None:
+            usage_details["input_tokens"] = int(input_tokens)
+        if output_tokens is not None:
+            usage_details["output_tokens"] = int(output_tokens)
+        if total_tokens is not None:
+            usage_details["total_tokens"] = int(total_tokens)
+
+        return usage_details or None
     
     def get_model_name(self) -> str:
         """

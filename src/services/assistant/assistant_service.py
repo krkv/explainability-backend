@@ -1,10 +1,18 @@
 """Assistant service for processing user messages."""
 
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from src.core.constants import UseCase, Model
 from src.core.exceptions import LLMProviderException, FunctionExecutionException
 from src.core.logging_config import get_logger
+from src.core.observability import (
+    TraceContext,
+    build_trace_metadata,
+    get_last_user_message,
+    observability,
+    slugify_trace_tag,
+    truncate_for_trace,
+)
 from src.domain.entities.assistant_response import AssistantResponse
 from src.domain.interfaces.function_executor import FunctionExecutor
 from src.domain.interfaces.usecase_registry import UseCaseRegistry
@@ -34,7 +42,8 @@ class AssistantService:
         self,
         conversation: List[Dict[str, str]],
         usecase: UseCase,
-        model: Model
+        model: Model,
+        trace_context: Optional[TraceContext] = None,
     ) -> AssistantResponse:
         """
         Process a conversation and generate an assistant response.
@@ -51,44 +60,113 @@ class AssistantService:
             LLMProviderException: If LLM generation fails
             FunctionExecutionException: If function execution fails
         """
-        try:
-            # Get LLM provider
-            llm_provider = get_llm_provider(model)
-            
-            # Generate response from LLM (should return structured JSON)
-            # Pass conversation directly - providers will handle system prompts internally
-            llm_response = await llm_provider.generate_response(conversation, usecase)
-            
-            # Parse structured JSON response
-            structured_response = self._parse_structured_response(llm_response)
-            
-            # Extract function calls and freeform response from structured data
-            function_calls = structured_response.get("function_calls", [])
-            freeform_response = structured_response.get("freeform_response", "")
-            
-            # Execute function calls if any
-            parse_result = ""
-            if function_calls:
+        latest_user_message = truncate_for_trace(get_last_user_message(conversation))
+        trace_tags = [
+            "assistant-api",
+            f"usecase:{slugify_trace_tag(usecase.value)}",
+            f"model:{slugify_trace_tag(model.value)}",
+        ]
+        trace_metadata = build_trace_metadata(
+            usecase=usecase.value,
+            model=model.value,
+            conversation_length=len(conversation),
+            trace_context=trace_context,
+        )
+
+        with observability.propagate_attributes(
+            session_id=truncate_for_trace(trace_context.session_id, limit=200) if trace_context else None,
+            user_id=truncate_for_trace(trace_context.user_id, limit=200) if trace_context else None,
+            tags=trace_tags,
+            metadata=trace_metadata,
+        ):
+            with observability.start_observation(
+                name="assistant-response",
+                as_type="span",
+            ) as root_span:
+                root_span.update(
+                    input={
+                        "latest_user_message": latest_user_message,
+                        "conversation_length": len(conversation),
+                    }
+                )
+
                 try:
-                    parse_result = self.function_executor.execute_calls(function_calls, usecase)
-                except FunctionExecutionException as e:
-                    logger.error(f"Function execution failed: {e}")
-                    parse_result = f"Error executing functions: {e}"
-            
-            # Create assistant response
-            response = AssistantResponse(
-                function_calls=function_calls,
-                freeform_response=freeform_response,
-                parse=parse_result
-            )
-            
-            return response
-            
-        except LLMProviderException:
-            raise
-        except Exception as e:
-            logger.error(f"Failed to process message: {e}")
-            raise LLMProviderException(f"Failed to process message: {e}")
+                    # Get LLM provider
+                    llm_provider = get_llm_provider(model)
+
+                    # Generate response from LLM (should return structured JSON)
+                    # Pass conversation directly - providers will handle system prompts internally
+                    llm_response = await llm_provider.generate_response(conversation, usecase)
+
+                    # Parse structured JSON response
+                    structured_response = self._parse_structured_response(llm_response)
+
+                    # Extract function calls and freeform response from structured data
+                    function_calls = structured_response.get("function_calls", [])
+                    freeform_response = structured_response.get("freeform_response", "")
+
+                    # Execute function calls if any
+                    parse_result = ""
+                    if function_calls:
+                        with observability.start_observation(
+                            name="execute-function-calls",
+                            as_type="tool",
+                        ) as function_span:
+                            function_span.update(
+                                input={
+                                    "function_calls": function_calls,
+                                    "usecase": usecase.value,
+                                }
+                            )
+
+                            try:
+                                parse_result = self.function_executor.execute_calls(function_calls, usecase)
+                                function_span.update(
+                                    output={
+                                        "function_call_count": len(function_calls),
+                                        "parse_result": truncate_for_trace(parse_result),
+                                    }
+                                )
+                            except FunctionExecutionException as e:
+                                logger.error(f"Function execution failed: {e}")
+                                parse_result = f"Error executing functions: {e}"
+                                function_span.update(
+                                    level="ERROR",
+                                    status_message=str(e),
+                                    output={"error": truncate_for_trace(str(e))},
+                                )
+
+                    # Create assistant response
+                    response = AssistantResponse(
+                        function_calls=function_calls,
+                        freeform_response=freeform_response,
+                        parse=parse_result,
+                    )
+
+                    root_span.update(
+                        output={
+                            "function_call_count": len(function_calls),
+                            "freeform_response": truncate_for_trace(freeform_response),
+                            "parse_result": truncate_for_trace(parse_result),
+                        }
+                    )
+
+                    return response
+                except LLMProviderException as e:
+                    root_span.update(
+                        level="ERROR",
+                        status_message=str(e),
+                        output={"error": truncate_for_trace(str(e))},
+                    )
+                    raise
+                except Exception as e:
+                    logger.error(f"Failed to process message: {e}")
+                    root_span.update(
+                        level="ERROR",
+                        status_message=str(e),
+                        output={"error": truncate_for_trace(str(e))},
+                    )
+                    raise LLMProviderException(f"Failed to process message: {e}")
 
     def _parse_structured_response(self, llm_response: str) -> Dict[str, Any]:
         """
