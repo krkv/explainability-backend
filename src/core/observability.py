@@ -46,6 +46,12 @@ class LangfuseObservability:
             or settings.langfuse_host
         )
 
+    def _get_tracing_environment(self) -> Optional[str]:
+        return (
+            os.getenv("LANGFUSE_TRACING_ENVIRONMENT")
+            or settings.langfuse_tracing_environment
+        )
+
     def _has_credentials(self) -> bool:
         return bool(
             (os.getenv("LANGFUSE_PUBLIC_KEY") or settings.langfuse_public_key)
@@ -69,6 +75,7 @@ class LangfuseObservability:
             base_url = self._get_base_url()
             public_key = os.getenv("LANGFUSE_PUBLIC_KEY") or settings.langfuse_public_key
             secret_key = os.getenv("LANGFUSE_SECRET_KEY") or settings.langfuse_secret_key
+            tracing_environment = self._get_tracing_environment()
 
             if public_key:
                 os.environ.setdefault("LANGFUSE_PUBLIC_KEY", public_key)
@@ -76,6 +83,8 @@ class LangfuseObservability:
                 os.environ.setdefault("LANGFUSE_SECRET_KEY", secret_key)
             if base_url:
                 os.environ.setdefault("LANGFUSE_BASE_URL", base_url)
+            if tracing_environment:
+                os.environ.setdefault("LANGFUSE_TRACING_ENVIRONMENT", tracing_environment)
 
             from langfuse import get_client, propagate_attributes
 

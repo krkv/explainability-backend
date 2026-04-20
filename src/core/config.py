@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     langfuse_secret_key: Optional[str] = None
     langfuse_base_url: Optional[str] = None
     langfuse_host: Optional[str] = None
+    langfuse_tracing_environment: Optional[str] = None
     
     # API Configuration
     api_host: str = "0.0.0.0"

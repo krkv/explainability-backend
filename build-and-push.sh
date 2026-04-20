@@ -57,6 +57,5 @@ echo "    --image ${FULL_IMAGE_NAME} \\"
 echo "    --platform managed \\"
 echo "    --region ${LOCATION} \\"
 echo "    --allow-unauthenticated \\"
-echo "    --set-env-vars HF_TOKEN=\"your_token_here\" \\"
+echo "    --set-env-vars HF_TOKEN=\"your_token_here\",LANGFUSE_PUBLIC_KEY=\"...\",LANGFUSE_SECRET_KEY=\"...\",LANGFUSE_BASE_URL=\"...\",LANGFUSE_TRACING_ENVIRONMENT=\"production\" \\"
 echo "    --port 8080"
-
