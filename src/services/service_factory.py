@@ -4,12 +4,14 @@ from typing import Any, Dict, Optional
 from src.services.usecase.usecase_registry_service import UseCaseRegistryService
 from src.services.function.function_executor_service import FunctionExecutorService
 from src.services.assistant.assistant_service import AssistantService
+from src.services.assistant.suggester_service import SuggesterService
 from src.services.llm.llm_factory import get_provider_info
 
 # Singleton instances
 _usecase_registry: Optional[UseCaseRegistryService] = None
 _function_executor: Optional[FunctionExecutorService] = None
 _assistant_service: Optional[AssistantService] = None
+_suggester_service: Optional[SuggesterService] = None
 
 
 def get_usecase_registry() -> UseCaseRegistryService:
@@ -54,6 +56,20 @@ def get_assistant_service() -> AssistantService:
     return _assistant_service
 
 
+def get_suggester_service() -> SuggesterService:
+    """
+    Get or create the suggester service.
+
+    Returns:
+        SuggesterService instance
+    """
+    global _suggester_service
+    if _suggester_service is None:
+        usecase_registry = get_usecase_registry()
+        _suggester_service = SuggesterService(usecase_registry)
+    return _suggester_service
+
+
 def get_service_stats() -> Dict[str, Any]:
     """
     Get statistics about all services.
@@ -74,11 +90,12 @@ def get_service_stats() -> Dict[str, Any]:
 
 def clear_all_services() -> None:
     """Clear all service instances (useful for testing)."""
-    global _usecase_registry, _function_executor, _assistant_service
+    global _usecase_registry, _function_executor, _assistant_service, _suggester_service
     
     _usecase_registry = None
     _function_executor = None
     _assistant_service = None
+    _suggester_service = None
     
     # Also clear LLM providers
     from src.services.llm.llm_factory import clear_providers

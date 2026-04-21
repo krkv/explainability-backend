@@ -6,7 +6,11 @@ from unittest.mock import Mock
 
 import numpy as np
 import pandas as pd
+import pytest
 
+from src.domain.interfaces.llm_provider import AgentRole
+from src.usecases.energy.energy_config import EnergyConfig
+from src.usecases.energy.energy_usecase import EnergyUseCase
 from src.usecases.heart.heart_functions import HeartFunctions
 from src.usecases.heart.heart_config import HeartConfig
 from src.usecases.heart.heart_usecase import HeartUseCase
@@ -804,3 +808,89 @@ def test_heart_usecase_prompt_guides_patient_count_mapping(tmp_path):
     assert "how many patients have heart disease" in prompt
     assert "positive predicted count option" in prompt
     assert "negative predicted count option" in prompt
+
+
+def test_heart_usecase_suggester_generation_config_includes_latest_assistant_context(tmp_path):
+    metadata_path = tmp_path / "feature_metadata.json"
+    metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+
+    functions_path = tmp_path / "functions.json"
+    functions_path.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "predict",
+                        "description": "Predict the class and probability scores for a specific patient using their ID.",
+                    },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "counterfactual",
+                        "description": "Generate a counterfactual explanation for a patient.",
+                    },
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    config = HeartConfig(
+        dataset_path=Path("unused.csv"),
+        feature_metadata_path=metadata_path,
+        functions_json_path=functions_path,
+        shap_cache_path=tmp_path / "shap_cache.pkl",
+        cf_cache_path=tmp_path / "cf_cache.pkl",
+        global_fi_cache_path=tmp_path / "global_fi_cache.pkl",
+    )
+
+    model_loader = Mock()
+    data_loader = Mock()
+    explainer_loader = Mock()
+    dataset = pd.DataFrame({"age": [54], "sex": [1], "trestbps": [140], "num": [1]}, index=[10])
+    model_loader.load_model.return_value = DummyHeartModel()
+    data_loader.load_dataset.return_value = dataset
+
+    usecase = HeartUseCase(
+        model_loader=model_loader,
+        data_loader=data_loader,
+        explainer_loader=explainer_loader,
+        config=config,
+    )
+
+    generation_config = usecase.get_generation_config(
+        conversation=[{"role": "user", "content": "Show patient 10"}],
+        agent_role=AgentRole.SUGGESTER,
+        context={"latest_assistant_response": "Patient 10 has elevated predicted risk."},
+    )
+
+    assert generation_config.response_schema["required"] == ["suggestions"]
+    assert generation_config.response_schema["properties"]["suggestions"]["minItems"] == 3
+    assert generation_config.response_schema["properties"]["suggestions"]["maxItems"] == 5
+    assert "medical professional" in generation_config.system_prompt
+    assert "Patient 10 has elevated predicted risk." in generation_config.system_prompt
+    assert "Do not mention function names" in generation_config.system_prompt
+    assert '"name": "counterfactual"' in generation_config.system_prompt
+
+
+def test_energy_usecase_rejects_suggester_generation_config(tmp_path):
+    functions_path = tmp_path / "functions.json"
+    functions_path.write_text("[]", encoding="utf-8")
+
+    usecase = EnergyUseCase(
+        model_loader=Mock(),
+        data_loader=Mock(),
+        explainer_loader=Mock(),
+        config=EnergyConfig(
+            dataset_path=Path("unused.csv"),
+            functions_json_path=functions_path,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="only implemented for the heart use case"):
+        usecase.get_generation_config(
+            conversation=[{"role": "user", "content": "What should I ask next?"}],
+            agent_role=AgentRole.SUGGESTER,
+        )

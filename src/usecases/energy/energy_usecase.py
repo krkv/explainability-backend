@@ -6,7 +6,12 @@ import shap
 import dice_ml
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Callable, List, Any
+from typing import Dict, Callable, List, Any, Optional
+from src.domain.interfaces.llm_provider import (
+    AgentRole,
+    StructuredGenerationConfig,
+    build_response_schema,
+)
 from src.usecases.base.base_usecase import BaseUseCase
 from src.usecases.energy.energy_config import EnergyConfig
 from src.usecases.energy.energy_functions import EnergyFunctions
@@ -159,39 +164,25 @@ class EnergyUseCase(BaseUseCase):
             'what_if_one': energy_funcs.what_if_one,
         }
     
-    def get_system_prompt(self, conversation: List[Dict[str, str]]) -> str:
-        """Generate system prompt for energy use case."""
-        import json
-        
-        # Load functions.json
+    def _load_functions_catalog(self) -> List[Dict[str, Any]]:
+        """Load the energy function catalog from disk."""
         with open(self.config.functions_json_path, 'r') as f:
-            functions = json.load(f)
-        
-        # Get dataset description
+            return json.load(f)
+
+    def get_generation_config(
+        self,
+        conversation: List[Dict[str, str]],
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> StructuredGenerationConfig:
+        """Build the assistant prompt for the energy use case."""
+        if agent_role != AgentRole.ASSISTANT:
+            raise ValueError("Suggester prompts are only implemented for the heart use case.")
+
         dataset_json = self.dataset.describe().to_json()
-        
-        # JSON schema for structured responses
-        response_schema = {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "Response",
-            "type": "object",
-            "properties": {
-                "function_calls": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "A list of function calls in string format."
-                },
-                "freeform_response": {
-                    "type": "string",
-                    "description": "A free-form response that strictly follows the rules of the assistant."
-                }
-            },
-            "required": ["function_calls", "freeform_response"],
-            "additionalProperties": "false"
-        }
-        
+        functions_json = json.dumps(self._load_functions_catalog(), indent=2)
+        response_schema = build_response_schema(AgentRole.ASSISTANT)
+
         system_prompt = f"""
     Your name is Claire. You are a trustworthy data science assistant that helps user to understand the data, model and predictions for a machine learning model application use case in energy sector.
     Here is the description of the dataset:
@@ -201,7 +192,7 @@ class EnergyUseCase(BaseUseCase):
     The model and the dataset are not available to you directly, but you have access to a set of functions that can be invoked to help the user.
     Here is the list of functions that can be invoked. ONLY these functions can be called:
 
-    {json.dumps(functions, indent=2)}
+    {functions_json}
     
     You are an expert in composing function calls. You are given a user query and a set of possible functions that you can call. Based on the user query, you need to decide whether any functions can be called or not.
     You are a trustworthy assistant, which means you should not make up any information or provide any answers that are not supported by the functions given above.
@@ -226,6 +217,8 @@ class EnergyUseCase(BaseUseCase):
 
     {json.dumps(conversation)}
     """
-        
-        return system_prompt
 
+        return StructuredGenerationConfig(
+            system_prompt=system_prompt,
+            response_schema=response_schema,
+        )

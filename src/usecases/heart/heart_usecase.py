@@ -6,7 +6,12 @@ import shap
 import dice_ml
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Callable, List, Any
+from typing import Dict, Callable, List, Any, Optional
+from src.domain.interfaces.llm_provider import (
+    AgentRole,
+    StructuredGenerationConfig,
+    build_response_schema,
+)
 from src.usecases.base.base_usecase import BaseUseCase
 from src.usecases.heart.heart_config import HeartConfig
 from src.usecases.heart.heart_functions import HeartFunctions
@@ -211,8 +216,7 @@ class HeartUseCase(BaseUseCase):
     
     def _create_functions(self) -> Dict[str, Callable]:
         """Create function registry for heart use case."""
-        with open(self.config.functions_json_path, 'r') as f:
-            functions_catalog = json.load(f)
+        functions_catalog = self._load_functions_catalog()
 
         heart_funcs = HeartFunctions(
             model=self.model,
@@ -254,53 +258,59 @@ class HeartUseCase(BaseUseCase):
             'show_ids': heart_funcs.show_ids,
             'show_one': heart_funcs.show_one,
         }
-    
-    def get_system_prompt(self, conversation: List[Dict[str, str]]) -> str:
-        """Generate system prompt for heart use case."""
-        # Load functions.json
+
+    def _load_functions_catalog(self) -> List[Dict[str, Any]]:
+        """Load the heart function catalog from disk."""
         with open(self.config.functions_json_path, 'r') as f:
-            functions = json.load(f)
-        
-        # Get dataset description
-        dataset_json = self.dataset.describe().to_json()
-        feature_metadata_json = json.dumps(self.feature_metadata, indent=2)
-        
-        # JSON schema for structured responses
-        response_schema = {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "title": "Response",
-            "type": "object",
-            "properties": {
-                "function_calls": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "description": "A list of function calls in string format."
-                },
-                "freeform_response": {
-                    "type": "string",
-                    "description": "A free-form response that strictly follows the rules of the assistant."
-                }
-            },
-            "required": ["function_calls", "freeform_response"],
-            "additionalProperties": "false"
+            return json.load(f)
+
+    def _get_latest_assistant_response(
+        self,
+        conversation: List[Dict[str, str]],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Get the latest assistant response for suggester prompt context."""
+        if context and context.get("latest_assistant_response"):
+            return str(context["latest_assistant_response"])
+
+        for message in reversed(conversation):
+            if message.get("role") == "assistant" and message.get("content"):
+                return str(message["content"])
+
+        return ""
+
+    def _build_prompt_context(
+        self,
+        conversation: List[Dict[str, str]],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, str]:
+        """Build the shared serialized prompt context for heart agents."""
+        return {
+            "dataset_json": self.dataset.describe().to_json(),
+            "feature_metadata_json": json.dumps(self.feature_metadata, indent=2),
+            "functions_json": json.dumps(self._load_functions_catalog(), indent=2),
+            "conversation_json": json.dumps(conversation),
+            "latest_assistant_response": self._get_latest_assistant_response(conversation, context),
         }
-        
-        system_prompt = f"""
+
+    def _build_assistant_system_prompt(self, prompt_context: Dict[str, str]) -> str:
+        """Build the main assistant prompt for the heart use case."""
+        response_schema = build_response_schema(AgentRole.ASSISTANT)
+
+        return f"""
     Your name is Claire. You are a trustworthy data science assistant that helps user to understand the data, model and predictions for a machine learning model application use case in medical sector.
     Here is the description of the dataset:
     
-    {dataset_json}
+    {prompt_context["dataset_json"]}
 
     Here is the feature metadata with display names, aliases, descriptions, and categorical options:
 
-    {feature_metadata_json}
+    {prompt_context["feature_metadata_json"]}
 
     The model and the dataset are not available to you directly, but you have access to a set of functions that can be invoked to help the user.
     Here is the list of functions that can be invoked. ONLY these functions can be called:
 
-    {json.dumps(functions, indent=2)}
+    {prompt_context["functions_json"]}
     
     You are an expert in composing function calls. You are given a user query and a set of possible functions that you can call. Based on the user query, you need to decide whether any functions can be called or not.
     You are a trustworthy assistant, which means you should not make up any information or provide any answers that are not supported by the functions given above.
@@ -326,7 +336,72 @@ class HeartUseCase(BaseUseCase):
     Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
     Use user's query history to understand the question better and guide your responses if needed.
 
-    {json.dumps(conversation)}
+    {prompt_context["conversation_json"]}
     """
-        
-        return system_prompt
+
+    def _build_suggester_system_prompt(self, prompt_context: Dict[str, str]) -> str:
+        """Build the follow-up suggester prompt for the heart use case."""
+        response_schema = build_response_schema(AgentRole.SUGGESTER)
+        latest_assistant_response = (
+            prompt_context["latest_assistant_response"]
+            if prompt_context["latest_assistant_response"]
+            else "No assistant response is available yet."
+        )
+
+        return f"""
+    Your name is Claire. You are acting as a follow-up suggester for a heart disease explainability assistant used by a medical professional who is evaluating the usefulness of the assistant.
+    Your job is to suggest the next 3 to 5 user prompts that would help this evaluator explore the dataset, the model, patient-level explanations, counterfactuals, what-if analysis, errors, and performance characteristics.
+
+    You are not answering the user. You are proposing short next user messages only.
+
+    Here is the description of the dataset:
+
+    {prompt_context["dataset_json"]}
+
+    Here is the feature metadata with display names, aliases, descriptions, and categorical options:
+
+    {prompt_context["feature_metadata_json"]}
+
+    Here is the list of heart functions that the main assistant can use. Use this catalog to understand the real capabilities that your suggestions should showcase:
+
+    {prompt_context["functions_json"]}
+
+    Here is the full conversation history:
+
+    {prompt_context["conversation_json"]}
+
+    Here is the latest assistant response from this conversation:
+
+    {latest_assistant_response}
+
+    Respond ONLY in JSON format, following strictly this JSON schema for your response:
+
+    {json.dumps(response_schema, indent=2)}
+
+    Each suggestion must be a plain user utterance that could be shown as an example prompt in the UI.
+    Keep suggestions specific, concise, and varied across different supported capabilities.
+    Suggestions must stay within the supported heart-disease functionality. Do not invent capabilities.
+    Do not mention function names, tools, JSON, schemas, or implementation details.
+    Do not number the suggestions, do not include rationale, and do not repeat near-duplicates.
+    Prefer prompts that demonstrate clinically meaningful exploration for a professional audience, such as reviewing patient risk, understanding which features matter, comparing groups, inspecting performance, or testing plausible feature changes.
+    """
+
+    def get_generation_config(
+        self,
+        conversation: List[Dict[str, str]],
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> StructuredGenerationConfig:
+        """Build the role-aware prompt and schema for the heart use case."""
+        prompt_context = self._build_prompt_context(conversation, context)
+
+        if agent_role == AgentRole.SUGGESTER:
+            return StructuredGenerationConfig(
+                system_prompt=self._build_suggester_system_prompt(prompt_context),
+                response_schema=build_response_schema(AgentRole.SUGGESTER),
+            )
+
+        return StructuredGenerationConfig(
+            system_prompt=self._build_assistant_system_prompt(prompt_context),
+            response_schema=build_response_schema(AgentRole.ASSISTANT),
+        )

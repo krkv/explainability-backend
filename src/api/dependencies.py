@@ -4,8 +4,9 @@ from fastapi import Depends, HTTPException
 from typing import Annotated
 from src.core.constants import Model, UseCase
 from src.core.logging_config import get_logger
-from src.services.service_factory import get_assistant_service
+from src.services.service_factory import get_assistant_service, get_suggester_service
 from src.services.assistant.assistant_service import AssistantService
+from src.services.assistant.suggester_service import SuggesterService
 
 logger = get_logger(__name__)
 
@@ -73,6 +74,16 @@ def get_assistant_service_dependency() -> AssistantService:
     return get_assistant_service()
 
 
+def get_suggester_service_dependency() -> SuggesterService:
+    """
+    Dependency for getting suggester service instance.
+
+    Returns:
+        SuggesterService instance (singleton)
+    """
+    return get_suggester_service()
+
+
 # Type aliases for dependency injection
 AssistantServiceDep = Annotated[AssistantService, Depends(get_assistant_service_dependency)]
-
+SuggesterServiceDep = Annotated[SuggesterService, Depends(get_suggester_service_dependency)]

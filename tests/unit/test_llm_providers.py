@@ -3,6 +3,11 @@
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
 from src.core.constants import Model
+from src.domain.interfaces.llm_provider import (
+    AgentRole,
+    StructuredGenerationConfig,
+    build_response_schema,
+)
 from src.services.llm.huggingface_provider import HuggingFaceProvider
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 from src.core.constants import UseCase
@@ -103,6 +108,36 @@ class TestHuggingFaceProvider:
         with pytest.raises(LLMProviderException):
             await provider.generate_response(conversation, UseCase.ENERGY)
 
+    @pytest.mark.asyncio
+    async def test_generate_hugging_face_response_uses_custom_suggester_prompt(self, provider):
+        """Test custom generation config overrides the system prompt for suggester calls."""
+        provider._client = Mock()
+        provider._client.chat = Mock()
+        provider._client.chat.completions = Mock()
+        provider._client.chat.completions.create = Mock(
+            return_value=Mock(
+                choices=[
+                    Mock(message=Mock(content='{"suggestions": ["A", "B", "C"]}'))
+                ],
+                usage=None,
+            )
+        )
+
+        response = await provider._generate_hugging_face_response(
+            conversation=[{"role": "user", "content": "What next?"}],
+            usecase=UseCase.HEART.value,
+            agent_role=AgentRole.SUGGESTER,
+            generation_config=StructuredGenerationConfig(
+                system_prompt="Suggest the next follow-up questions.",
+                response_schema=build_response_schema(AgentRole.SUGGESTER),
+            ),
+        )
+
+        assert '"suggestions"' in response
+        create_kwargs = provider._client.chat.completions.create.call_args.kwargs
+        assert create_kwargs["messages"][0]["role"] == "system"
+        assert create_kwargs["messages"][0]["content"] == "Suggest the next follow-up questions."
+
 
 class TestGoogleGeminiProvider:
     """Test cases for GoogleGeminiProvider."""
@@ -183,10 +218,13 @@ class TestGoogleGeminiProvider:
         """Test automatic function calling is disabled on Gemini requests."""
         mock_registry = Mock()
         mock_registry.get_system_prompt.return_value = "System prompt"
+        mock_registry.get_usecase_instance.return_value = None
         provider._generate_sync = Mock(
             return_value=Mock(
                 text='{"function_calls": [], "freeform_response": "Response"}',
                 usage_metadata=None,
+                function_calls=[],
+                automatic_function_calling_history=[],
             )
         )
 
@@ -237,6 +275,38 @@ class TestGoogleGeminiProvider:
                 await provider.generate_response(conversation, UseCase.HEART)
 
         assert "RESOURCE_EXHAUSTED (429)" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_generate_google_cloud_response_uses_custom_suggester_schema(self, provider):
+        """Test custom generation config overrides Gemini prompt/schema for suggester calls."""
+        provider._generate_sync = Mock(
+            return_value=Mock(
+                text='{"suggestions": ["A", "B", "C"]}',
+                usage_metadata=None,
+                function_calls=[],
+                automatic_function_calling_history=[],
+            )
+        )
+
+        conversation = [{"role": "user", "content": "What should I ask next?"}]
+
+        response = await provider._generate_google_cloud_response(
+            conversation=conversation,
+            usecase=UseCase.HEART.value,
+            agent_role=AgentRole.SUGGESTER,
+            generation_config=StructuredGenerationConfig(
+                system_prompt="Suggest the next follow-up questions.",
+                response_schema=build_response_schema(AgentRole.SUGGESTER),
+            ),
+        )
+
+        config = provider._generate_sync.call_args.args[1]
+
+        assert '"suggestions"' in response
+        assert config.system_instruction == "Suggest the next follow-up questions."
+        assert config.response_schema == build_response_schema(AgentRole.SUGGESTER)
+        assert config.automatic_function_calling is not None
+        assert config.automatic_function_calling.disable is True
 
 
 class TestLLMFactory:

@@ -1,8 +1,10 @@
 """Use case registry service for managing use cases, functions, and system prompts."""
 
 from typing import Dict, Callable, Any, List, Optional
+
 from src.core.constants import UseCase
 from src.core.exceptions import FunctionExecutionException
+from src.domain.interfaces.llm_provider import AgentRole, StructuredGenerationConfig
 from src.domain.interfaces.usecase_registry import UseCaseRegistry
 from src.domain.entities.message import Message
 from src.usecases.base.base_usecase import BaseUseCase
@@ -155,6 +157,21 @@ class UseCaseRegistryService(UseCaseRegistry):
         # Lazy load use case if not already loaded
         usecase_instance = self._get_or_create_usecase(usecase)
         return usecase_instance.get_system_prompt(conversation)
+
+    def get_generation_config(
+        self,
+        usecase: UseCase,
+        agent_role: AgentRole,
+        conversation: List[Dict[str, str]],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> StructuredGenerationConfig:
+        """Return the structured generation config for a use case and role."""
+        usecase_instance = self._get_or_create_usecase(usecase)
+        return usecase_instance.get_generation_config(
+            conversation=conversation,
+            agent_role=agent_role,
+            context=context,
+        )
     
     def is_usecase_registered(self, usecase: UseCase) -> bool:
         """

@@ -4,11 +4,16 @@ import asyncio
 import os
 from typing import List, Dict, Any, Optional
 from huggingface_hub import InferenceClient
-from src.domain.interfaces.llm_provider import LLMProvider
+from src.domain.interfaces.llm_provider import (
+    AgentRole,
+    LLMProvider,
+    StructuredGenerationConfig,
+)
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException
 from src.core.logging_config import get_logger
 from src.core.observability import get_last_user_message, observability, truncate_for_trace
+from src.services.llm.generation_config_resolver import resolve_generation_config
 
 logger = get_logger(__name__)
 
@@ -47,7 +52,10 @@ class HuggingFaceProvider(LLMProvider):
     async def generate_response(
         self,
         conversation: List[Dict[str, str]],
-        usecase: UseCase
+        usecase: UseCase,
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        generation_config: Optional[StructuredGenerationConfig] = None,
+        generation_context: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Generate a response from the HuggingFace model using chat.completions.create() API.
@@ -55,6 +63,9 @@ class HuggingFaceProvider(LLMProvider):
         Args:
             conversation: List of message dictionaries with 'role' and 'content' keys
             usecase: The use case context (energy or heart)
+            agent_role: Role-specific prompt/schema behavior for the request
+            generation_config: Optional explicit prompt/schema override
+            generation_context: Optional additional prompt-building context
             
         Returns:
             Raw response string from the LLM (structured JSON)
@@ -66,7 +77,13 @@ class HuggingFaceProvider(LLMProvider):
             raise LLMProviderException("HuggingFace provider is not available")
         
         try:
-            response = await self._generate_hugging_face_response(conversation, usecase.value)
+            response = await self._generate_hugging_face_response(
+                conversation=conversation,
+                usecase=usecase.value,
+                agent_role=agent_role,
+                generation_config=generation_config,
+                generation_context=generation_context,
+            )
             
             logger.debug(f"Generated response from HuggingFace: {len(response)} characters")
             return response
@@ -75,7 +92,14 @@ class HuggingFaceProvider(LLMProvider):
             logger.error(f"HuggingFace generation failed: {e}")
             raise LLMProviderException(f"Failed to generate response: {e}")
     
-    async def _generate_hugging_face_response(self, conversation: List[Dict[str, str]], usecase: str) -> str:
+    async def _generate_hugging_face_response(
+        self,
+        conversation: List[Dict[str, str]],
+        usecase: str,
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        generation_config: Optional[StructuredGenerationConfig] = None,
+        generation_context: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """
         Generate response using chat.completions.create() API.
         
@@ -86,14 +110,14 @@ class HuggingFaceProvider(LLMProvider):
         Returns:
             Generated response (structured JSON)
         """
-        # Get system prompt from use case registry
-        from src.services.service_factory import get_usecase_registry
-        from src.core.constants import UseCase
-        
-        # Convert string usecase to enum (handles both frontend and backend formats)
-        usecase_enum = UseCase.from_string(usecase)
-        registry = get_usecase_registry()
-        system_prompt = registry.get_system_prompt(usecase_enum, conversation)
+        usecase_enum, resolved_generation_config = resolve_generation_config(
+            conversation=conversation,
+            usecase=usecase,
+            agent_role=agent_role,
+            generation_config=generation_config,
+            generation_context=generation_context,
+        )
+        system_prompt = resolved_generation_config.system_prompt
         latest_user_message = truncate_for_trace(get_last_user_message(conversation))
         
         # Build messages array with system prompt and conversation history
@@ -136,7 +160,8 @@ class HuggingFaceProvider(LLMProvider):
                     },
                     metadata={
                         "provider": "huggingface",
-                        "usecase": usecase,
+                        "usecase": usecase_enum.value,
+                        "agent_role": agent_role.value,
                     },
                 )
 
@@ -179,7 +204,8 @@ class HuggingFaceProvider(LLMProvider):
                     "output": truncate_for_trace(response),
                     "metadata": {
                         "provider": "huggingface",
-                        "usecase": usecase,
+                        "usecase": usecase_enum.value,
+                        "agent_role": agent_role.value,
                     },
                 }
 
@@ -190,9 +216,10 @@ class HuggingFaceProvider(LLMProvider):
                 generation.update(**update_payload)
 
                 logger.info(
-                    "Received HuggingFace response [model=%s usecase=%s response_length=%s]",
+                    "Received HuggingFace response [model=%s usecase=%s agent_role=%s response_length=%s]",
                     self.model_name,
-                    usecase,
+                    usecase_enum.value,
+                    agent_role.value,
                     len(response),
                 )
 

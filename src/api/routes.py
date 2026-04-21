@@ -9,9 +9,10 @@ from src.api.schemas import (
     HealthResponse,
 )
 from src.api.dependencies import (
+    AssistantServiceDep,
+    SuggesterServiceDep,
     validate_model,
     validate_usecase,
-    AssistantServiceDep,
 )
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.core.logging_config import get_logger
@@ -36,6 +37,7 @@ async def ready():
 async def get_assistant_response(
     request: AssistantRequest,
     assistant_service: AssistantServiceDep,
+    suggester_service: SuggesterServiceDep,
     x_session_id: Optional[str] = Header(default=None, alias="X-Session-ID"),
     x_user_id: Optional[str] = Header(default=None, alias="X-User-ID"),
     x_request_id: Optional[str] = Header(default=None, alias="X-Request-ID"),
@@ -74,6 +76,18 @@ async def get_assistant_response(
         # Process conversation using assistant service (frontend manages conversation history)
         response = await assistant_service.process_message(
             conversation=conversation_dict,
+            usecase=usecase,
+            model=model,
+            trace_context=TraceContext(
+                session_id=x_session_id,
+                user_id=x_user_id,
+                request_id=x_request_id,
+            ),
+        )
+
+        response.suggested_follow_ups = await suggester_service.generate_follow_ups(
+            conversation=conversation_dict,
+            assistant_response=response,
             usecase=usecase,
             model=model,
             trace_context=TraceContext(

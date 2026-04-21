@@ -5,6 +5,7 @@ from typing import Dict, Callable, List, Any, Optional
 from pathlib import Path
 from src.domain.interfaces.model_loader import ModelLoader
 from src.domain.interfaces.data_loader import DataLoader
+from src.domain.interfaces.llm_provider import AgentRole, StructuredGenerationConfig
 from src.infrastructure.loaders.explainer_loader import ExplainerLoader
 from src.core.logging_config import get_logger
 
@@ -130,14 +131,34 @@ class BaseUseCase(ABC):
         pass
     
     @abstractmethod
-    def get_system_prompt(self, conversation: List[Dict[str, str]]) -> str:
+    def get_generation_config(
+        self,
+        conversation: List[Dict[str, str]],
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> StructuredGenerationConfig:
         """
-        Generate system prompt for this use case.
+        Build the role-aware prompt and schema for this use case.
         
         Args:
             conversation: List of conversation messages
+            agent_role: Agent role that determines prompt and schema
+            context: Optional extra prompt-building context
             
         Returns:
-            System prompt string
+            Structured generation config
         """
         pass
+
+    def get_system_prompt(
+        self,
+        conversation: List[Dict[str, str]],
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        """Generate a system prompt for this use case and agent role."""
+        return self.get_generation_config(
+            conversation=conversation,
+            agent_role=agent_role,
+            context=context,
+        ).system_prompt

@@ -4,11 +4,16 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from google import genai
 from google.genai import types
-from src.domain.interfaces.llm_provider import LLMProvider
+from src.domain.interfaces.llm_provider import (
+    AgentRole,
+    LLMProvider,
+    StructuredGenerationConfig,
+)
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.core.logging_config import get_logger
 from src.core.observability import get_last_user_message, observability, truncate_for_trace
+from src.services.llm.generation_config_resolver import resolve_generation_config
 
 logger = get_logger(__name__)
 
@@ -58,7 +63,10 @@ class GoogleGeminiProvider(LLMProvider):
     async def generate_response(
         self,
         conversation: List[Dict[str, str]],
-        usecase: UseCase
+        usecase: UseCase,
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        generation_config: Optional[StructuredGenerationConfig] = None,
+        generation_context: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Generate a response from the Google Gemini model using exact pattern from googlecloud.py.
@@ -66,6 +74,9 @@ class GoogleGeminiProvider(LLMProvider):
         Args:
             conversation: List of message dictionaries with 'role' and 'content' keys
             usecase: The use case context (energy or heart)
+            agent_role: Role-specific prompt/schema behavior for the request
+            generation_config: Optional explicit prompt/schema override
+            generation_context: Optional additional prompt-building context
             
         Returns:
             Raw response string from the LLM (structured JSON)
@@ -78,7 +89,13 @@ class GoogleGeminiProvider(LLMProvider):
         
         try:
             # Retry transient quota/rate-limit errors from Vertex AI.
-            response = await self._generate_with_retry(conversation, usecase.value)
+            response = await self._generate_with_retry(
+                conversation=conversation,
+                usecase=usecase.value,
+                agent_role=agent_role,
+                generation_config=generation_config,
+                generation_context=generation_context,
+            )
 
             if not response or not response.strip():
                 raise LLMProviderException("Empty response content from Google Gemini API")
@@ -92,13 +109,26 @@ class GoogleGeminiProvider(LLMProvider):
             logger.error(f"Google Gemini generation failed: {e}")
             raise LLMProviderException(f"Failed to generate response: {e}")
 
-    async def _generate_with_retry(self, conversation: List[Dict[str, str]], usecase: str) -> str:
+    async def _generate_with_retry(
+        self,
+        conversation: List[Dict[str, str]],
+        usecase: str,
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        generation_config: Optional[StructuredGenerationConfig] = None,
+        generation_context: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """Retry transient upstream rate-limit failures with exponential backoff."""
         last_error: Optional[Exception] = None
 
         for attempt in range(self._MAX_RETRIES):
             try:
-                return await self._generate_google_cloud_response(conversation, usecase)
+                return await self._generate_google_cloud_response(
+                    conversation=conversation,
+                    usecase=usecase,
+                    agent_role=agent_role,
+                    generation_config=generation_config,
+                    generation_context=generation_context,
+                )
             except Exception as e:
                 last_error = e
 
@@ -126,7 +156,14 @@ class GoogleGeminiProvider(LLMProvider):
             "Please retry shortly."
         ) from last_error
     
-    async def _generate_google_cloud_response(self, conversation: List[Dict[str, str]], usecase: str) -> str:
+    async def _generate_google_cloud_response(
+        self,
+        conversation: List[Dict[str, str]],
+        usecase: str,
+        agent_role: AgentRole = AgentRole.ASSISTANT,
+        generation_config: Optional[StructuredGenerationConfig] = None,
+        generation_context: Optional[Dict[str, Any]] = None,
+    ) -> str:
         """
         Generate response using the exact same pattern as googlecloud.py
         
@@ -137,21 +174,14 @@ class GoogleGeminiProvider(LLMProvider):
         Returns:
             Generated response (structured JSON)
         """
-        from pydantic import BaseModel
-        
-        # Define Response model exactly as in googlecloud.py
-        class Response(BaseModel):
-            function_calls: list[str]
-            freeform_response: str
-        
-        # Get system prompt from use case registry
-        from src.services.service_factory import get_usecase_registry
-        from src.core.constants import UseCase
-        
-        # Convert string usecase to enum (handles both frontend and backend formats)
-        usecase_enum = UseCase.from_string(usecase)
-        registry = get_usecase_registry()
-        system_prompt = registry.get_system_prompt(usecase_enum, conversation)
+        usecase_enum, resolved_generation_config = resolve_generation_config(
+            conversation=conversation,
+            usecase=usecase,
+            agent_role=agent_role,
+            generation_config=generation_config,
+            generation_context=generation_context,
+        )
+        system_prompt = resolved_generation_config.system_prompt
 
         # Get user input from the last message
         user_input = conversation[len(conversation) - 1]['content']
@@ -161,7 +191,7 @@ class GoogleGeminiProvider(LLMProvider):
         generate_content_config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             response_mime_type='application/json',
-            response_schema=Response,
+            response_schema=resolved_generation_config.response_schema,
             automatic_function_calling=types.AutomaticFunctionCallingConfig(
                 disable=True,
             ),
@@ -171,9 +201,10 @@ class GoogleGeminiProvider(LLMProvider):
         )
 
         logger.info(
-            "Sending Google Gemini request [model=%s usecase=%s conversation_length=%s]",
+            "Sending Google Gemini request [model=%s usecase=%s agent_role=%s conversation_length=%s]",
             self.model_name,
-            usecase,
+            usecase_enum.value,
+            agent_role.value,
             len(conversation),
         )
 
@@ -193,7 +224,8 @@ class GoogleGeminiProvider(LLMProvider):
                 },
                 metadata={
                     "provider": "google_gemini",
-                    "usecase": usecase,
+                    "usecase": usecase_enum.value,
+                    "agent_role": agent_role.value,
                 },
             )
 
@@ -214,7 +246,8 @@ class GoogleGeminiProvider(LLMProvider):
                 "output": truncate_for_trace(response_text),
                 "metadata": {
                     "provider": "google_gemini",
-                    "usecase": usecase,
+                    "usecase": usecase_enum.value,
+                    "agent_role": agent_role.value,
                     "automaticFunctionCallingDisabled": True,
                     "toolCallingMode": "NONE",
                     "nativeFunctionCallPartsCount": len(raw_function_calls),
@@ -229,9 +262,10 @@ class GoogleGeminiProvider(LLMProvider):
             generation.update(**update_payload)
 
             logger.info(
-                "Received Google Gemini response [model=%s usecase=%s response_length=%s]",
+                "Received Google Gemini response [model=%s usecase=%s agent_role=%s response_length=%s]",
                 self.model_name,
-                usecase,
+                usecase_enum.value,
+                agent_role.value,
                 len(response_text),
             )
             return response_text

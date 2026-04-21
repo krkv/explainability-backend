@@ -1,8 +1,10 @@
 """Use case registry interface for managing different use cases."""
 
 from abc import ABC, abstractmethod
-from typing import Dict, Callable, Any, List
+from typing import Dict, Callable, Any, List, Optional
+
 from src.core.constants import UseCase
+from src.domain.interfaces.llm_provider import AgentRole, StructuredGenerationConfig
 
 
 class UseCaseRegistry(ABC):
@@ -51,6 +53,28 @@ class UseCaseRegistry(ABC):
             
         Returns:
             System prompt string
+        """
+        pass
+
+    @abstractmethod
+    def get_generation_config(
+        self,
+        usecase: UseCase,
+        agent_role: AgentRole,
+        conversation: List[Dict[str, str]],
+        context: Optional[Dict[str, Any]] = None,
+    ) -> StructuredGenerationConfig:
+        """
+        Get the generation config for a use case and agent role.
+
+        Args:
+            usecase: The use case context
+            agent_role: The backend agent role
+            conversation: Conversation history
+            context: Optional extra context for prompt generation
+
+        Returns:
+            Structured generation configuration including system prompt and schema
         """
         pass
     
