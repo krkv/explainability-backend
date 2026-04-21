@@ -7,6 +7,8 @@ from src.api.schemas import (
     AssistantRequest,
     AssistantResponseWrapper,
     HealthResponse,
+    SuggestedFollowUpsRequest,
+    SuggestedFollowUpsResponse,
 )
 from src.api.dependencies import (
     AssistantServiceDep,
@@ -37,7 +39,6 @@ async def ready():
 async def get_assistant_response(
     request: AssistantRequest,
     assistant_service: AssistantServiceDep,
-    suggester_service: SuggesterServiceDep,
     x_session_id: Optional[str] = Header(default=None, alias="X-Session-ID"),
     x_user_id: Optional[str] = Header(default=None, alias="X-User-ID"),
     x_request_id: Optional[str] = Header(default=None, alias="X-Request-ID"),
@@ -84,18 +85,6 @@ async def get_assistant_response(
                 request_id=x_request_id,
             ),
         )
-
-        response.suggested_follow_ups = await suggester_service.generate_follow_ups(
-            conversation=conversation_dict,
-            assistant_response=response,
-            usecase=usecase,
-            model=model,
-            trace_context=TraceContext(
-                session_id=x_session_id,
-                user_id=x_user_id,
-                request_id=x_request_id,
-            ),
-        )
         
         # Wrap response in legacy format for backward compatibility
         return AssistantResponseWrapper(assistantResponse=response)
@@ -118,3 +107,50 @@ async def get_assistant_response(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+
+
+@router.post("/getSuggestedFollowUps", response_model=SuggestedFollowUpsResponse, tags=["Assistant"])
+async def get_suggested_follow_ups(
+    request: SuggestedFollowUpsRequest,
+    suggester_service: SuggesterServiceDep,
+    x_session_id: Optional[str] = Header(default=None, alias="X-Session-ID"),
+    x_user_id: Optional[str] = Header(default=None, alias="X-User-ID"),
+    x_request_id: Optional[str] = Header(default=None, alias="X-Request-ID"),
+):
+    """
+    Generate optional heart follow-up suggestions.
+
+    This endpoint is intentionally best-effort and returns no suggestions when
+    generation fails, so it can be called in parallel with the main assistant
+    response without affecting user-facing latency.
+    """
+    try:
+        usecase = validate_usecase(request.usecase)
+
+        if not request.conversation:
+            raise HTTPException(
+                status_code=400,
+                detail="Conversation cannot be empty. At least one message is required."
+            )
+
+        conversation_dict = [{"role": msg.role, "content": msg.content} for msg in request.conversation]
+
+        suggestions = await suggester_service.generate_follow_ups(
+            conversation=conversation_dict,
+            usecase=usecase,
+            trace_context=TraceContext(
+                session_id=x_session_id,
+                user_id=x_user_id,
+                request_id=x_request_id,
+            ),
+        )
+
+        return SuggestedFollowUpsResponse(suggested_follow_ups=suggestions)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.warning("Failed to generate suggested follow-ups: %s", e, exc_info=True)
+        return SuggestedFollowUpsResponse(suggested_follow_ups=None)

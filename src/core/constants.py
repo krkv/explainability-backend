@@ -62,6 +62,7 @@ class APIEndpoints:
     """API endpoint constants."""
     READY = "/ready"
     ASSISTANT_RESPONSE = "/getAssistantResponse"
+    SUGGESTED_FOLLOW_UPS = "/getSuggestedFollowUps"
 
 
 # Error Messages

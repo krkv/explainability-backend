@@ -1,6 +1,6 @@
 """Factory for creating and managing LLM provider instances."""
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 from src.core.config import settings
 from src.core.constants import Model
 from src.core.logging_config import get_logger
@@ -10,7 +10,7 @@ from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 logger = get_logger(__name__)
 
 # Singleton instances
-_providers: Dict[Model, Any] = {}
+_providers: Dict[Union[Model, str], Any] = {}
 
 
 def get_llm_provider(model: Model) -> Any:
@@ -49,6 +49,34 @@ def get_llm_provider(model: Model) -> Any:
         raise ValueError(f"Unsupported model: {model}")
     
     _providers[model] = provider
+    return provider
+
+
+def get_google_gemini_provider(
+    model_name: str,
+    location: Optional[str] = None,
+) -> GoogleGeminiProvider:
+    """
+    Get or create a Google Gemini provider instance for a raw model name.
+
+    Args:
+        model_name: Exact Vertex/Gemini model name
+        location: Optional Vertex AI location override
+
+    Returns:
+        GoogleGeminiProvider instance
+    """
+    resolved_location = location or settings.google_location
+    cache_key = f"google:{model_name}:{resolved_location}"
+    if cache_key in _providers:
+        return _providers[cache_key]
+
+    provider = GoogleGeminiProvider(
+        model_name=model_name,
+        project_id=settings.google_project,
+        location=resolved_location,
+    )
+    _providers[cache_key] = provider
     return provider
 
 

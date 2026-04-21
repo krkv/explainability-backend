@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any, Dict, List, Optional
 
-from src.core.constants import Model, UseCase
+from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException
 from src.core.logging_config import get_logger
 from src.core.observability import (
@@ -15,15 +15,15 @@ from src.core.observability import (
     slugify_trace_tag,
     truncate_for_trace,
 )
-from src.domain.entities.assistant_response import AssistantResponse
 from src.domain.interfaces.llm_provider import AgentRole
 from src.domain.interfaces.usecase_registry import UseCaseRegistry
-from src.services.assistant.follow_up_defaults import HEART_DEFAULT_FOLLOW_UPS
-from src.services.llm.llm_factory import get_llm_provider
+from src.services.llm.llm_factory import get_google_gemini_provider
 
 logger = get_logger(__name__)
 
 _FUNCTION_CALL_PATTERN = re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_]*\s*\(")
+_SUGGESTER_MODEL_NAME = "gemini-3-flash-preview"
+_SUGGESTER_LOCATION = "global"
 
 
 class SuggesterService:
@@ -35,16 +35,13 @@ class SuggesterService:
     async def generate_follow_ups(
         self,
         conversation: List[Dict[str, str]],
-        assistant_response: AssistantResponse,
         usecase: UseCase,
-        model: Model,
         trace_context: Optional[TraceContext] = None,
     ) -> Optional[List[str]]:
         """
         Generate dynamic heart follow-up prompts.
 
-        Returns `None` for non-heart use cases. For heart, always returns either
-        validated dynamic suggestions or the heart defaults.
+        Returns `None` for non-heart use cases or when generation fails.
         """
         if usecase != UseCase.HEART:
             return None
@@ -53,11 +50,11 @@ class SuggesterService:
         trace_tags = [
             "suggester-api",
             f"usecase:{slugify_trace_tag(usecase.value)}",
-            f"model:{slugify_trace_tag(model.value)}",
+            f"model:{slugify_trace_tag(_SUGGESTER_MODEL_NAME)}",
         ]
         trace_metadata = build_trace_metadata(
             usecase=usecase.value,
-            model=model.value,
+            model=_SUGGESTER_MODEL_NAME,
             conversation_length=len(conversation),
             trace_context=trace_context,
         )
@@ -79,19 +76,15 @@ class SuggesterService:
                     }
                 )
 
-                fallback_suggestions = list(HEART_DEFAULT_FOLLOW_UPS)
-
                 try:
-                    llm_provider = get_llm_provider(model)
+                    llm_provider = get_google_gemini_provider(
+                        _SUGGESTER_MODEL_NAME,
+                        location=_SUGGESTER_LOCATION,
+                    )
                     llm_response = await llm_provider.generate_response(
                         conversation=conversation,
                         usecase=usecase,
                         agent_role=AgentRole.SUGGESTER,
-                        generation_context={
-                            "latest_assistant_response": assistant_response.freeform_response,
-                            "function_calls": assistant_response.function_calls,
-                            "parse": assistant_response.parse,
-                        },
                     )
                     suggestions = self._parse_and_validate_suggestions(llm_response)
 
@@ -108,12 +101,12 @@ class SuggesterService:
                         level="WARNING",
                         status_message=str(exc),
                         output={
-                            "suggestion_count": len(fallback_suggestions),
-                            "used_fallback": True,
+                            "suggestion_count": 0,
+                            "used_fallback": False,
                             "error": truncate_for_trace(str(exc)),
                         },
                     )
-                    return fallback_suggestions
+                    return None
 
     def _parse_and_validate_suggestions(self, llm_response: str) -> List[str]:
         """Parse and validate suggester JSON output."""

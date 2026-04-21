@@ -21,14 +21,29 @@ class AssistantRequest(BaseModel):
     usecase: str = Field(..., description="Use case: 'Energy Consumption' or 'Heart Disease'")
 
 
+class SuggestedFollowUpsRequest(BaseModel):
+    """Request schema for suggested follow-ups endpoint."""
+
+    conversation: List[ConversationMessage] = Field(..., description="Full conversation history from frontend")
+    usecase: str = Field(..., description="Use case: 'Energy Consumption' or 'Heart Disease'")
+
+
 class AssistantResponseWrapper(BaseModel):
     """Response wrapper matching legacy Flask API format."""
     
     assistantResponse: AssistantResponse = Field(..., description="Assistant response with function calls and freeform response")
 
 
+class SuggestedFollowUpsResponse(BaseModel):
+    """Response payload for suggested follow-up prompts."""
+
+    suggested_follow_ups: Optional[List[str]] = Field(
+        default=None,
+        description="Suggested next prompts for the user, if available",
+    )
+
+
 class HealthResponse(BaseModel):
     """Health check response."""
     
     status: str = Field(..., description="Service status")
-

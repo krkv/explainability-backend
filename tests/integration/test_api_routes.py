@@ -52,14 +52,12 @@ class TestHealthEndpoint:
 class TestAssistantResponseEndpoint:
     """Test cases for assistant response endpoint."""
     
-    @patch('src.api.dependencies.get_suggester_service')
     @patch('src.api.dependencies.get_assistant_service')
     def test_get_assistant_response_success(
-        self, mock_get_assistant_service, mock_get_suggester_service, client, mock_assistant_service, mock_suggester_service
+        self, mock_get_assistant_service, client, mock_assistant_service
     ):
         """Test successful assistant response generation."""
         mock_get_assistant_service.return_value = mock_assistant_service
-        mock_get_suggester_service.return_value = mock_suggester_service
         
         request_data = {
             "conversation": [
@@ -76,10 +74,9 @@ class TestAssistantResponseEndpoint:
         assert "assistantResponse" in data
         assert data["assistantResponse"]["freeform_response"] == "Test response"
     
-    @patch('src.api.dependencies.get_suggester_service')
     @patch('src.api.dependencies.get_assistant_service')
     def test_get_assistant_response_with_function_calls(
-        self, mock_get_assistant_service, mock_get_suggester_service, client, mock_suggester_service
+        self, mock_get_assistant_service, client
     ):
         """Test assistant response with function calls."""
         from src.domain.entities.assistant_response import AssistantResponse
@@ -93,7 +90,6 @@ class TestAssistantResponseEndpoint:
             )
         )
         mock_get_assistant_service.return_value = service
-        mock_get_suggester_service.return_value = mock_suggester_service
         
         request_data = {
             "conversation": [
@@ -166,10 +162,9 @@ class TestAssistantResponseEndpoint:
         
         assert response.status_code == 422  # Validation error
     
-    @patch('src.api.dependencies.get_suggester_service')
     @patch('src.api.dependencies.get_assistant_service')
     def test_get_assistant_response_service_error(
-        self, mock_get_assistant_service, mock_get_suggester_service, client, mock_suggester_service
+        self, mock_get_assistant_service, client
     ):
         """Test assistant response when service raises an error."""
         service = Mock()
@@ -177,7 +172,6 @@ class TestAssistantResponseEndpoint:
             side_effect=LLMProviderException("Service error")
         )
         mock_get_assistant_service.return_value = service
-        mock_get_suggester_service.return_value = mock_suggester_service
         
         request_data = {
             "conversation": [
@@ -192,10 +186,9 @@ class TestAssistantResponseEndpoint:
         assert response.status_code == 502
         assert "error" in response.json()["detail"].lower()
 
-    @patch('src.api.dependencies.get_suggester_service')
     @patch('src.api.dependencies.get_assistant_service')
     def test_get_assistant_response_upstream_rate_limit(
-        self, mock_get_assistant_service, mock_get_suggester_service, client, mock_suggester_service
+        self, mock_get_assistant_service, client
     ):
         """Test upstream rate limit errors are returned as temporary unavailability."""
         service = Mock()
@@ -203,7 +196,6 @@ class TestAssistantResponseEndpoint:
             side_effect=UpstreamRateLimitException("Rate limited")
         )
         mock_get_assistant_service.return_value = service
-        mock_get_suggester_service.return_value = mock_suggester_service
 
         request_data = {
             "conversation": [
@@ -218,14 +210,12 @@ class TestAssistantResponseEndpoint:
         assert response.status_code == 503
         assert response.json()["detail"] == "Rate limited"
     
-    @patch('src.api.dependencies.get_suggester_service')
     @patch('src.api.dependencies.get_assistant_service')
     def test_get_assistant_response_case_insensitive_usecase(
-        self, mock_get_assistant_service, mock_get_suggester_service, client, mock_assistant_service, mock_suggester_service
+        self, mock_get_assistant_service, client, mock_assistant_service
     ):
         """Test that usecase accepts case-insensitive values."""
         mock_get_assistant_service.return_value = mock_assistant_service
-        mock_get_suggester_service.return_value = mock_suggester_service
         
         request_data = {
             "conversation": [
@@ -239,85 +229,71 @@ class TestAssistantResponseEndpoint:
         
         assert response.status_code == 200
 
-    @patch('src.api.dependencies.get_suggester_service')
-    @patch('src.api.dependencies.get_assistant_service')
-    def test_get_assistant_response_includes_heart_follow_ups(
-        self, mock_get_assistant_service, mock_get_suggester_service, client
-    ):
-        """Heart responses should include suggested follow-ups when available."""
-        from src.domain.entities.assistant_response import AssistantResponse
 
-        assistant_service = Mock()
-        assistant_service.process_message = AsyncMock(
-            return_value=AssistantResponse(
-                function_calls=[],
-                freeform_response="Heart response",
-                parse="",
-            )
-        )
-        suggester_service = Mock()
-        suggester_service.generate_follow_ups = AsyncMock(
+class TestSuggestedFollowUpsEndpoint:
+    """Test cases for suggested follow-ups endpoint."""
+
+    @patch('src.api.dependencies.get_suggester_service')
+    def test_get_suggested_follow_ups_success(
+        self, mock_get_suggester_service, client, mock_suggester_service
+    ):
+        """Heart suggestion requests should return suggestions when available."""
+        mock_suggester_service.generate_follow_ups = AsyncMock(
             return_value=[
                 "Why was this patient classified as high risk?",
                 "What would happen if their cholesterol were lower?",
                 "Which features matter most overall?",
             ]
         )
-        mock_get_assistant_service.return_value = assistant_service
-        mock_get_suggester_service.return_value = suggester_service
+        mock_get_suggester_service.return_value = mock_suggester_service
 
         response = client.post(
-            "/getAssistantResponse",
+            "/getSuggestedFollowUps",
             json={
                 "conversation": [{"role": "user", "content": "Assess patient 2"}],
-                "model": "Gemini 2.0 Flash",
                 "usecase": "Heart Disease",
             },
         )
 
         assert response.status_code == 200
-        data = response.json()
-        assert data["assistantResponse"]["suggested_follow_ups"] == [
+        assert response.json()["suggested_follow_ups"] == [
             "Why was this patient classified as high risk?",
             "What would happen if their cholesterol were lower?",
             "Which features matter most overall?",
         ]
 
     @patch('src.api.dependencies.get_suggester_service')
-    @patch('src.api.dependencies.get_assistant_service')
-    def test_get_assistant_response_suggester_failure_is_non_fatal(
-        self, mock_get_assistant_service, mock_get_suggester_service, client
+    def test_get_suggested_follow_ups_returns_none_on_failure(
+        self, mock_get_suggester_service, client, mock_suggester_service
     ):
-        """A suggester failure should not prevent the main assistant response."""
-        from src.domain.entities.assistant_response import AssistantResponse
-
-        assistant_service = Mock()
-        assistant_service.process_message = AsyncMock(
-            return_value=AssistantResponse(
-                function_calls=[],
-                freeform_response="Main answer",
-                parse="",
-            )
-        )
-        suggester_service = Mock()
-        suggester_service.generate_follow_ups = AsyncMock(
-            return_value=[
-                "What features were most important for this patient?",
-                "How would the prediction change if blood pressure were lower?",
-                "How accurate is the model overall?",
-            ]
-        )
-        mock_get_assistant_service.return_value = assistant_service
-        mock_get_suggester_service.return_value = suggester_service
+        """Suggestion endpoint should degrade gracefully to no suggestions."""
+        mock_suggester_service.generate_follow_ups = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_get_suggester_service.return_value = mock_suggester_service
 
         response = client.post(
-            "/getAssistantResponse",
+            "/getSuggestedFollowUps",
             json={
-                "conversation": [{"role": "user", "content": "Hello"}],
-                "model": "Gemini 2.5 Flash",
+                "conversation": [{"role": "user", "content": "Assess patient 2"}],
                 "usecase": "Heart Disease",
             },
         )
 
         assert response.status_code == 200
-        assert response.json()["assistantResponse"]["freeform_response"] == "Main answer"
+        assert response.json()["suggested_follow_ups"] is None
+
+    @patch('src.api.dependencies.get_suggester_service')
+    def test_get_suggested_follow_ups_requires_conversation(
+        self, mock_get_suggester_service, client, mock_suggester_service
+    ):
+        """Empty conversations should still be rejected."""
+        mock_get_suggester_service.return_value = mock_suggester_service
+
+        response = client.post(
+            "/getSuggestedFollowUps",
+            json={
+                "conversation": [],
+                "usecase": "Heart Disease",
+            },
+        )
+
+        assert response.status_code == 400
