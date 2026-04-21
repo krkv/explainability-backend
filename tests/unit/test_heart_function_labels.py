@@ -152,6 +152,23 @@ def build_heart_functions():
             {
                 "type": "function",
                 "function": {
+                    "name": "count_patients",
+                    "description": "Count patients in the heart dataset.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "count_type": {
+                                "type": "string",
+                                "description": "Which patient count to return.",
+                            }
+                        },
+                        "required": [],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "predict",
                     "description": "Predict the class and probability scores for a specific patient using their ID.",
                     "parameters": {
@@ -241,13 +258,93 @@ def test_available_functions_returns_formatted_catalog():
     available = response["data"]["available_functions"]
     assert [item["name"] for item in available] == [
         "available_functions",
+        "count_patients",
         "predict",
         "dataset_summary",
     ]
-    assert available[1]["signature"] == "predict(patient_id=...)"
-    assert available[2]["signature"] == "dataset_summary(patient_id=optional)"
-    assert "<code>predict(patient_id=...)</code>" in response["text"]
+    assert available[1]["signature"] == "count_patients(count_type=optional)"
+    assert available[2]["signature"] == "predict(patient_id=...)"
+    assert available[3]["signature"] == "dataset_summary(patient_id=optional)"
+    assert "<code>count_patients(count_type=optional)</code>" in response["text"]
     assert "Return one table with overall dataset statistics" in response["text"]
+
+
+def test_count_patients_returns_total_and_predicted_class_counts():
+    dataset = pd.DataFrame(
+        {
+            "age": [54, 62, 49],
+            "trestbps": [140, 150, 130],
+            "sex": [1, 0, 1],
+        },
+        index=[10, 11, 12],
+    )
+    dataset_full = dataset.copy()
+    dataset_full["num"] = [0, 1, 1]
+    metadata = build_feature_metadata()
+
+    class MixedPredictionModel:
+        def predict(self, dataframe):
+            return np.array([0, 1, 1], dtype=int)
+
+        def predict_proba(self, dataframe):
+            return np.tile(np.array([[0.25, 0.75]]), (len(dataframe), 1))
+
+    heart_functions = HeartFunctions(
+        model=MixedPredictionModel(),
+        dataset=dataset,
+        dataset_full=dataset_full,
+        y_values=dataset_full["num"],
+        explainer=Mock(),
+        dice_exp=Mock(),
+        dice_dataset=dataset.copy(),
+        model_metadata={"description": "Test model", "parameters": {}},
+        feature_metadata=metadata,
+        alias_lookup={
+            "age": "age",
+            "patient age": "age",
+            "trestbps": "trestbps",
+            "blood pressure": "trestbps",
+            "resting blood pressure": "trestbps",
+            "sex": "sex",
+            "gender": "sex",
+            "heart disease": "num",
+        },
+        global_feature_importances={"age": 0.7, "trestbps": 0.2, "sex": 0.1},
+        target_variable="num",
+        class_names=["NEGATIVE", "POSITIVE"],
+        feature_names=["age", "trestbps", "sex"],
+    )
+
+    total_response = heart_functions.count_patients()
+    positive_response = heart_functions.count_patients("positive_predicted")
+    negative_response = heart_functions.count_patients("negative predicted")
+
+    assert total_response["data"] == {"count": 3, "count_type": "total"}
+    assert "3" in total_response["text"]
+
+    assert positive_response["data"] == {
+        "count": 2,
+        "count_type": "positive_predicted",
+        "prediction": 1,
+    }
+    assert "predicts heart disease for <var>2</var> patients" in positive_response["text"]
+
+    assert negative_response["data"] == {
+        "count": 1,
+        "count_type": "negative_predicted",
+        "prediction": 0,
+    }
+    assert "predicts no heart disease for <var>1</var> patients" in negative_response["text"]
+
+
+def test_count_patients_rejects_unknown_count_type():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.count_patients("actual_positive")
+
+    assert "error" in response
+    assert "not supported" in response["error"]
+    assert "positive_predicted" in response["text"]
 
 
 def test_misclassified_cases_summarizes_groups_with_display_labels():
@@ -585,6 +682,7 @@ def test_heart_usecase_registers_available_functions(tmp_path):
     functions = usecase.get_functions()
 
     assert "available_functions" in functions
+    assert "count_patients" in functions
 
 
 def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):
@@ -646,3 +744,63 @@ def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):
     assert "feature metadata with display names, aliases, descriptions, and categorical options" in prompt
     assert 'value_change="Typical angina"' in prompt
     assert "Convert those into the appropriate function arguments instead of refusing" in prompt
+
+
+def test_heart_usecase_prompt_guides_patient_count_mapping(tmp_path):
+    metadata_path = tmp_path / "feature_metadata.json"
+    metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+
+    functions_path = tmp_path / "functions.json"
+    functions_path.write_text(
+        json.dumps(
+            [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "count_patients",
+                        "description": "Count patients in the heart dataset.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "count_type": {
+                                    "type": "string",
+                                    "enum": ["total", "positive_predicted", "negative_predicted"],
+                                }
+                            },
+                            "required": [],
+                        },
+                    },
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    config = HeartConfig(
+        dataset_path=Path("unused.csv"),
+        feature_metadata_path=metadata_path,
+        functions_json_path=functions_path,
+        shap_cache_path=tmp_path / "shap_cache.pkl",
+        cf_cache_path=tmp_path / "cf_cache.pkl",
+        global_fi_cache_path=tmp_path / "global_fi_cache.pkl",
+    )
+
+    model_loader = Mock()
+    data_loader = Mock()
+    explainer_loader = Mock()
+    dataset = pd.DataFrame({"age": [54], "sex": [1], "trestbps": [140], "num": [1]}, index=[10])
+    model_loader.load_model.return_value = DummyHeartModel()
+    data_loader.load_dataset.return_value = dataset
+
+    usecase = HeartUseCase(
+        model_loader=model_loader,
+        data_loader=data_loader,
+        explainer_loader=explainer_loader,
+        config=config,
+    )
+
+    prompt = usecase.get_system_prompt([{"role": "user", "content": "How many patients have heart disease?"}])
+
+    assert "how many patients have heart disease" in prompt
+    assert "positive predicted count option" in prompt
+    assert "negative predicted count option" in prompt

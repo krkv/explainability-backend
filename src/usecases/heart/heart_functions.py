@@ -695,12 +695,72 @@ class HeartFunctions:
         text = "<p>Top feature interactions based on correlation analysis:</p>" + self._dict_table_html(top_interactions, key_header="Feature", value_header="Correlation")
         return {"data": data, "text": text}
     
-    def count_all(self) -> Dict[str, Any]:
-        """Count all instances in the dataset."""
-        count = len(self.dataset)
+    def count_patients(self, count_type: str = "total") -> Dict[str, Any]:
+        """Count patients in the dataset overall or by predicted heart disease class."""
+        normalized_count_type = re.sub(r"[\s\-]+", "_", str(count_type or "total").strip().lower())
+        count_type_aliases = {
+            "all": "total",
+            "dataset": "total",
+            "total": "total",
+            "total_patients": "total",
+            "positive": "positive_predicted",
+            "positive_predicted": "positive_predicted",
+            "predicted_positive": "positive_predicted",
+            "heart_disease": "positive_predicted",
+            "with_heart_disease": "positive_predicted",
+            "negative": "negative_predicted",
+            "negative_predicted": "negative_predicted",
+            "predicted_negative": "negative_predicted",
+            "without_heart_disease": "negative_predicted",
+            "no_heart_disease": "negative_predicted",
+        }
+        canonical_count_type = count_type_aliases.get(normalized_count_type)
+
+        if canonical_count_type is None:
+            supported_values = ["total", "positive_predicted", "negative_predicted"]
+            supported_values_text = ", ".join(f"<code>{value}</code>" for value in supported_values)
+            return {
+                "error": (
+                    f"Count type <code>{count_type}</code> is not supported. "
+                    f"Use one of: {', '.join(supported_values)}."
+                ),
+                "text": (
+                    f"<p>I could not match <code>{count_type}</code> to a supported patient count.</p>"
+                    f"<p>Use one of: {supported_values_text}.</p>"
+                ),
+            }
+
+        if canonical_count_type == "total":
+            count = len(self.dataset)
+            return {
+                "data": {
+                    "count": count,
+                    "count_type": canonical_count_type,
+                },
+                "text": f"<p>There are <var>{count}</var> patients in the dataset.</p>",
+            }
+
+        predictions = pd.Series(self.model.predict(self.dataset), index=self.dataset.index)
+
+        if canonical_count_type == "positive_predicted":
+            count = int((predictions == 1).sum())
+            return {
+                "data": {
+                    "count": count,
+                    "count_type": canonical_count_type,
+                    "prediction": 1,
+                },
+                "text": f"<p>The model predicts heart disease for <var>{count}</var> patients in the dataset.</p>",
+            }
+
+        count = int((predictions == 0).sum())
         return {
-            "data": {"count": count},
-            "text": f"<p>There are <var>{count}</var> instances in the dataset.</p>"
+            "data": {
+                "count": count,
+                "count_type": canonical_count_type,
+                "prediction": 0,
+            },
+            "text": f"<p>The model predicts no heart disease for <var>{count}</var> patients in the dataset.</p>",
         }
 
     def show_ids(self) -> Dict[str, Any]:

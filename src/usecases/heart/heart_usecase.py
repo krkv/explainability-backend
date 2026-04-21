@@ -238,6 +238,7 @@ class HeartUseCase(BaseUseCase):
             'available_functions': heart_funcs.available_functions,
             'get_model_parameters': heart_funcs.get_model_parameters,
             'get_model_description': heart_funcs.get_model_description,
+            'count_patients': heart_funcs.count_patients,
             'predict': heart_funcs.predict,
             'feature_importance_patient': heart_funcs.feature_importance_patient,
             'feature_importance_global': heart_funcs.feature_importance_global,
@@ -250,7 +251,6 @@ class HeartUseCase(BaseUseCase):
             'misclassified_cases': heart_funcs.misclassified_cases,
             'age_group_performance': heart_funcs.age_group_performance,
             'feature_interactions': heart_funcs.feature_interactions,
-            'count_all': heart_funcs.count_all,
             'show_ids': heart_funcs.show_ids,
             'show_one': heart_funcs.show_one,
         }
@@ -313,6 +313,7 @@ class HeartUseCase(BaseUseCase):
    
     If you decide to invoke one or several of the available functions, you MUST include them in the JSON response field "function_calls" in format "[func_name1(params_name1=params_value1, params_name2=params_value2...),func_name1(params_name1=params_value1, params_name2=params_value2...)]".
     When adding param values, preserve the user's intent and only use values supported by the user message, function catalog, or feature metadata. You may normalize a user's wording to the matching canonical feature name or categorical label/code shown in the metadata. Do not invent unsupported values.
+    For patient count questions, use the patient-counting tool from the function catalog. For example, use the positive predicted count option when the user asks how many patients have heart disease, the negative predicted count option for how many do not, and the total option for the dataset size.
     Users may refer to features by display name, alias, or shorthand label, for example "chest pain", "blood pressure", or "typical". Convert those into the appropriate function arguments instead of refusing.
     For what_if on categorical features, pass the desired category label or code as a string, for example value_change="Typical angina". For numeric features, pass a numeric change.
     If you decide that no function(s) can be called, you should return an empty list [] as "function_calls".

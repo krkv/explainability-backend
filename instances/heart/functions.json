@@ -20,11 +20,23 @@
     {
         "type": "function",
         "function": {
-            "name": "count_all",
-            "description": "Count the number of data samples in the dataset. Can be used to count all data samples in the dataset and return the number.",
+            "name": "count_patients",
+            "description": "Count patients in the heart dataset. Use this when the user asks how many patients there are in total, how many patients are predicted to have heart disease, or how many patients are predicted to not have heart disease. For questions like 'how many patients have heart disease', use count_type=\"positive_predicted\".",
             "parameters": {
                 "type": "object",
-                "properties": {}
+                "properties": {
+                    "count_type": {
+                        "type": "string",
+                        "description": "Which patient count to return. Use \"total\" for all patients in the dataset, \"positive_predicted\" for patients the model predicts as heart disease present, or \"negative_predicted\" for patients the model predicts as no heart disease.",
+                        "enum": [
+                            "total",
+                            "positive_predicted",
+                            "negative_predicted"
+                        ],
+                        "default": "total"
+                    }
+                },
+                "required": []
             }
         }
     },
