@@ -113,3 +113,28 @@ class TestSuggesterService:
             )
 
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_generate_follow_ups_respects_limit_and_exclusions(
+        self, service, conversation
+    ):
+        llm_provider = Mock()
+        llm_provider.generate_response = AsyncMock(
+            return_value=(
+                '{"suggestions": ['
+                '"Why did the model flag this patient as high risk?", '
+                '"What features mattered most for this patient?", '
+                '"How would the prediction change if blood pressure were lower?"'
+                " ]}"
+            )
+        )
+
+        with patch("src.services.assistant.suggester_service.get_google_gemini_provider", return_value=llm_provider):
+            result = await service.generate_follow_ups(
+                conversation=conversation,
+                usecase=UseCase.HEART,
+                limit=1,
+                exclude_suggestions=["Why did the model flag this patient as high risk?"],
+            )
+
+        assert result == ["What features mattered most for this patient?"]

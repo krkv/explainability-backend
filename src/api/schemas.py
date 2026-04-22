@@ -26,6 +26,16 @@ class SuggestedFollowUpsRequest(BaseModel):
 
     conversation: List[ConversationMessage] = Field(..., description="Full conversation history from frontend")
     usecase: str = Field(..., description="Use case: 'Energy Consumption' or 'Heart Disease'")
+    limit: Optional[int] = Field(
+        default=None,
+        ge=1,
+        le=5,
+        description="Maximum number of suggestions to return",
+    )
+    exclude_suggestions: Optional[List[str]] = Field(
+        default=None,
+        description="Suggestions that should be excluded from the response",
+    )
 
 
 class AssistantResponseWrapper(BaseModel):

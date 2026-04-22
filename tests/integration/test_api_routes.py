@@ -2,7 +2,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import ANY, Mock, AsyncMock, patch
 from src.main import app
 from src.core.constants import UseCase, Model
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
@@ -261,6 +261,51 @@ class TestSuggestedFollowUpsEndpoint:
             "What would happen if their cholesterol were lower?",
             "Which features matter most overall?",
         ]
+        mock_suggester_service.generate_follow_ups.assert_awaited_once_with(
+            conversation=[{"role": "user", "content": "Assess patient 2"}],
+            usecase=UseCase.HEART,
+            limit=None,
+            exclude_suggestions=None,
+            trace_context=ANY,
+        )
+
+    @patch('src.api.dependencies.get_suggester_service')
+    def test_get_suggested_follow_ups_for_single_replacement(
+        self, mock_get_suggester_service, client, mock_suggester_service
+    ):
+        """The endpoint should pass replacement options through to the suggester."""
+        mock_suggester_service.generate_follow_ups = AsyncMock(
+            return_value=["Ask about the strongest risk factor for this patient."]
+        )
+        mock_get_suggester_service.return_value = mock_suggester_service
+
+        response = client.post(
+            "/getSuggestedFollowUps",
+            json={
+                "conversation": [{"role": "user", "content": "Assess patient 2"}],
+                "usecase": "Heart Disease",
+                "limit": 1,
+                "exclude_suggestions": [
+                    "Why was this patient classified as high risk?",
+                    "What would happen if their cholesterol were lower?",
+                ],
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.json()["suggested_follow_ups"] == [
+            "Ask about the strongest risk factor for this patient."
+        ]
+        mock_suggester_service.generate_follow_ups.assert_awaited_once_with(
+            conversation=[{"role": "user", "content": "Assess patient 2"}],
+            usecase=UseCase.HEART,
+            limit=1,
+            exclude_suggestions=[
+                "Why was this patient classified as high risk?",
+                "What would happen if their cholesterol were lower?",
+            ],
+            trace_context=ANY,
+        )
 
     @patch('src.api.dependencies.get_suggester_service')
     def test_get_suggested_follow_ups_returns_none_on_failure(

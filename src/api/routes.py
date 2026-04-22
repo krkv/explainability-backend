@@ -138,6 +138,8 @@ async def get_suggested_follow_ups(
         suggestions = await suggester_service.generate_follow_ups(
             conversation=conversation_dict,
             usecase=usecase,
+            limit=request.limit,
+            exclude_suggestions=request.exclude_suggestions,
             trace_context=TraceContext(
                 session_id=x_session_id,
                 user_id=x_user_id,

@@ -36,6 +36,8 @@ class SuggesterService:
         self,
         conversation: List[Dict[str, str]],
         usecase: UseCase,
+        limit: Optional[int] = None,
+        exclude_suggestions: Optional[List[str]] = None,
         trace_context: Optional[TraceContext] = None,
     ) -> Optional[List[str]]:
         """
@@ -45,6 +47,9 @@ class SuggesterService:
         """
         if usecase != UseCase.HEART:
             return None
+
+        target_limit = max(1, min(limit or 5, 5))
+        minimum_required = 1 if target_limit == 1 else 3
 
         latest_user_message = truncate_for_trace(get_last_user_message(conversation))
         trace_tags = [
@@ -86,7 +91,12 @@ class SuggesterService:
                         usecase=usecase,
                         agent_role=AgentRole.SUGGESTER,
                     )
-                    suggestions = self._parse_and_validate_suggestions(llm_response)
+                    suggestions = self._parse_and_validate_suggestions(
+                        llm_response,
+                        limit=target_limit,
+                        minimum_required=minimum_required,
+                        exclude_suggestions=exclude_suggestions,
+                    )
 
                     root_span.update(
                         output={
@@ -108,7 +118,13 @@ class SuggesterService:
                     )
                     return None
 
-    def _parse_and_validate_suggestions(self, llm_response: str) -> List[str]:
+    def _parse_and_validate_suggestions(
+        self,
+        llm_response: str,
+        limit: int = 5,
+        minimum_required: int = 3,
+        exclude_suggestions: Optional[List[str]] = None,
+    ) -> List[str]:
         """Parse and validate suggester JSON output."""
         try:
             response_data = json.loads(llm_response)
@@ -121,6 +137,11 @@ class SuggesterService:
 
         normalized: List[str] = []
         seen: set[str] = set()
+        excluded = {
+            suggestion.strip().lower()
+            for suggestion in (exclude_suggestions or [])
+            if isinstance(suggestion, str) and suggestion.strip()
+        }
 
         for raw_suggestion in suggestions:
             if not isinstance(raw_suggestion, str):
@@ -131,6 +152,8 @@ class SuggesterService:
 
             if not suggestion or normalized_key in seen:
                 continue
+            if normalized_key in excluded:
+                continue
             if _FUNCTION_CALL_PATTERN.search(suggestion):
                 continue
             if "```" in suggestion or "json" in normalized_key:
@@ -139,7 +162,9 @@ class SuggesterService:
             seen.add(normalized_key)
             normalized.append(suggestion)
 
-        if len(normalized) < 3:
-            raise LLMProviderException("Suggester returned fewer than 3 usable suggestions")
+        if len(normalized) < minimum_required:
+            raise LLMProviderException(
+                f"Suggester returned fewer than {minimum_required} usable suggestions"
+            )
 
-        return normalized[:5]
+        return normalized[:limit]
