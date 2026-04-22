@@ -89,6 +89,7 @@ class AssistantService:
                         "conversation_length": len(conversation),
                     }
                 )
+                trace_id = getattr(root_span, "trace_id", None)
 
                 try:
                     # Get LLM provider
@@ -144,6 +145,7 @@ class AssistantService:
                         function_calls=function_calls,
                         freeform_response=freeform_response,
                         parse=parse_result,
+                        trace_id=trace_id,
                     )
 
                     root_span.update(

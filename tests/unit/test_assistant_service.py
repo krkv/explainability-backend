@@ -2,6 +2,7 @@
 
 import pytest
 import json
+from contextlib import nullcontext
 from unittest.mock import Mock, AsyncMock, patch
 from src.services.assistant.assistant_service import AssistantService
 from src.core.constants import UseCase, Model
@@ -67,6 +68,39 @@ class TestAssistantService:
             assert response.parse == ""
             # Function executor should not be called
             mock_function_executor.execute_calls.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_process_message_includes_trace_id_when_available(
+        self, assistant_service, sample_conversation
+    ):
+        """Test that the Langfuse trace ID is surfaced in the response payload."""
+        llm_response = '{"function_calls": [], "freeform_response": "Here is the answer"}'
+
+        class MockObservation:
+            trace_id = "trace-123"
+
+            def update(self, **_kwargs):
+                return None
+
+        with patch('src.services.assistant.assistant_service.get_llm_provider') as mock_get_provider:
+            mock_provider = AsyncMock()
+            mock_provider.generate_response = AsyncMock(return_value=llm_response)
+            mock_get_provider.return_value = mock_provider
+
+            with patch(
+                'src.services.assistant.assistant_service.observability.propagate_attributes',
+                return_value=nullcontext(),
+            ), patch(
+                'src.services.assistant.assistant_service.observability.start_observation',
+                return_value=nullcontext(MockObservation()),
+            ):
+                response = await assistant_service.process_message(
+                    conversation=sample_conversation,
+                    usecase=UseCase.ENERGY,
+                    model=Model.LLAMA_3_3_70B
+                )
+
+            assert response.trace_id == "trace-123"
     
     @pytest.mark.asyncio
     async def test_process_message_success_with_function_calls(

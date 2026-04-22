@@ -13,6 +13,10 @@ class AssistantResponse(BaseModel):
     function_calls: List[str] = Field(default_factory=list, description="List of function call strings")
     freeform_response: str = Field(..., description="Free-form text response from the assistant")
     parse: Optional[str] = Field(None, description="Parsed results from function execution")
+    trace_id: Optional[str] = Field(
+        default=None,
+        description="Langfuse trace ID associated with this assistant turn",
+    )
     suggested_follow_ups: Optional[List[str]] = Field(
         default=None,
         description="Optional next prompts suggested for the user",
