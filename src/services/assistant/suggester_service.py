@@ -22,7 +22,7 @@ from src.services.llm.llm_factory import get_google_gemini_provider
 logger = get_logger(__name__)
 
 _FUNCTION_CALL_PATTERN = re.compile(r"\b[a-zA-Z_][a-zA-Z0-9_]*\s*\(")
-_SUGGESTER_MODEL_NAME = "gemini-3-flash-preview"
+_SUGGESTER_MODEL_NAME = "gemini-3.1-flash-lite-preview"
 _SUGGESTER_LOCATION = "global"
 
 

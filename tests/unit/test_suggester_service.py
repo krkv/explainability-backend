@@ -52,7 +52,7 @@ class TestSuggesterService:
             )
 
         mock_get_provider.assert_called_once_with(
-            "gemini-3-flash-preview",
+            "gemini-3.1-flash-lite-preview",
             location="global",
         )
         assert result == [
