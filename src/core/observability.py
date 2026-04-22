@@ -52,6 +52,9 @@ class LangfuseObservability:
             or settings.langfuse_tracing_environment
         )
 
+    def _is_production_environment(self) -> bool:
+        return (self._get_tracing_environment() or "").strip().lower() == "production"
+
     def _has_credentials(self) -> bool:
         return bool(
             (os.getenv("LANGFUSE_PUBLIC_KEY") or settings.langfuse_public_key)
@@ -60,6 +63,9 @@ class LangfuseObservability:
         )
 
     def _ensure_client(self) -> Optional[Any]:
+        if not self._is_production_environment():
+            return None
+
         if not self._has_credentials():
             return None
 
