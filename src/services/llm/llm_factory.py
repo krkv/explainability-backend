@@ -1,7 +1,7 @@
 """Factory for creating and managing LLM provider instances."""
 
 from typing import Dict, Any, Optional, Union
-from src.core.config import settings
+from src.core.config import GOOGLE_LOCATION, GOOGLE_PROJECT_ID
 from src.core.constants import Model
 from src.core.logging_config import get_logger
 from src.services.llm.huggingface_provider import HuggingFaceProvider
@@ -36,14 +36,14 @@ def get_llm_provider(model: Model) -> Any:
     elif model == Model.GEMINI_2_0_FLASH:
         provider = GoogleGeminiProvider(
             model_name="gemini-2.0-flash-001",
-            project_id=settings.google_project,
-            location=settings.google_location
+            project_id=GOOGLE_PROJECT_ID,
+            location=GOOGLE_LOCATION
         )
     elif model == Model.GEMINI_2_5_FLASH:
         provider = GoogleGeminiProvider(
             model_name="gemini-2.5-flash",
-            project_id=settings.google_project,
-            location=settings.google_location
+            project_id=GOOGLE_PROJECT_ID,
+            location=GOOGLE_LOCATION
         )
     else:
         raise ValueError(f"Unsupported model: {model}")
@@ -66,14 +66,14 @@ def get_google_gemini_provider(
     Returns:
         GoogleGeminiProvider instance
     """
-    resolved_location = location or settings.google_location
+    resolved_location = location or GOOGLE_LOCATION
     cache_key = f"google:{model_name}:{resolved_location}"
     if cache_key in _providers:
         return _providers[cache_key]
 
     provider = GoogleGeminiProvider(
         model_name=model_name,
-        project_id=settings.google_project,
+        project_id=GOOGLE_PROJECT_ID,
         location=resolved_location,
     )
     _providers[cache_key] = provider

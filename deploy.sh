@@ -1,25 +1,23 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-# Configuration (matching build-and-push.sh)
-PROJECT_ID="explainability-app"
-LOCATION="europe-north1"
+PROJECT_ID="explainability-assistant"
+LOCATION="us-central1"
 REPOSITORY="explainability-backend"
 IMAGE_NAME="explainability-backend"
-IMAGE_TAG="latest"
-
-# Full image name with latest tag
-FULL_IMAGE_NAME="${LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
+IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 # Load environment variables from .env file if it exists
 if [ -f .env ]; then
-    set -a  # Automatically export all variables
+    set -a
     source .env
-    set +a  # Stop automatically exporting
+    set +a
 fi
 
-LANGFUSE_TRACING_ENVIRONMENT=${LANGFUSE_TRACING_ENVIRONMENT:-production}
+LANGFUSE_TRACING_ENVIRONMENT="${LANGFUSE_TRACING_ENVIRONMENT:-production}"
+
+FULL_IMAGE_NAME="${LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 # Check if HF_TOKEN is set
 if [ -z "$HF_TOKEN" ]; then
@@ -43,12 +41,13 @@ if [ -z "$LANGFUSE_BASE_URL" ]; then
     exit 1
 fi
 
-echo "🚀 Deploying ${IMAGE_NAME} with image: ${FULL_IMAGE_NAME}"
+echo "Deploying ${IMAGE_NAME} with image: ${FULL_IMAGE_NAME}"
 
 gcloud run deploy ${IMAGE_NAME} \
---image=${FULL_IMAGE_NAME} \
---min-instances=0 \
---allow-unauthenticated \
---set-env-vars=HF_TOKEN="${HF_TOKEN}",LANGFUSE_PUBLIC_KEY="${LANGFUSE_PUBLIC_KEY}",LANGFUSE_SECRET_KEY="${LANGFUSE_SECRET_KEY}",LANGFUSE_BASE_URL="${LANGFUSE_BASE_URL}",LANGFUSE_TRACING_ENVIRONMENT="${LANGFUSE_TRACING_ENVIRONMENT}" \
---region=${LOCATION} \
---project=${PROJECT_ID}
+  --image="${FULL_IMAGE_NAME}" \
+  --min-instances=0 \
+  --allow-unauthenticated \
+  --region="${LOCATION}" \
+  --project="${PROJECT_ID}" \
+  --port=8080 \
+  --set-env-vars="HF_TOKEN=${HF_TOKEN},LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY},LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY},LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL},LANGFUSE_TRACING_ENVIRONMENT=${LANGFUSE_TRACING_ENVIRONMENT}"

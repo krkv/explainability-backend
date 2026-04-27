@@ -65,11 +65,7 @@ A FastAPI-based backend service that provides an API for LLM-powered assistant r
    ```bash
    # LLM Configuration
    HF_TOKEN="your_huggingface_token_here"  # Required for Hugging Face models
-   
-   # Google Cloud Configuration (for Gemini)
-   GOOGLE_PROJECT="explainability-app"
-   GOOGLE_LOCATION="us-central1"
-   
+
    # Logging (optional)
    LOG_LEVEL="INFO"
    ```
@@ -86,8 +82,6 @@ The application uses environment variables for configuration. Key settings:
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `HF_TOKEN` | Hugging Face API token | Yes (for HF models) | - |
-| `GOOGLE_PROJECT` | Google Cloud project ID | No | `explainability-app` |
-| `GOOGLE_LOCATION` | Google Cloud region | No | `us-central1` |
 | `LOG_LEVEL` | Logging level | No | `INFO` |
 | `PORT` | Server port (Cloud Run sets this) | No | `8080` |
 
@@ -141,7 +135,6 @@ docker build -t explainability-backend:latest .
 ```bash
 docker run -p 8080:8080 \
   -e HF_TOKEN="your_token_here" \
-  -e GOOGLE_PROJECT="your-project" \
   explainability-backend:latest
 ```
 
@@ -151,20 +144,20 @@ docker run -p 8080:8080 \
    ```bash
    gcloud artifacts repositories create explainability-backend \
      --repository-format=docker \
-     --location=europe-north1 \
+     --location=us-central1 \
      --description="Docker repository for Explainability Assistant Backend"
    ```
 
 2. **Configure Docker to use gcloud as a credential helper**:
    ```bash
-   gcloud auth configure-docker europe-north1-docker.pkg.dev
+   gcloud auth configure-docker us-central1-docker.pkg.dev
    ```
 
 3. **Build and push to Artifact Registry**:
    ```bash
    # Set your project ID and location
    export PROJECT_ID="your-project-id"
-   export LOCATION="europe-north1"
+   export LOCATION="us-central1"
    export REPOSITORY="explainability-backend"
    export IMAGE_NAME="explainability-backend"
    
@@ -181,7 +174,7 @@ docker run -p 8080:8080 \
    gcloud run deploy explainability-backend \
      --image ${LOCATION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:latest \
      --platform managed \
-     --region europe-north1 \
+     --region us-central1 \
      --allow-unauthenticated \
      --set-env-vars HF_TOKEN="your_token_here" \
      --port 8080

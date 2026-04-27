@@ -5,6 +5,10 @@ from enum import Enum
 from typing import Optional
 
 
+GOOGLE_PROJECT_ID = "explainability-assistant"
+GOOGLE_LOCATION = "us-central1"
+
+
 class Model(str, Enum):
     """Supported LLM models."""
     LLAMA_3_3_70B = "Llama 3.3 70B Instruct"
@@ -38,8 +42,6 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     hf_token: Optional[str] = None
-    google_project: str = "explainability-app"
-    google_location: str = "us-central1"
     
     # Paths
     instances_path: str = "instances"

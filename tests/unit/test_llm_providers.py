@@ -316,15 +316,13 @@ class TestLLMFactory:
         """Reset singleton provider cache between tests."""
         clear_providers()
 
-    def test_get_llm_provider_uses_configured_google_location(self):
-        """Test Gemini providers use the configured project and location."""
+    def test_get_llm_provider_uses_hard_coded_google_project_and_location(self):
+        """Test Gemini providers use the hard-coded project and location."""
         with patch('src.services.llm.llm_factory.GoogleGeminiProvider') as mock_provider_class:
-            with patch('src.services.llm.llm_factory.settings.google_project', "test-project"):
-                with patch('src.services.llm.llm_factory.settings.google_location', "us-central1"):
-                    get_llm_provider(Model.GEMINI_2_0_FLASH)
+            get_llm_provider(Model.GEMINI_2_0_FLASH)
 
         mock_provider_class.assert_called_once_with(
             model_name="gemini-2.0-flash-001",
-            project_id="test-project",
+            project_id="explainability-assistant",
             location="us-central1",
         )
