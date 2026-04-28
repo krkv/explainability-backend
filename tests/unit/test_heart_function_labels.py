@@ -104,6 +104,17 @@ def build_feature_metadata():
     }
 
 
+def build_dataset_metadata():
+    return {
+        "name": "Test Heart Dataset",
+        "description": "Structured patient records used to evaluate heart disease predictions.",
+        "source": "Synthetic test fixture",
+        "source_file": "fixtures/test_set.csv",
+        "instance_unit": "patient",
+        "notes": ["Fixture note."],
+    }
+
+
 def build_heart_functions():
     dataset = pd.DataFrame(
         {
@@ -116,6 +127,7 @@ def build_heart_functions():
     dataset_full = dataset.copy()
     dataset_full["num"] = [0]
     metadata = build_feature_metadata()
+    dataset_metadata = build_dataset_metadata()
 
     return HeartFunctions(
         model=DummyHeartModel(),
@@ -126,6 +138,7 @@ def build_heart_functions():
         dice_exp=Mock(),
         dice_dataset=dataset.copy(),
         model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata=dataset_metadata,
         feature_metadata=metadata,
         alias_lookup={
             "age": "age",
@@ -190,6 +203,18 @@ def build_heart_functions():
             {
                 "type": "function",
                 "function": {
+                    "name": "get_dataset_description",
+                    "description": "Return a concise description of the dataset.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
                     "name": "dataset_summary",
                     "description": "Return one table with overall dataset statistics for each feature.",
                     "parameters": {
@@ -231,6 +256,7 @@ def build_heart_functions_with_cp():
         dice_exp=Mock(),
         dice_dataset=dataset.copy(),
         model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata={},
         feature_metadata=metadata,
         alias_lookup={
             "age": "age",
@@ -264,13 +290,15 @@ def test_available_functions_returns_formatted_catalog():
         "available_functions",
         "count_patients",
         "predict",
+        "get_dataset_description",
         "dataset_summary",
     ]
     assert available[1]["signature"] == "count_patients(count_type=optional)"
     assert available[2]["signature"] == "predict(patient_id=...)"
-    assert available[3]["signature"] == "dataset_summary(patient_id=optional)"
+    assert available[3]["signature"] == "get_dataset_description()"
+    assert available[4]["signature"] == "dataset_summary(patient_id=optional)"
     assert "<code>count_patients(count_type=optional)</code>" in response["text"]
-    assert "Return one table with overall dataset statistics" in response["text"]
+    assert "Return a concise description of the dataset" in response["text"]
 
 
 def test_count_patients_returns_total_and_predicted_class_counts():
@@ -302,6 +330,7 @@ def test_count_patients_returns_total_and_predicted_class_counts():
         dice_exp=Mock(),
         dice_dataset=dataset.copy(),
         model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata=build_dataset_metadata(),
         feature_metadata=metadata,
         alias_lookup={
             "age": "age",
@@ -380,6 +409,7 @@ def test_misclassified_cases_summarizes_groups_with_display_labels():
         dice_exp=Mock(),
         dice_dataset=dataset.copy(),
         model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata=build_dataset_metadata(),
         feature_metadata=metadata,
         alias_lookup={
             "age": "age",
@@ -443,6 +473,7 @@ def test_age_group_performance_handles_non_contiguous_patient_ids():
         dice_exp=Mock(),
         dice_dataset=dataset.copy(),
         model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata=build_dataset_metadata(),
         feature_metadata=metadata,
         alias_lookup={
             "age": "age",
@@ -530,7 +561,29 @@ def test_dataset_summary_uses_display_names():
     assert "Sex" in labels
     assert "heart_disease_average" not in response["data"]
     assert "Mean / Mode" in response["text"]
+    assert "detailed dataset statistics" in response["text"]
     assert "trestbps" not in response["text"]
+
+
+def test_get_dataset_description_returns_metadata_and_computed_summary():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.get_dataset_description()
+
+    assert response["data"]["name"] == "Test Heart Dataset"
+    assert response["data"]["sample_count"] == 1
+    assert response["data"]["feature_count"] == 3
+    assert response["data"]["target"]["column"] == "num"
+    assert response["data"]["target"]["display_name"] == "Heart Disease"
+    assert response["data"]["feature_type_counts"] == {
+        "continuous": 2,
+        "categorical": 1,
+    }
+    assert response["data"]["class_balance"] == {"No heart disease": 1}
+    assert "Structured patient records used to evaluate heart disease predictions." in response["text"]
+    assert "contains <var>1</var> patient" in response["text"]
+    assert "Feature types: <var>2</var> continuous and <var>1</var> categorical." in response["text"]
+    assert "No heart disease" in response["text"]
 
 
 def test_define_feature_returns_feature_definition_for_alias():
@@ -612,12 +665,15 @@ def test_feature_importance_global_returns_labeled_data():
 def test_heart_usecase_alias_lookup_includes_display_name(tmp_path):
     metadata_path = tmp_path / "feature_metadata.json"
     metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+    dataset_metadata_path = tmp_path / "dataset_metadata.json"
+    dataset_metadata_path.write_text(json.dumps(build_dataset_metadata()), encoding="utf-8")
 
     functions_path = tmp_path / "functions.json"
     functions_path.write_text("[]", encoding="utf-8")
 
     config = HeartConfig(
         dataset_path=Path("unused.csv"),
+        dataset_metadata_path=dataset_metadata_path,
         feature_metadata_path=metadata_path,
         functions_json_path=functions_path,
         shap_cache_path=tmp_path / "shap_cache.pkl",
@@ -639,6 +695,8 @@ def test_heart_usecase_alias_lookup_includes_display_name(tmp_path):
 def test_heart_usecase_registers_available_functions(tmp_path):
     metadata_path = tmp_path / "feature_metadata.json"
     metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+    dataset_metadata_path = tmp_path / "dataset_metadata.json"
+    dataset_metadata_path.write_text(json.dumps(build_dataset_metadata()), encoding="utf-8")
 
     functions_path = tmp_path / "functions.json"
     functions_path.write_text(
@@ -658,6 +716,7 @@ def test_heart_usecase_registers_available_functions(tmp_path):
 
     config = HeartConfig(
         dataset_path=Path("unused.csv"),
+        dataset_metadata_path=dataset_metadata_path,
         feature_metadata_path=metadata_path,
         functions_json_path=functions_path,
         shap_cache_path=tmp_path / "shap_cache.pkl",
@@ -692,6 +751,8 @@ def test_heart_usecase_registers_available_functions(tmp_path):
 def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):
     metadata_path = tmp_path / "feature_metadata.json"
     metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+    dataset_metadata_path = tmp_path / "dataset_metadata.json"
+    dataset_metadata_path.write_text(json.dumps(build_dataset_metadata()), encoding="utf-8")
 
     functions_path = tmp_path / "functions.json"
     functions_path.write_text(
@@ -722,6 +783,7 @@ def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):
 
     config = HeartConfig(
         dataset_path=Path("unused.csv"),
+        dataset_metadata_path=dataset_metadata_path,
         feature_metadata_path=metadata_path,
         functions_json_path=functions_path,
         shap_cache_path=tmp_path / "shap_cache.pkl",
@@ -753,6 +815,8 @@ def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):
 def test_heart_usecase_prompt_guides_patient_count_mapping(tmp_path):
     metadata_path = tmp_path / "feature_metadata.json"
     metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+    dataset_metadata_path = tmp_path / "dataset_metadata.json"
+    dataset_metadata_path.write_text(json.dumps(build_dataset_metadata()), encoding="utf-8")
 
     functions_path = tmp_path / "functions.json"
     functions_path.write_text(
@@ -782,6 +846,7 @@ def test_heart_usecase_prompt_guides_patient_count_mapping(tmp_path):
 
     config = HeartConfig(
         dataset_path=Path("unused.csv"),
+        dataset_metadata_path=dataset_metadata_path,
         feature_metadata_path=metadata_path,
         functions_json_path=functions_path,
         shap_cache_path=tmp_path / "shap_cache.pkl",
@@ -813,6 +878,8 @@ def test_heart_usecase_prompt_guides_patient_count_mapping(tmp_path):
 def test_heart_usecase_suggester_generation_config_includes_latest_assistant_context(tmp_path):
     metadata_path = tmp_path / "feature_metadata.json"
     metadata_path.write_text(json.dumps(build_feature_metadata()), encoding="utf-8")
+    dataset_metadata_path = tmp_path / "dataset_metadata.json"
+    dataset_metadata_path.write_text(json.dumps(build_dataset_metadata()), encoding="utf-8")
 
     functions_path = tmp_path / "functions.json"
     functions_path.write_text(
@@ -839,6 +906,7 @@ def test_heart_usecase_suggester_generation_config_includes_latest_assistant_con
 
     config = HeartConfig(
         dataset_path=Path("unused.csv"),
+        dataset_metadata_path=dataset_metadata_path,
         feature_metadata_path=metadata_path,
         functions_json_path=functions_path,
         shap_cache_path=tmp_path / "shap_cache.pkl",

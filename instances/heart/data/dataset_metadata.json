@@ -1,0 +1,12 @@
+{
+  "name": "UCI Heart Disease Cleveland",
+  "description": "Structured patient records from the published UCI Cleveland heart disease dataset used to evaluate a binary heart disease prediction model.",
+  "source": "UCI Machine Learning Repository Heart Disease dataset (Cleveland subset)",
+  "source_file": "raw/processed.cleveland.data",
+  "instance_unit": "patient",
+  "notes": [
+    "The dataset is filtered to complete cases.",
+    "The original diagnosis target is binarized so num == 0 maps to 0 and num in {1,2,3,4} maps to 1.",
+    "The backend uses the saved holdout split in test_set.csv for runtime analysis."
+  ]
+}

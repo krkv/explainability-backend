@@ -50,6 +50,7 @@ class HeartUseCase(BaseUseCase):
         self._dataset_full: pd.DataFrame = None
         self._dice_dataset: pd.DataFrame = None
         self._model_metadata: Dict[str, Any] = None
+        self._dataset_metadata: Dict[str, Any] = None
         self._feature_metadata: Dict[str, Any] = None
         self._alias_lookup: Dict[str, str] = None
         self._global_explainer: Any = None
@@ -72,6 +73,15 @@ class HeartUseCase(BaseUseCase):
                 self._model_metadata = json.load(f)
             logger.debug("Model metadata loaded for HeartUseCase")
         return self._model_metadata
+
+    @property
+    def dataset_metadata(self) -> Dict[str, Any]:
+        """Lazy load and return dataset metadata."""
+        if self._dataset_metadata is None:
+            with open(self.config.dataset_metadata_path, 'r') as f:
+                self._dataset_metadata = json.load(f)
+            logger.debug("Dataset metadata loaded for HeartUseCase")
+        return self._dataset_metadata
     
     @property
     def feature_metadata(self) -> Dict[str, Any]:
@@ -228,6 +238,7 @@ class HeartUseCase(BaseUseCase):
             dice_exp=self.dice_exp,
             dice_dataset=self._get_dice_dataset(),
             model_metadata=self.model_metadata,
+            dataset_metadata=self.dataset_metadata,
             feature_metadata=self.feature_metadata,
             alias_lookup=self.alias_lookup,
             global_feature_importances=self.global_feature_importances,
@@ -243,6 +254,7 @@ class HeartUseCase(BaseUseCase):
             'available_functions': heart_funcs.available_functions,
             'get_model_parameters': heart_funcs.get_model_parameters,
             'get_model_description': heart_funcs.get_model_description,
+            'get_dataset_description': heart_funcs.get_dataset_description,
             'count_patients': heart_funcs.count_patients,
             'predict': heart_funcs.predict,
             'feature_importance_patient': heart_funcs.feature_importance_patient,

@@ -79,6 +79,7 @@ def build_heart_functions():
         dice_exp=Mock(),
         dice_dataset=dataset.copy(),
         model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata={},
         feature_metadata=feature_metadata,
         alias_lookup={
             "age": "age",

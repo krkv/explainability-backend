@@ -28,6 +28,7 @@ class HeartFunctions:
         dice_exp,
         dice_dataset: pd.DataFrame,
         model_metadata: Dict[str, Any],
+        dataset_metadata: Optional[Dict[str, Any]],
         feature_metadata: Dict[str, Any],
         alias_lookup: Dict[str, str],
         global_feature_importances: Dict[str, float],
@@ -50,6 +51,7 @@ class HeartFunctions:
             dice_exp: DiCE explainer instance
             dice_dataset: Dataset for DiCE (without prediction column)
             model_metadata: Model metadata dictionary
+            dataset_metadata: Dataset metadata dictionary
             feature_metadata: Feature metadata dictionary
             alias_lookup: Dictionary mapping feature aliases to feature names
             global_feature_importances: Dictionary of global feature importances
@@ -67,6 +69,7 @@ class HeartFunctions:
         self.dice_exp = dice_exp
         self.dice_dataset = dice_dataset
         self.model_metadata = model_metadata
+        self.dataset_metadata = dataset_metadata or {}
         self.feature_metadata = feature_metadata
         self.alias_lookup = alias_lookup
         self.global_feature_importances = global_feature_importances
@@ -172,6 +175,88 @@ class HeartFunctions:
                 "text": f"<p>Model description is: {self.model_metadata['description']}</p>"
             }
         return {"error": "Model description not found in metadata."}
+
+    def get_dataset_description(self) -> Dict[str, Any]:
+        """Return a concise metadata-backed overview of the dataset."""
+        description = self.dataset_metadata.get("description")
+        dataset_name = self.dataset_metadata.get("name", "Dataset")
+        source = self.dataset_metadata.get("source")
+        source_file = self.dataset_metadata.get("source_file")
+        instance_unit = self.dataset_metadata.get("instance_unit", "record")
+        notes = self.dataset_metadata.get("notes", [])
+
+        sample_count = int(len(self.dataset))
+        feature_count = int(len(self.dataset.columns))
+        continuous_count = sum(
+            1
+            for feature in self.dataset.columns
+            if self.feature_metadata.get(feature, {}).get("kind", "continuous") == "continuous"
+        )
+        categorical_count = feature_count - continuous_count
+
+        target_label = self._feature_label(self.target_variable)
+        target_counts = (
+            self.y_values.value_counts(dropna=False).sort_index()
+            if self.y_values is not None
+            else pd.Series(dtype="int64")
+        )
+        class_balance = {
+            str(self._display_value(self.target_variable, target_value)): int(count)
+            for target_value, count in target_counts.items()
+        }
+
+        if description is None:
+            description = (
+                f"{dataset_name} contains structured {instance_unit} data used for heart disease prediction."
+            )
+
+        data = {
+            "name": dataset_name,
+            "description": description,
+            "sample_count": sample_count,
+            "feature_count": feature_count,
+            "target": {
+                "column": self.target_variable,
+                "display_name": target_label,
+            },
+            "feature_type_counts": {
+                "continuous": continuous_count,
+                "categorical": categorical_count,
+            },
+            "class_balance": class_balance,
+            "source": source,
+            "source_file": source_file,
+            "notes": notes,
+        }
+
+        text = f"<p>Dataset description is: {description}</p>"
+        text += (
+            f"<p>The loaded dataset contains <var>{sample_count}</var> {instance_unit}"
+            f"{'' if sample_count == 1 else 's'} with <var>{feature_count}</var> input features "
+            f"and target <code>{target_label}</code>.</p>"
+        )
+        text += (
+            f"<p>Feature types: <var>{continuous_count}</var> continuous and "
+            f"<var>{categorical_count}</var> categorical.</p>"
+        )
+
+        if class_balance:
+            class_balance_text = ", ".join(
+                f"<var>{count}</var> labeled <var>{label}</var>"
+                for label, count in class_balance.items()
+            )
+            text += f"<p>Observed target balance in the loaded dataset: {class_balance_text}.</p>"
+
+        if source:
+            text += f"<p>Source: {source}.</p>"
+        if source_file:
+            text += f"<p>Original source file: <code>{source_file}</code>.</p>"
+        if notes:
+            text += "<p>Dataset notes:</p><ul>"
+            text += "".join(f"<li>{note}</li>" for note in notes)
+            text += "</ul>"
+
+        return {"data": data, "text": text}
     
     def predict(self, patient_id: int) -> Dict[str, Any]:
         """Predict heart disease risk for a specific patient by ID."""
@@ -252,7 +337,7 @@ class HeartFunctions:
         }
     
     def dataset_summary(self, patient_id: Optional[int] = None) -> Dict[str, Any]:
-        """Return a single table with overall dataset statistics."""
+        """Return detailed per-feature statistics for the dataset."""
         stats_rows = self._build_dataset_statistics()
         stats_columns = [
             "Feature",
@@ -270,7 +355,7 @@ class HeartFunctions:
         stats_table = pd.DataFrame(stats_rows, columns=stats_columns)
         result = {"dataset_statistics": stats_rows}
 
-        text = "<p>Here are the overall dataset statistics for each feature:</p>"
+        text = "<p>Here are the detailed dataset statistics for each feature:</p>"
         text += self._table_html(stats_table)
 
         if patient_id is None:

@@ -12,6 +12,7 @@ class HeartConfig(BaseModel):
     model_path: Path = Path("instances/heart/model/heart_model.pkl")
     model_metadata_path: Path = Path("instances/heart/model/heart_model_metadata.json")
     dataset_path: Path = Path("instances/heart/data/test_set.csv")
+    dataset_metadata_path: Path = Path("instances/heart/data/dataset_metadata.json")
     feature_metadata_path: Path = Path("instances/heart/data/feature_metadata.json")
     functions_json_path: Path = Path("instances/heart/functions.json")
     shap_cache_path: Path = Path("instances/heart/data/shap_cache.pkl")
