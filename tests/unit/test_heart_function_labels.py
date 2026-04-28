@@ -652,6 +652,22 @@ def test_feature_importance_patient_returns_labeled_data_even_from_legacy_cache(
     assert "trestbps" not in response["text"]
 
 
+def test_feature_importance_patient_sorts_by_absolute_value():
+    heart_functions = build_heart_functions()
+    heart_functions._shap_cache[10] = [-0.2, 0.1, 0.5]
+
+    response = heart_functions.feature_importance_patient(10)
+
+    assert list(response["data"]["feature_importance"].keys()) == [
+        "Sex",
+        "Age",
+        "Resting Blood Pressure",
+    ]
+    assert list(response["data"]["feature_importance"].values()) == [0.5, -0.2, 0.1]
+    assert response["text"].find("Sex") < response["text"].find("Age")
+    assert response["text"].find("Age") < response["text"].find("Resting Blood Pressure")
+
+
 def test_feature_importance_global_returns_labeled_data():
     heart_functions = build_heart_functions()
 

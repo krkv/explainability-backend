@@ -309,16 +309,15 @@ class HeartFunctions:
             self._save_pickle(self.shap_cache_path, self._shap_cache)
 
         labeled_influences = self._label_feature_scores(influences)
-        result = pd.DataFrame(labeled_influences.items(), columns=['Feature', 'Importance']).sort_values(
-            by='Importance', ascending=False
-        )
+        sorted_influences = self._sort_feature_scores_by_absolute_value(labeled_influences)
+        result = pd.DataFrame(sorted_influences.items(), columns=['Feature', 'Importance'])
         text = (
             f"<p>For the patient with <code>ID</code> <var>{patient_id}</var> the feature importances are:</p>"
             + self._table_html(result)
         )
         
         return {
-            "data": {"patient_id": patient_id, "feature_importance": labeled_influences},
+            "data": {"patient_id": patient_id, "feature_importance": sorted_influences},
             "text": text
         }
     
@@ -328,11 +327,12 @@ class HeartFunctions:
             self._feature_label(feature): importance
             for feature, importance in self.global_feature_importances.items()
         }
-        result_html = self._table_html(pd.DataFrame(labeled_importances.items(), columns=['Feature', 'Importance']))
+        sorted_importances = self._sort_feature_scores_by_absolute_value(labeled_importances)
+        result_html = self._table_html(pd.DataFrame(sorted_importances.items(), columns=['Feature', 'Importance']))
         text = "<p>Global feature importances based on SHAP values are:</p>" + result_html
         
         return {
-            "data": {"global_feature_importance": labeled_importances},
+            "data": {"global_feature_importance": sorted_importances},
             "text": text
         }
     
@@ -1089,6 +1089,15 @@ class HeartFunctions:
             self._feature_label(feature): float(influences[index])
             for index, feature in enumerate(self.dataset.columns)
         }
+
+    def _sort_feature_scores_by_absolute_value(self, scores: Dict[str, float]) -> Dict[str, float]:
+        return dict(
+            sorted(
+                scores.items(),
+                key=lambda item: abs(item[1]),
+                reverse=True,
+            )
+        )
 
     def _build_counterfactual_text(
         self,
