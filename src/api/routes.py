@@ -24,6 +24,22 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+def _convert_assistant_conversation(request_conversation):
+    """Preserve assistant function-call markers needed for prompt compaction."""
+    conversation = []
+    for message in request_conversation:
+        serialized = {"role": message.role, "content": message.content}
+        if message.is_function_call:
+            serialized["is_function_call"] = True
+        conversation.append(serialized)
+    return conversation
+
+
+def _convert_basic_conversation(request_conversation):
+    """Convert request conversation messages to simple role/content dictionaries."""
+    return [{"role": msg.role, "content": msg.content} for msg in request_conversation]
+
+
 @router.get("/ready", response_model=HealthResponse, tags=["Health"])
 async def ready():
     """
@@ -72,7 +88,7 @@ async def get_assistant_response(
             )
         
         # Convert conversation from API format to simple dict format
-        conversation_dict = [{"role": msg.role, "content": msg.content} for msg in request.conversation]
+        conversation_dict = _convert_assistant_conversation(request.conversation)
         
         # Process conversation using assistant service (frontend manages conversation history)
         response = await assistant_service.process_message(
@@ -133,7 +149,7 @@ async def get_suggested_follow_ups(
                 detail="Conversation cannot be empty. At least one message is required."
             )
 
-        conversation_dict = [{"role": msg.role, "content": msg.content} for msg in request.conversation]
+        conversation_dict = _convert_basic_conversation(request.conversation)
 
         suggestions = await suggester_service.generate_follow_ups(
             conversation=conversation_dict,

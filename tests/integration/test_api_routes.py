@@ -105,6 +105,45 @@ class TestAssistantResponseEndpoint:
         data = response.json()
         assert len(data["assistantResponse"]["function_calls"]) == 1
         assert data["assistantResponse"]["parse"] == "Total: 100"
+
+    @patch('src.api.dependencies.get_assistant_service')
+    def test_get_assistant_response_preserves_function_call_markers(
+        self, mock_get_assistant_service, client, mock_assistant_service
+    ):
+        """Assistant route should retain function-call markers for prompt compaction."""
+        mock_get_assistant_service.return_value = mock_assistant_service
+
+        request_data = {
+            "conversation": [
+                {"role": "user", "content": "Show ids"},
+                {
+                    "role": "assistant",
+                    "content": "<code>show_ids()</code>",
+                    "isFunctionCall": True,
+                },
+                {"role": "user", "content": "What about the first one?"},
+            ],
+            "model": "gpt-5.4-mini",
+            "usecase": "Heart Disease"
+        }
+
+        response = client.post("/getAssistantResponse", json=request_data)
+
+        assert response.status_code == 200
+        mock_assistant_service.process_message.assert_awaited_once_with(
+            conversation=[
+                {"role": "user", "content": "Show ids"},
+                {
+                    "role": "assistant",
+                    "content": "<code>show_ids()</code>",
+                    "is_function_call": True,
+                },
+                {"role": "user", "content": "What about the first one?"},
+            ],
+            usecase=UseCase.HEART,
+            model=Model.GPT_5_4_MINI,
+            trace_context=ANY,
+        )
     
     def test_get_assistant_response_empty_conversation(self, client):
         """Test assistant response with empty conversation."""

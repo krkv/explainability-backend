@@ -16,6 +16,7 @@ from src.usecases.base.base_usecase import BaseUseCase
 from src.usecases.heart.heart_config import HeartConfig
 from src.usecases.heart.heart_functions import HeartFunctions
 from src.infrastructure.loaders.explainer_loader import ExplainerLoader
+from src.core.prompt_history import build_compact_conversation_history
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -289,6 +290,7 @@ class HeartUseCase(BaseUseCase):
             "dataset_json": self.dataset.describe().to_json(),
             "feature_metadata_json": json.dumps(self.feature_metadata, indent=2),
             "functions_json": json.dumps(self._load_functions_catalog(), indent=2),
+            "compact_conversation_history_json": build_compact_conversation_history(conversation),
             "conversation_json": json.dumps(conversation),
             "latest_assistant_response": self._get_latest_assistant_response(conversation, context),
         }
@@ -332,11 +334,10 @@ class HeartUseCase(BaseUseCase):
     Your free-form response in JSON field "freeform_response" is mandatory and it should be a short comment about what you are trying to achieve with chosen function calls. 
     If user asked a question about data/model/prediction and it can not be answered with the available functions, your freeform_response should not try to answer this question. Just say that you are not able to answer this question and ask if user wants to see the list of available functions.
 
-    You are also given the full history of user's messages in this conversation.
-    Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
-    Use user's query history to understand the question better and guide your responses if needed.
+    You are also given recent prior conversation turns with invoked function calls.
+    Use this compact history only to resolve references from the current user query, such as IDs, previously selected records, or prior filters.
 
-    {prompt_context["conversation_json"]}
+    {prompt_context["compact_conversation_history_json"]}
     """
 
     def _build_suggester_system_prompt(self, prompt_context: Dict[str, str]) -> str:

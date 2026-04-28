@@ -16,6 +16,7 @@ from src.usecases.base.base_usecase import BaseUseCase
 from src.usecases.energy.energy_config import EnergyConfig
 from src.usecases.energy.energy_functions import EnergyFunctions
 from src.infrastructure.loaders.explainer_loader import ExplainerLoader
+from src.core.prompt_history import build_compact_conversation_history
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -181,6 +182,7 @@ class EnergyUseCase(BaseUseCase):
 
         dataset_json = self.dataset.describe().to_json()
         functions_json = json.dumps(self._load_functions_catalog(), indent=2)
+        compact_history_json = build_compact_conversation_history(conversation)
         response_schema = build_response_schema(AgentRole.ASSISTANT)
 
         system_prompt = f"""
@@ -211,11 +213,10 @@ class EnergyUseCase(BaseUseCase):
     If there are function calls to be invoked, "freeform_response" should be a addressed to a third party, giving a short explanation of how are you handling the user query. Do not name the functions.
     If user asked a question about data/model/prediction and it can not be answered with the available functions, your freeform_response should not try to answer this question. Just address the user, say that you are not able to answer this question and ask if user wants to see the list of available functions.
 
-    You are also given the full history of user's messages in this conversation.
-    Use this history to understand the context of the user query, for example, infer an ID or group filtering from the previous user query.
-    Use user's query history to understand the question better and guide your responses if needed.
+    You are also given recent prior conversation turns with invoked function calls.
+    Use this compact history only to resolve references from the current user query, such as IDs, previously selected records, or prior filters.
 
-    {json.dumps(conversation)}
+    {compact_history_json}
     """
 
         return StructuredGenerationConfig(

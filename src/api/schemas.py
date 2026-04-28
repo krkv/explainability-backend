@@ -1,16 +1,22 @@
 """API schemas for request/response validation."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List, Optional
-from src.domain.entities.message import Message
 from src.domain.entities.assistant_response import AssistantResponse
 
 
 class ConversationMessage(BaseModel):
     """Message in conversation for API requests."""
+
+    model_config = ConfigDict(populate_by_name=True)
     
     role: str = Field(..., description="Message role: 'user', 'assistant', or 'system'")
     content: str = Field(..., description="Message content")
+    is_function_call: bool = Field(
+        default=False,
+        alias="isFunctionCall",
+        description="Whether the assistant message represents function calls.",
+    )
 
 
 class AssistantRequest(BaseModel):
