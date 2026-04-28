@@ -339,24 +339,51 @@ class HeartFunctions:
     def dataset_summary(self, patient_id: Optional[int] = None) -> Dict[str, Any]:
         """Return detailed per-feature statistics for the dataset."""
         stats_rows = self._build_dataset_statistics()
-        stats_columns = [
-            "Feature",
-            "Type",
-            "Count",
-            "Mean / Mode",
-            "Std",
-            "Min",
-            "25%",
-            "50%",
-            "75%",
-            "Max",
-            "Categories",
+        continuous_rows = [
+            {
+                "Feature": row["Feature"],
+                "Mean": row["Mean / Mode"],
+                "Std": row["Std"],
+                "Min": row["Min"],
+                "Max": row["Max"],
+            }
+            for row in stats_rows
+            if row["Type"] == "continuous"
         ]
-        stats_table = pd.DataFrame(stats_rows, columns=stats_columns)
-        result = {"dataset_statistics": stats_rows}
+        categorical_rows = [
+            {
+                "Feature": row["Feature"],
+                "Mode": row["Mean / Mode"],
+                "Categories": row["Categories"],
+            }
+            for row in stats_rows
+            if row["Type"] != "continuous"
+        ]
+        result = {
+            "dataset_statistics": stats_rows,
+            "continuous_feature_statistics": continuous_rows,
+            "categorical_feature_statistics": categorical_rows,
+        }
 
-        text = "<p>Here are the detailed dataset statistics for each feature:</p>"
-        text += self._table_html(stats_table)
+        text = (
+            "<p>Here are the detailed dataset statistics:</p>"
+        )
+        if continuous_rows:
+            text += "<p>Continuous features:</p>"
+            text += self._table_html(
+                pd.DataFrame(
+                    continuous_rows,
+                    columns=["Feature", "Mean", "Std", "Min", "Max"],
+                )
+            )
+        if categorical_rows:
+            text += "<p>Categorical features:</p>"
+            text += self._table_html(
+                pd.DataFrame(
+                    categorical_rows,
+                    columns=["Feature", "Mode", "Categories"],
+                )
+            )
 
         if patient_id is None:
             text += "<p>Would you like to learn more about some of these features?</p>"

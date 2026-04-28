@@ -560,8 +560,13 @@ def test_dataset_summary_uses_display_names():
     assert "Resting Blood Pressure" in labels
     assert "Sex" in labels
     assert "heart_disease_average" not in response["data"]
-    assert "Mean / Mode" in response["text"]
+    assert "Continuous features:" in response["text"]
+    assert "Categorical features:" in response["text"]
     assert "detailed dataset statistics" in response["text"]
+    assert "Mean / Mode" not in response["text"]
+    assert "<th>Mean</th>" in response["text"]
+    assert "<th>Mode</th>" in response["text"]
+    assert "25%" not in response["text"]
     assert "trestbps" not in response["text"]
 
 
