@@ -1,142 +1,17 @@
 """Unit tests for LLM providers."""
 
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import Mock, AsyncMock, patch
 from src.core.constants import Model
 from src.domain.interfaces.llm_provider import (
     AgentRole,
     StructuredGenerationConfig,
     build_response_schema,
 )
-from src.services.llm.huggingface_provider import HuggingFaceProvider
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
 from src.services.llm.llm_factory import get_llm_provider, clear_providers
-
-
-class TestHuggingFaceProvider:
-    """Test cases for HuggingFaceProvider."""
-    
-    @pytest.fixture
-    def mock_inference_client(self):
-        """Create a mock InferenceClient."""
-        client = Mock()
-        client.chat_completion = AsyncMock(
-            return_value=Mock(
-                choices=[
-                    Mock(message=Mock(content='{"function_calls": [], "freeform_response": "Test"}'))
-                ]
-            )
-        )
-        return client
-    
-    @pytest.fixture
-    def provider(self):
-        """Create a HuggingFaceProvider instance."""
-        with patch('src.services.llm.huggingface_provider.InferenceClient'):
-            provider = HuggingFaceProvider(
-                model_name="meta-llama/Llama-3.3-70B-Instruct",
-                api_token="test-token"
-            )
-            provider._client = Mock()
-            provider._client.chat_completion = AsyncMock(
-                return_value=Mock(
-                    choices=[
-                        Mock(message=Mock(content='{"function_calls": [], "freeform_response": "Response"}'))
-                    ]
-                )
-            )
-            return provider
-    
-    @pytest.mark.asyncio
-    async def test_generate_response_success(self, provider):
-        """Test successful response generation."""
-        # Mock the internal method that returns a string
-        provider._generate_hugging_face_response = AsyncMock(
-            return_value='{"function_calls": [], "freeform_response": "Test response"}'
-        )
-        
-        conversation = [
-            {"role": "user", "content": "Hello"}
-        ]
-        
-        response = await provider.generate_response(conversation, UseCase.ENERGY)
-        
-        assert isinstance(response, str)
-        assert "function_calls" in response
-        assert "freeform_response" in response
-    
-    @pytest.mark.asyncio
-    async def test_generate_response_with_function_calls(self, provider):
-        """Test response generation with function calls."""
-        # Mock the internal method that returns a string
-        provider._generate_hugging_face_response = AsyncMock(
-            return_value='{"function_calls": ["count_all()"], "freeform_response": "OK"}'
-        )
-        
-        conversation = [{"role": "user", "content": "Count records"}]
-        response = await provider.generate_response(conversation, UseCase.ENERGY)
-        
-        assert "count_all()" in response
-    
-    @pytest.mark.asyncio
-    async def test_generate_response_client_error(self, provider):
-        """Test handling of client errors."""
-        provider._client.chat_completion = AsyncMock(
-            side_effect=Exception("Connection error")
-        )
-        
-        conversation = [{"role": "user", "content": "Test"}]
-        
-        with pytest.raises(LLMProviderException):
-            await provider.generate_response(conversation, UseCase.ENERGY)
-    
-    @pytest.mark.asyncio
-    async def test_generate_response_empty_content(self, provider):
-        """Test handling of empty response content."""
-        provider._client.chat_completion = AsyncMock(
-            return_value=Mock(
-                choices=[
-                    Mock(message=Mock(content=""))
-                ]
-            )
-        )
-        
-        conversation = [{"role": "user", "content": "Test"}]
-        
-        with pytest.raises(LLMProviderException):
-            await provider.generate_response(conversation, UseCase.ENERGY)
-
-    @pytest.mark.asyncio
-    async def test_generate_hugging_face_response_uses_custom_suggester_prompt(self, provider):
-        """Test custom generation config overrides the system prompt for suggester calls."""
-        provider._client = Mock()
-        provider._client.chat = Mock()
-        provider._client.chat.completions = Mock()
-        provider._client.chat.completions.create = Mock(
-            return_value=Mock(
-                choices=[
-                    Mock(message=Mock(content='{"suggestions": ["A", "B", "C"]}'))
-                ],
-                usage=None,
-            )
-        )
-
-        response = await provider._generate_hugging_face_response(
-            conversation=[{"role": "user", "content": "What next?"}],
-            usecase=UseCase.HEART.value,
-            agent_role=AgentRole.SUGGESTER,
-            generation_config=StructuredGenerationConfig(
-                system_prompt="Suggest the next follow-up questions.",
-                response_schema=build_response_schema(AgentRole.SUGGESTER),
-            ),
-        )
-
-        assert '"suggestions"' in response
-        create_kwargs = provider._client.chat.completions.create.call_args.kwargs
-        assert create_kwargs["messages"][0]["role"] == "system"
-        assert create_kwargs["messages"][0]["content"] == "Suggest the next follow-up questions."
 
 
 class TestGoogleGeminiProvider:
@@ -147,9 +22,9 @@ class TestGoogleGeminiProvider:
         """Create a GoogleGeminiProvider instance."""
         with patch('src.services.llm.google_gemini_provider.genai.Client'):
             provider = GoogleGeminiProvider(
-                model_name="gemini-2.0-flash-exp",
+                model_name="gemini-3.1-flash-lite-preview",
                 project_id="test-project",
-                location="us-central1",
+                location="global",
                 api_key="test-key"
             )
             provider._client = Mock()
@@ -319,10 +194,21 @@ class TestLLMFactory:
     def test_get_llm_provider_uses_hard_coded_google_project_and_location(self):
         """Test Gemini providers use the hard-coded project and location."""
         with patch('src.services.llm.llm_factory.GoogleGeminiProvider') as mock_provider_class:
-            get_llm_provider(Model.GEMINI_2_0_FLASH)
+            get_llm_provider(Model.GEMINI_3_1_FLASH_LITE_PREVIEW)
 
         mock_provider_class.assert_called_once_with(
-            model_name="gemini-2.0-flash-001",
+            model_name="gemini-3.1-flash-lite-preview",
             project_id="explainability-assistant",
-            location="us-central1",
+            location="global",
+        )
+
+    def test_get_llm_provider_supports_gemini_pro_preview(self):
+        """Test the Gemini Pro preview model is routed through the Google provider."""
+        with patch('src.services.llm.llm_factory.GoogleGeminiProvider') as mock_provider_class:
+            get_llm_provider(Model.GEMINI_3_1_PRO_PREVIEW)
+
+        mock_provider_class.assert_called_once_with(
+            model_name="gemini-3.1-pro-preview",
+            project_id="explainability-assistant",
+            location="global",
         )

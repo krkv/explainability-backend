@@ -63,7 +63,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "What is the dataset size?"}
             ],
-            "model": "Llama 3.3 70B Instruct",
+            "model": "gemini-3.1-flash-lite-preview",
             "usecase": "Energy Consumption"
         }
         
@@ -95,7 +95,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Count all records"}
             ],
-            "model": "Gemini 2.0 Flash",
+            "model": "gemini-3.1-pro-preview",
             "usecase": "Heart Disease"
         }
         
@@ -110,7 +110,7 @@ class TestAssistantResponseEndpoint:
         """Test assistant response with empty conversation."""
         request_data = {
             "conversation": [],
-            "model": "Llama 3.3 70B Instruct",
+            "model": "gemini-3.1-flash-lite-preview",
             "usecase": "Energy Consumption"
         }
         
@@ -140,7 +140,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "Llama 3.3 70B Instruct",
+            "model": "gemini-3.1-flash-lite-preview",
             "usecase": "InvalidUsecase"
         }
         
@@ -177,7 +177,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "Llama 3.3 70B Instruct",
+            "model": "gemini-3.1-flash-lite-preview",
             "usecase": "Energy Consumption"
         }
         
@@ -201,7 +201,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "Gemini 2.0 Flash",
+            "model": "gemini-3.1-pro-preview",
             "usecase": "Energy Consumption"
         }
 
@@ -221,7 +221,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "Llama 3.3 70B Instruct",
+            "model": "gemini-3.1-flash-lite-preview",
             "usecase": "energy consumption"  # Lowercase
         }
         

@@ -4,7 +4,6 @@ from typing import Dict, Any, Optional, Union
 from src.core.config import GOOGLE_LOCATION, GOOGLE_PROJECT_ID
 from src.core.constants import Model
 from src.core.logging_config import get_logger
-from src.services.llm.huggingface_provider import HuggingFaceProvider
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 
 logger = get_logger(__name__)
@@ -29,19 +28,15 @@ def get_llm_provider(model: Model) -> Any:
     if model in _providers:
         return _providers[model]
     
-    if model == Model.LLAMA_3_3_70B:
-        provider = HuggingFaceProvider(
-            model_name="meta-llama/Llama-3.3-70B-Instruct"
-        )
-    elif model == Model.GEMINI_2_0_FLASH:
+    if model == Model.GEMINI_3_1_FLASH_LITE_PREVIEW:
         provider = GoogleGeminiProvider(
-            model_name="gemini-2.0-flash-001",
+            model_name="gemini-3.1-flash-lite-preview",
             project_id=GOOGLE_PROJECT_ID,
             location=GOOGLE_LOCATION
         )
-    elif model == Model.GEMINI_2_5_FLASH:
+    elif model == Model.GEMINI_3_1_PRO_PREVIEW:
         provider = GoogleGeminiProvider(
-            model_name="gemini-2.5-flash",
+            model_name="gemini-3.1-pro-preview",
             project_id=GOOGLE_PROJECT_ID,
             location=GOOGLE_LOCATION
         )

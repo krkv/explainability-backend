@@ -5,9 +5,8 @@ from enum import Enum
 
 class Model(str, Enum):
     """Supported LLM models."""
-    LLAMA_3_3_70B = "Llama 3.3 70B Instruct"
-    GEMINI_2_0_FLASH = "Gemini 2.0 Flash"
-    GEMINI_2_5_FLASH = "Gemini 2.5 Flash"
+    GEMINI_3_1_FLASH_LITE_PREVIEW = "gemini-3.1-flash-lite-preview"
+    GEMINI_3_1_PRO_PREVIEW = "gemini-3.1-pro-preview"
 
 
 class UseCase(str, Enum):

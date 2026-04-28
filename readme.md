@@ -262,8 +262,8 @@ Generate an LLM assistant response with function execution capabilities.
 ```
 
 **Supported Models**:
-- `Gemini 2.0 Flash` (Google)
-- `Gemini 2.5 Flash` (Google)
+- `gemini-3.1-flash-lite-preview` (Google)
+- `gemini-3.1-pro-preview` (Google)
 
 **Supported Use Cases**:
 - `Energy Consumption` or `energy`

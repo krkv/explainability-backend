@@ -59,7 +59,7 @@ class TestAssistantService:
             response = await assistant_service.process_message(
                 conversation=sample_conversation,
                 usecase=UseCase.ENERGY,
-                model=Model.LLAMA_3_3_70B
+                model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
             )
             
             assert isinstance(response, AssistantResponse)
@@ -97,7 +97,7 @@ class TestAssistantService:
                 response = await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
 
             assert response.trace_id == "trace-123"
@@ -117,7 +117,7 @@ class TestAssistantService:
             response = await assistant_service.process_message(
                 conversation=sample_conversation,
                 usecase=UseCase.ENERGY,
-                model=Model.LLAMA_3_3_70B
+                model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
             )
             
             assert isinstance(response, AssistantResponse)
@@ -147,7 +147,7 @@ class TestAssistantService:
             response = await assistant_service.process_message(
                 conversation=sample_conversation,
                 usecase=UseCase.ENERGY,
-                model=Model.LLAMA_3_3_70B
+                model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
             )
             
             # Should still return response but with error in parse
@@ -170,7 +170,7 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert "Invalid JSON response" in str(exc_info.value)
     
@@ -190,7 +190,7 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert "Missing 'function_calls' field" in str(exc_info.value)
     
@@ -210,7 +210,7 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert "Missing 'freeform_response' field" in str(exc_info.value)
     
@@ -230,7 +230,7 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert "'function_calls' must be a list" in str(exc_info.value)
     
@@ -250,7 +250,7 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert "'freeform_response' must be a string" in str(exc_info.value)
     
@@ -268,7 +268,7 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert str(exc_info.value) == "LLM error"
 
@@ -288,6 +288,6 @@ class TestAssistantService:
                 await assistant_service.process_message(
                     conversation=sample_conversation,
                     usecase=UseCase.ENERGY,
-                    model=Model.LLAMA_3_3_70B
+                    model=Model.GEMINI_3_1_FLASH_LITE_PREVIEW
                 )
             assert str(exc_info.value) == "Rate limited"
