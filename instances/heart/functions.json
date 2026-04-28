@@ -21,7 +21,7 @@
         "type": "function",
         "function": {
             "name": "count_patients",
-            "description": "Count patients in the heart dataset. Use this when the user asks how many patients there are in total, how many patients are predicted to have heart disease, or how many patients are predicted to not have heart disease. For questions like 'how many patients have heart disease', use count_type=\"positive_predicted\".",
+            "description": "Count patients in the heart dataset. Can be used to see how many patients there are in total, how many patients are predicted to have heart disease, or how many patients are predicted to not have heart disease.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -121,7 +121,7 @@
         "type": "function",
         "function": {
             "name": "define_feature",
-            "description": "Return the definition of a dataset feature from metadata, including description, unit, aliases, and categorical options. Use this for questions like what a feature means or what categories it has, for example blood pressure or chest pain types.",
+            "description": "Return the definition of a dataset feature from metadata, including description, unit, aliases, and categorical options.",
             "parameters": {
                 "type": "object",
                 "properties": {
