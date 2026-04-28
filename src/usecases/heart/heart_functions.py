@@ -181,9 +181,7 @@ class HeartFunctions:
         description = self.dataset_metadata.get("description")
         dataset_name = self.dataset_metadata.get("name", "Dataset")
         source = self.dataset_metadata.get("source")
-        source_file = self.dataset_metadata.get("source_file")
         instance_unit = self.dataset_metadata.get("instance_unit", "record")
-        notes = self.dataset_metadata.get("notes", [])
 
         sample_count = int(len(self.dataset))
         feature_count = int(len(self.dataset.columns))
@@ -225,8 +223,6 @@ class HeartFunctions:
             },
             "class_balance": class_balance,
             "source": source,
-            "source_file": source_file,
-            "notes": notes,
         }
 
         text = f"<p>Dataset description is: {description}</p>"
@@ -249,12 +245,6 @@ class HeartFunctions:
 
         if source:
             text += f"<p>Source: {source}.</p>"
-        if source_file:
-            text += f"<p>Original source file: <code>{source_file}</code>.</p>"
-        if notes:
-            text += "<p>Dataset notes:</p><ul>"
-            text += "".join(f"<li>{note}</li>" for note in notes)
-            text += "</ul>"
 
         return {"data": data, "text": text}
     
