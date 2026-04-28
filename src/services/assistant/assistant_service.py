@@ -205,12 +205,24 @@ class AssistantService:
             return response_data
             
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
+            logger.error(
+                "Failed to parse JSON response: %s. Raw LLM response: %s",
+                e,
+                truncate_for_trace(llm_response, limit=4000),
+            )
             raise LLMProviderException(f"Invalid JSON response from LLM: {e}")
         except ValueError as e:
-            logger.error(f"Invalid response structure: {e}")
+            logger.error(
+                "Invalid response structure: %s. Raw LLM response: %s",
+                e,
+                truncate_for_trace(llm_response, limit=4000),
+            )
             raise LLMProviderException(f"Invalid response structure: {e}")
         except Exception as e:
-            logger.error(f"Unexpected error parsing response: {e}")
+            logger.error(
+                "Unexpected error parsing response: %s. Raw LLM response: %s",
+                e,
+                truncate_for_trace(llm_response, limit=4000),
+            )
             raise LLMProviderException(f"Failed to parse LLM response: {e}")
     

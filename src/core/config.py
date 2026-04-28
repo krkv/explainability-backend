@@ -12,7 +12,7 @@ GOOGLE_LOCATION = "global"
 class Model(str, Enum):
     """Supported LLM models."""
     GEMINI_3_1_FLASH_LITE_PREVIEW = "gemini-3.1-flash-lite-preview"
-    GEMINI_3_1_PRO_PREVIEW = "gemini-3.1-pro-preview"
+    GPT_5_4_MINI = "gpt-5.4-mini"
 
 
 class UseCase(str, Enum):
@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     hf_token: Optional[str] = None
+    openai_api_key: Optional[str] = None
     
     # Paths
     instances_path: str = "instances"

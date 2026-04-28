@@ -25,6 +25,12 @@ if [ -z "$HF_TOKEN" ]; then
     exit 1
 fi
 
+# Check if OPENAI_API_KEY is set
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "Error: OPENAI_API_KEY is not set. Please set it in your .env file or export it."
+    exit 1
+fi
+
 # Check if Langfuse variables are set
 if [ -z "$LANGFUSE_PUBLIC_KEY" ]; then
     echo "Error: LANGFUSE_PUBLIC_KEY is not set. Please set it in your .env file or export it."
@@ -50,4 +56,4 @@ gcloud run deploy ${IMAGE_NAME} \
   --region="${LOCATION}" \
   --project="${PROJECT_ID}" \
   --port=8080 \
-  --set-env-vars="HF_TOKEN=${HF_TOKEN},LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY},LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY},LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL},LANGFUSE_TRACING_ENVIRONMENT=${LANGFUSE_TRACING_ENVIRONMENT}"
+  --set-env-vars="HF_TOKEN=${HF_TOKEN},OPENAI_API_KEY=${OPENAI_API_KEY},LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY},LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY},LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL},LANGFUSE_TRACING_ENVIRONMENT=${LANGFUSE_TRACING_ENVIRONMENT}"

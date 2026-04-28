@@ -1,10 +1,11 @@
 """Factory for creating and managing LLM provider instances."""
 
 from typing import Dict, Any, Optional, Union
-from src.core.config import GOOGLE_LOCATION, GOOGLE_PROJECT_ID
+from src.core.config import GOOGLE_LOCATION, GOOGLE_PROJECT_ID, settings
 from src.core.constants import Model
 from src.core.logging_config import get_logger
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
+from src.services.llm.openai_provider import OpenAIProvider
 
 logger = get_logger(__name__)
 
@@ -34,11 +35,10 @@ def get_llm_provider(model: Model) -> Any:
             project_id=GOOGLE_PROJECT_ID,
             location=GOOGLE_LOCATION
         )
-    elif model == Model.GEMINI_3_1_PRO_PREVIEW:
-        provider = GoogleGeminiProvider(
-            model_name="gemini-3.1-pro-preview",
-            project_id=GOOGLE_PROJECT_ID,
-            location=GOOGLE_LOCATION
+    elif model == Model.GPT_5_4_MINI:
+        provider = OpenAIProvider(
+            model_name="gpt-5.4-mini",
+            api_key=settings.openai_api_key,
         )
     else:
         raise ValueError(f"Unsupported model: {model}")

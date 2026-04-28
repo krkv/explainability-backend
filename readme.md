@@ -65,6 +65,7 @@ A FastAPI-based backend service that provides an API for LLM-powered assistant r
    ```bash
    # LLM Configuration
    HF_TOKEN="your_huggingface_token_here"  # Required for Hugging Face models
+   OPENAI_API_KEY="your_openai_api_key_here"  # Required for OpenAI GPT models
 
    # Logging (optional)
    LOG_LEVEL="INFO"
@@ -82,6 +83,7 @@ The application uses environment variables for configuration. Key settings:
 | Variable | Description | Required | Default |
 |----------|-------------|----------|---------|
 | `HF_TOKEN` | Hugging Face API token | Yes (for HF models) | - |
+| `OPENAI_API_KEY` | OpenAI API key | Yes (for OpenAI GPT models) | - |
 | `LOG_LEVEL` | Logging level | No | `INFO` |
 | `PORT` | Server port (Cloud Run sets this) | No | `8080` |
 
@@ -245,7 +247,7 @@ Generate an LLM assistant response with function execution capabilities.
       "content": "What is the prediction for this patient?"
     }
   ],
-  "model": "Llama-3.3-70B-Instruct",
+  "model": "gpt-5.4-mini",
   "usecase": "Heart Disease"
 }
 ```
@@ -263,7 +265,7 @@ Generate an LLM assistant response with function execution capabilities.
 
 **Supported Models**:
 - `gemini-3.1-flash-lite-preview` (Google)
-- `gemini-3.1-pro-preview` (Google)
+- `gpt-5.4-mini` (OpenAI)
 
 **Supported Use Cases**:
 - `Energy Consumption` or `energy`

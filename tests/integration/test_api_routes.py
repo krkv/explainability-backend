@@ -63,7 +63,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "What is the dataset size?"}
             ],
-            "model": "gemini-3.1-flash-lite-preview",
+            "model": "gpt-5.4-mini",
             "usecase": "Energy Consumption"
         }
         
@@ -95,7 +95,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Count all records"}
             ],
-            "model": "gemini-3.1-pro-preview",
+            "model": "gpt-5.4-mini",
             "usecase": "Heart Disease"
         }
         
@@ -201,7 +201,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "gemini-3.1-pro-preview",
+            "model": "gpt-5.4-mini",
             "usecase": "Energy Consumption"
         }
 
