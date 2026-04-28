@@ -169,7 +169,7 @@ class HeartFunctions:
         if "description" in self.model_metadata:
             return {
                 "data": self.model_metadata["description"],
-                "text": f"<p>Model description is: {self.model_metadata['description']}. Would you like to see the model training parameters?</p>"
+                "text": f"<p>Model description is: {self.model_metadata['description']}</p>"
             }
         return {"error": "Model description not found in metadata."}
     
