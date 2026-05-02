@@ -1,0 +1,180 @@
+# Healthcare Tool-Calling Evaluation
+
+This directory defines the planned evaluation structure for the healthcare
+tool-calling use case. The goal is to evaluate how well different LLMs map a
+user request and recent conversation history to the correct backend function
+calls, including arguments.
+
+The first benchmark target is the heart disease use case. The source of truth
+for valid tools is the heart function catalog:
+
+```text
+instances/heart/functions.json
+```
+
+This scaffold is intentionally minimal. It does not include teacher generation
+scripts, student model runners, scoring scripts, or model adapters yet.
+
+## Dataset Lifecycle
+
+Use three separate dataset stages:
+
+```text
+seed_gold -> teacher_generated_raw -> reviewed_gold_v1
+```
+
+- `seed_gold`: small, manually authored seed set with trusted labels.
+- `teacher_generated_raw`: model-generated candidate samples used only to scale
+  coverage.
+- `reviewed_gold_v1`: manually reviewed benchmark data used for formal scoring.
+
+Teacher-generated examples must not become benchmark truth directly. A teacher
+model provides candidate labels, not ground truth. Using raw teacher output as
+the benchmark risks measuring whether other models imitate the teacher's tool
+selection and argument style rather than whether they follow the healthcare
+tool contract correctly.
+
+## Dataset Files
+
+Future JSONL datasets should live in `datasets/`, for example:
+
+```text
+datasets/seed_gold.jsonl
+datasets/teacher_generated_raw.jsonl
+datasets/reviewed_gold_v1.jsonl
+```
+
+Future schema definitions should live in `schemas/`.
+
+Future evaluation outputs should live in `reports/`.
+
+## Case Shape
+
+Each dataset row should be a JSON object stored as one line in a JSONL file.
+This shape is documented for consistency, but it is not enforced by code yet.
+
+```json
+{
+  "id": "heart_predict_001",
+  "usecase": "heart",
+  "scenario": "direct_single_turn",
+  "user_input": "Can you predict patient 42?",
+  "conversation_history": [],
+  "expected_behavior": "tool_call",
+  "expected_function_calls": [
+    "predict(patient_id=42)"
+  ],
+  "notes": "Direct patient prediction request"
+}
+```
+
+For ambiguous or unsupported cases, the expected function call list should be
+empty and the expected behavior should state why no call is expected:
+
+```json
+{
+  "id": "heart_ambiguity_001",
+  "usecase": "heart",
+  "scenario": "missing_required_argument",
+  "user_input": "Can you predict this patient?",
+  "conversation_history": [],
+  "expected_behavior": "no_call_clarify",
+  "expected_function_calls": []
+}
+```
+
+When a case has more than one defensible answer, prefer representing multiple
+accepted call sets in the reviewed dataset rather than forcing a single
+teacher-preferred label.
+
+## Scenario Taxonomy
+
+Use scenario tags to make the benchmark diagnostic instead of only reporting one
+aggregate score.
+
+- `direct_single_turn`: basic routing and argument extraction from the latest
+  user message.
+- `paraphrase_or_alias`: user wording must be mapped to canonical tool
+  arguments, such as "blood pressure" to the matching heart feature.
+- `parameter_carryover`: the user refers to an entity or parameter established
+  in prior conversation history.
+- `entity_switch_or_correction`: the user corrects or replaces a previously
+  mentioned entity, and the latest correction should win.
+- `missing_required_argument`: the request matches a tool intent but lacks
+  required information, so no tool call should be made.
+- `unsupported_intent`: the user asks for a capability outside the available
+  function catalog.
+- `conflicting_context`: the history contains multiple possible referents or
+  otherwise conflicting context.
+- `multi_tool_request`: the user asks for multiple supported operations in one
+  turn.
+- `no_tool_needed`: the user response does not require backend function calls.
+
+## Recommended Sample Allocation
+
+For each healthcare tool, manually create a small number of high-quality seed
+examples before using a teacher model for expansion:
+
+- 2 direct single-turn examples per tool.
+- 1 paraphrase or alias example where the tool has natural user-facing aliases.
+- 1 missing-required-argument example where the tool has required parameters.
+- 1 parameter-carryover example where the tool can rely on conversation
+  history.
+- 1 entity-switch or correction example where the tool uses patient IDs or other
+  entity arguments.
+
+Add cross-tool stress cases separately:
+
+- unsupported healthcare or clinical advice requests.
+- no-tool-needed turns.
+- multi-tool requests.
+- conflicting-context cases.
+
+Not every scenario applies equally to every tool. Global tools like
+`get_model_description()` or `feature_importance_global()` need fewer
+context-carryover cases than patient-level tools like `predict(patient_id=...)`,
+`show_one(patient_id=...)`, `feature_importance_patient(patient_id=...)`,
+`counterfactual(patient_id=...)`, and `what_if(...)`.
+
+## Metrics
+
+Report metrics by scenario tag and overall. The main metrics are:
+
+- **Schema Validity**: output is valid JSON in the expected response shape, and
+  each function call is parseable.
+- **Intent Accuracy**: selected the correct function name or function set,
+  ignoring arguments.
+- **Argument Accuracy**: filled the correct arguments for correctly selected
+  tools.
+- **Joint Goal Accuracy**: exactly matched the expected tool call set, including
+  all required arguments and no hallucinated arguments.
+- **State Carryover Accuracy**: for `parameter_carryover` cases, correctly
+  reused parameters from conversation history.
+- **Correction Accuracy**: for `entity_switch_or_correction` cases, correctly
+  applied the user's latest correction instead of stale context.
+- **No-Call / Clarification Accuracy**: for ambiguity, unsupported intent, and
+  no-tool-needed cases, avoided making an unwarranted tool call.
+- **Hallucination Rate**: produced unsupported function names, invalid
+  arguments, unsupported enum values, or invented patient IDs/features not
+  grounded in the user input or history.
+- **Overcall / Undercall Rate**: produced extra unwarranted calls or missed
+  required calls in multi-tool and no-call cases.
+
+Joint Goal Accuracy should be the primary strict correctness metric. The other
+metrics explain why a model succeeded or failed.
+
+## Review And Versioning Strategy
+
+Reviewed datasets should be versioned together with the tool contract they were
+created against. At minimum, record:
+
+- dataset version, such as `healthcare_tool_calling_v1`.
+- review status and review date.
+- source files used to create the reviewed set.
+- checksum or commit reference for `instances/heart/functions.json`.
+- any accepted-answer policy for ambiguous examples.
+
+If the heart function catalog changes, the reviewed dataset should either be
+revalidated or copied into a new version. A model score is only meaningful
+against the tool schema and annotation rules used when the benchmark was
+created.
