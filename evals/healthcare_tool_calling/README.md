@@ -48,6 +48,53 @@ Future schema definitions should live in `schemas/`.
 
 Future evaluation outputs should live in `reports/`.
 
+## Manual Authoring Workflow
+
+Do not write every JSON object from scratch. Use the authoring helper to see
+what the current manual seed set is missing:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/seed_gold_authoring.py coverage
+```
+
+Generate editable JSONL templates for the missing cases:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/seed_gold_authoring.py templates
+```
+
+The template command writes JSONL rows to stdout. Copy the rows you want into a
+draft file such as:
+
+```text
+evals/healthcare_tool_calling/datasets/seed_gold_draft.jsonl
+```
+
+Then manually review and rewrite the human-facing fields before moving rows
+into:
+
+```text
+evals/healthcare_tool_calling/datasets/seed_gold.jsonl
+```
+
+The most important fields to manually review are:
+
+- `user_input`: make this a realistic user message, not a mechanical prompt.
+- `conversation_history`: make sure prior turns actually establish the intended
+  context.
+- `expected_function_calls`: verify the selected tools and arguments are the
+  intended gold parse.
+- `expected_behavior`: use `tool_call`, `no_call_clarify`,
+  `no_call_unsupported`, or `no_call_needed`.
+- `target_tools`: identify the tool intent for no-call cases where
+  `expected_function_calls` is empty.
+
+Recommended loop:
+
+```text
+authoring coverage -> authoring templates -> manual edit/review -> readiness check
+```
+
 ## Seed Gold Readiness Check
 
 Before using a teacher model to expand the dataset, run the seed-gold readiness
@@ -211,7 +258,8 @@ The readiness checker formalizes these minimums:
 
 These are readiness minimums, not final benchmark-size targets. The purpose is
 to ensure the manual seed set contains enough high-quality examples to guide
-teacher-model expansion.
+teacher-model expansion. With the current 20-tool heart catalog, these minimums
+require 71 reviewed manual seed samples.
 
 ## Metrics
 

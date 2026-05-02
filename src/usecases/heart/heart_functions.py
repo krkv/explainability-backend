@@ -534,6 +534,50 @@ class HeartFunctions:
                 numalign="left",
             )
             return {"text": text, "data": data}
+
+    def prediction_outcome_patient(self, patient_id: int) -> Dict[str, Any]:
+        """Compare one patient prediction against the known actual class."""
+        if patient_id not in self.dataset.index:
+            return {
+                "error": f"Patient ID {patient_id} not found in the dataset.",
+                "text": f"Patient <code>ID</code> <var>{patient_id}</var> not found in the dataset."
+            }
+
+        patient_row = self.dataset.loc[patient_id].to_frame().T
+        prediction = int(self.model.predict(patient_row)[0])
+        probabilities = self.model.predict_proba(patient_row)[0].tolist()
+        actual = int(self.y_values.loc[patient_id])
+        correct = prediction == actual
+        outcome_type = self._prediction_outcome_type(actual, prediction)
+        prediction_label = self._class_label(prediction)
+        actual_label = self._class_label(actual)
+
+        data = {
+            "patient_id": patient_id,
+            "actual": actual,
+            "actual_label": actual_label,
+            "prediction": prediction,
+            "prediction_label": prediction_label,
+            "correct": correct,
+            "outcome_type": outcome_type,
+            "probabilities": probabilities,
+        }
+
+        text = (
+            f"<p>For patient <code>ID</code> <var>{patient_id}</var>, the model predicted "
+            f"<var>{prediction_label}</var> and the actual class is <var>{actual_label}</var>.</p>"
+        )
+        text += (
+            f"<p>The prediction is <var>{'correct' if correct else 'incorrect'}</var> "
+            f"with outcome type <code>{outcome_type}</code>.</p>"
+        )
+        text += (
+            f"<p>The prediction class probabilities are: {self.class_names[1].lower()} "
+            f"{format_html_number(probabilities[1] * 100)}%, {self.class_names[0].lower()} "
+            f"{format_html_number(probabilities[0] * 100)}%.</p>"
+        )
+
+        return {"data": data, "text": text}
     
     def what_if(self, patient_id: int, feature: str, value_change: Any) -> Dict[str, Any]:
         """Simulates how changing a single feature affects predictions."""
@@ -895,6 +939,22 @@ class HeartFunctions:
     def _feature_label(self, feature: str) -> str:
         metadata = self.feature_metadata.get(feature, {})
         return metadata.get("display_name", feature)
+
+    def _class_label(self, class_value: int) -> str:
+        if 0 <= class_value < len(self.class_names):
+            return self.class_names[class_value]
+        return str(class_value)
+
+    def _prediction_outcome_type(self, actual: int, prediction: int) -> str:
+        if actual == 1 and prediction == 1:
+            return "true_positive"
+        if actual == 0 and prediction == 0:
+            return "true_negative"
+        if actual == 0 and prediction == 1:
+            return "false_positive"
+        if actual == 1 and prediction == 0:
+            return "false_negative"
+        return "correct" if actual == prediction else "incorrect"
 
     def _display_value(self, feature: str, value: Any) -> Any:
         if pd.isna(value):

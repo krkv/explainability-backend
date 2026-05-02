@@ -283,6 +283,25 @@
     {
         "type": "function",
         "function": {
+            "name": "prediction_outcome_patient",
+            "description": "Compare the model prediction for a patient with the known actual class and report whether it was correct, including TP/TN/FP/FN outcome.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient whose prediction outcome should be checked."
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "predict",
             "description": "Predict the class and probability scores for a specific patient using their ID.",
             "parameters": {

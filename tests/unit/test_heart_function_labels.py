@@ -35,6 +35,14 @@ class CategoricalWhatIfModel:
         return np.column_stack([negative_prob, positive_prob])
 
 
+class PositiveHeartModel:
+    def predict(self, dataframe):
+        return np.ones(len(dataframe), dtype=int)
+
+    def predict_proba(self, dataframe):
+        return np.tile(np.array([[0.25, 0.75]]), (len(dataframe), 1))
+
+
 def build_feature_metadata():
     return {
         "age": {
@@ -368,6 +376,85 @@ def test_count_patients_returns_total_and_predicted_class_counts():
         "prediction": 0,
     }
     assert "predicts no heart disease for <var>1</var> patients" in negative_response["text"]
+
+
+def test_prediction_outcome_patient_returns_correct_true_negative():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.prediction_outcome_patient(10)
+
+    assert response["data"] == {
+        "patient_id": 10,
+        "actual": 0,
+        "actual_label": "NEGATIVE",
+        "prediction": 0,
+        "prediction_label": "NEGATIVE",
+        "correct": True,
+        "outcome_type": "true_negative",
+        "probabilities": [0.75, 0.25],
+    }
+    assert "the model predicted <var>NEGATIVE</var>" in response["text"]
+    assert "outcome type <code>true_negative</code>" in response["text"]
+
+
+def test_prediction_outcome_patient_returns_incorrect_false_positive():
+    dataset = pd.DataFrame(
+        {
+            "age": [54],
+            "trestbps": [140],
+            "sex": [1],
+        },
+        index=[10],
+    )
+    dataset_full = dataset.copy()
+    dataset_full["num"] = [0]
+
+    heart_functions = HeartFunctions(
+        model=PositiveHeartModel(),
+        dataset=dataset,
+        dataset_full=dataset_full,
+        y_values=dataset_full["num"],
+        explainer=Mock(),
+        dice_exp=Mock(),
+        dice_dataset=dataset.copy(),
+        model_metadata={"description": "Test model", "parameters": {}},
+        dataset_metadata=build_dataset_metadata(),
+        feature_metadata=build_feature_metadata(),
+        alias_lookup={
+            "age": "age",
+            "patient age": "age",
+            "trestbps": "trestbps",
+            "blood pressure": "trestbps",
+            "resting blood pressure": "trestbps",
+            "sex": "sex",
+            "gender": "sex",
+            "heart disease": "num",
+        },
+        global_feature_importances={"age": 0.7, "trestbps": 0.2, "sex": 0.1},
+        target_variable="num",
+        class_names=["NEGATIVE", "POSITIVE"],
+        feature_names=["age", "trestbps", "sex"],
+    )
+
+    response = heart_functions.prediction_outcome_patient(10)
+
+    assert response["data"]["correct"] is False
+    assert response["data"]["actual"] == 0
+    assert response["data"]["prediction"] == 1
+    assert response["data"]["actual_label"] == "NEGATIVE"
+    assert response["data"]["prediction_label"] == "POSITIVE"
+    assert response["data"]["outcome_type"] == "false_positive"
+    assert response["data"]["probabilities"] == [0.25, 0.75]
+    assert "prediction is <var>incorrect</var>" in response["text"]
+
+
+def test_prediction_outcome_patient_returns_error_for_unknown_patient():
+    heart_functions = build_heart_functions()
+
+    response = heart_functions.prediction_outcome_patient(99)
+
+    assert response["error"] == "Patient ID 99 not found in the dataset."
+    assert "Patient <code>ID</code> <var>99</var> not found" in response["text"]
 
 
 def test_count_patients_rejects_unknown_count_type():
@@ -767,6 +854,7 @@ def test_heart_usecase_registers_available_functions(tmp_path):
 
     assert "available_functions" in functions
     assert "count_patients" in functions
+    assert "prediction_outcome_patient" in functions
 
 
 def test_heart_usecase_prompt_guides_categorical_label_mapping(tmp_path):

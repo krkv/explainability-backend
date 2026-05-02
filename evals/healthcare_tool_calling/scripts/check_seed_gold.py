@@ -57,6 +57,7 @@ REQUIRED_CASE_FIELDS: Set[str] = {
 PATIENT_ENTITY_TOOLS: Set[str] = {
     "show_one",
     "predict",
+    "prediction_outcome_patient",
     "feature_importance_patient",
     "counterfactual",
     "what_if",

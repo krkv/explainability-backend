@@ -263,6 +263,7 @@ class HeartUseCase(BaseUseCase):
             'define_feature': heart_funcs.define_feature,
             'performance_metrics': heart_funcs.performance_metrics,
             'confusion_matrix_stats': heart_funcs.confusion_matrix_stats,
+            'prediction_outcome_patient': heart_funcs.prediction_outcome_patient,
             'what_if': heart_funcs.what_if,
             'counterfactual': heart_funcs.counterfactual,
             'misclassified_cases': heart_funcs.misclassified_cases,
