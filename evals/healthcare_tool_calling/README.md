@@ -48,10 +48,38 @@ Future schema definitions should live in `schemas/`.
 
 Future evaluation outputs should live in `reports/`.
 
+## Seed Gold Readiness Check
+
+Before using a teacher model to expand the dataset, run the seed-gold readiness
+checker:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/check_seed_gold.py
+```
+
+By default, the checker reads:
+
+```text
+evals/healthcare_tool_calling/datasets/seed_gold.jsonl
+instances/heart/functions.json
+```
+
+The checker is intentionally read-only. It reports blocking issues and exits
+with a non-zero status when the manual seed set is not sufficient for teacher
+enrichment.
+
+Use custom paths when needed:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/check_seed_gold.py \
+  --dataset evals/healthcare_tool_calling/datasets/seed_gold.jsonl \
+  --catalog instances/heart/functions.json
+```
+
 ## Case Shape
 
 Each dataset row should be a JSON object stored as one line in a JSONL file.
-This shape is documented for consistency, but it is not enforced by code yet.
+The readiness checker validates this shape before enrichment.
 
 ```json
 {
@@ -79,13 +107,45 @@ empty and the expected behavior should state why no call is expected:
   "user_input": "Can you predict this patient?",
   "conversation_history": [],
   "expected_behavior": "no_call_clarify",
-  "expected_function_calls": []
+  "expected_function_calls": [],
+  "target_tools": [
+    "predict"
+  ]
 }
 ```
 
 When a case has more than one defensible answer, prefer representing multiple
 accepted call sets in the reviewed dataset rather than forcing a single
 teacher-preferred label.
+
+```json
+{
+  "id": "heart_risk_001",
+  "usecase": "heart",
+  "scenario": "multi_tool_request",
+  "user_input": "How risky is patient 42, and why?",
+  "conversation_history": [],
+  "expected_behavior": "tool_call",
+  "expected_function_calls": [
+    "predict(patient_id=42)",
+    "feature_importance_patient(patient_id=42)"
+  ],
+  "target_tools": [
+    "predict",
+    "feature_importance_patient"
+  ],
+  "accepted_function_call_sets": [
+    [
+      "predict(patient_id=42)"
+    ]
+  ]
+}
+```
+
+Use `target_tools` when the scenario is about a tool intent even though no tool
+call is expected. This is required for `missing_required_argument` cases because
+the checker cannot infer the intended tool from an empty
+`expected_function_calls` list.
 
 ## Scenario Taxonomy
 
@@ -116,7 +176,8 @@ For each healthcare tool, manually create a small number of high-quality seed
 examples before using a teacher model for expansion:
 
 - 2 direct single-turn examples per tool.
-- 1 paraphrase or alias example where the tool has natural user-facing aliases.
+- 1 paraphrase or alias example where the tool has natural user-facing aliases
+  (`define_feature`, `what_if`, `count_patients`, `performance_metrics`).
 - 1 missing-required-argument example where the tool has required parameters.
 - 1 parameter-carryover example where the tool can rely on conversation
   history.
@@ -135,6 +196,22 @@ Not every scenario applies equally to every tool. Global tools like
 context-carryover cases than patient-level tools like `predict(patient_id=...)`,
 `show_one(patient_id=...)`, `feature_importance_patient(patient_id=...)`,
 `counterfactual(patient_id=...)`, and `what_if(...)`.
+
+The readiness checker formalizes these minimums:
+
+- every catalog tool needs at least 2 `direct_single_turn` seed cases.
+- alias-heavy tools need at least 1 `paraphrase_or_alias` case.
+- tools with required arguments need at least 1 `missing_required_argument`
+  no-call case.
+- patient-level tools need at least 1 `parameter_carryover` case and at least 1
+  `entity_switch_or_correction` case.
+- cross-tool stress scenarios need at least 2 cases each:
+  `unsupported_intent`, `no_tool_needed`, `multi_tool_request`, and
+  `conflicting_context`.
+
+These are readiness minimums, not final benchmark-size targets. The purpose is
+to ensure the manual seed set contains enough high-quality examples to guide
+teacher-model expansion.
 
 ## Metrics
 
