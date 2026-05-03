@@ -33,6 +33,7 @@ SCENARIOS: Set[str] = {
     "missing_required_argument",
     "unsupported_intent",
     "conflicting_context",
+    "irrelevant_context",
     "multi_tool_request",
     "no_tool_needed",
 }
@@ -288,7 +289,12 @@ def validate_dataset(
                     f"{case_label}: multi_tool_request cases must include at least two calls"
                 )
 
-        if scenario in {"parameter_carryover", "entity_switch_or_correction", "conflicting_context"}:
+        if scenario in {
+            "parameter_carryover",
+            "entity_switch_or_correction",
+            "conflicting_context",
+            "irrelevant_context",
+        }:
             if not row["conversation_history"]:
                 result.errors.append(
                     f"{case_label}: {scenario} cases must include conversation_history"
@@ -346,6 +352,7 @@ def validate_dataset(
         "no_tool_needed",
         "multi_tool_request",
         "conflicting_context",
+        "irrelevant_context",
     ]:
         if result.scenario_counts[scenario] < min_cross_tool_cases:
             result.errors.append(

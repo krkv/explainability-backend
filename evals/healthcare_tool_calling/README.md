@@ -259,6 +259,9 @@ aggregate score.
   function catalog.
 - `conflicting_context`: the history contains multiple possible referents or
   otherwise conflicting context.
+- `irrelevant_context`: the history contains prior tool calls, but the latest
+  user request is self-contained and should not inherit stale intent or
+  arguments.
 - `multi_tool_request`: the user asks for multiple supported operations in one
   turn.
 - `no_tool_needed`: the user response does not require backend function calls.
@@ -283,6 +286,7 @@ Add cross-tool stress cases separately:
 - no-tool-needed turns.
 - multi-tool requests.
 - conflicting-context cases.
+- irrelevant-context cases.
 
 Not every scenario applies equally to every tool. Global tools like
 `get_model_description()` or `feature_importance_global()` need fewer
@@ -300,12 +304,55 @@ The readiness checker formalizes these minimums:
   `entity_switch_or_correction` case.
 - cross-tool stress scenarios need at least 2 cases each:
   `unsupported_intent`, `no_tool_needed`, `multi_tool_request`, and
-  `conflicting_context`.
+  `conflicting_context`, and `irrelevant_context`.
 
 These are readiness minimums, not final benchmark-size targets. The purpose is
 to ensure the manual seed set contains enough high-quality examples to guide
 teacher-model expansion. With the current 20-tool heart catalog, these minimums
-require 71 reviewed manual seed samples.
+require 73 reviewed manual seed samples.
+
+### Target Dataset Sizes
+
+Use the following size targets for the first formal benchmark version:
+
+| Dataset stage | Target size | Purpose |
+| --- | ---: | --- |
+| `seed_gold` | 73 | Manual coverage anchor for every supported tool and scenario. |
+| `teacher_generated_raw` | 300-500 | Candidate pool for expansion; not benchmark truth. |
+| `reviewed_gold_v1` | 250-300 | Final manually reviewed benchmark for model comparison. |
+| optional hidden holdout | 50-100 | Later regression set if the benchmark will be reused often. |
+
+For `reviewed_gold_v1`, aim for approximately 260 reviewed samples:
+
+| Scenario | Seed target | Final v1 target |
+| --- | ---: | ---: |
+| `direct_single_turn` | 40 | 80 |
+| `paraphrase_or_alias` | 4 | 25 |
+| `parameter_carryover` | 6 | 30 |
+| `entity_switch_or_correction` | 6 | 25 |
+| `missing_required_argument` | 7 | 30 |
+| `unsupported_intent` | 2 | 15 |
+| `no_tool_needed` | 2 | 15 |
+| `multi_tool_request` | 2 | 15 |
+| `conflicting_context` | 2 | 12 |
+| `irrelevant_context` | 2 | 13 |
+| **Total** | **73** | **260** |
+
+This size is intentionally moderate. The benchmark evaluates structured
+tool-call parsing over a 20-tool catalog, so scenario coverage and annotation
+quality matter more than raw volume. A final set below 200 samples makes
+per-scenario scores noisy: with only a few cases in a scenario, one failure can
+move the result by many percentage points. A first version above roughly 500
+reviewed samples is likely to create review burden before the first model run
+has shown which scenarios actually need more coverage.
+
+The recommended v1 process is:
+
+1. Finish the 73-row manual `seed_gold`.
+2. Generate roughly 300-500 teacher candidate rows.
+3. Manually review and filter down to about 260 `reviewed_gold_v1` rows.
+4. Run the target models and inspect per-scenario failures.
+5. Add targeted v1.1 samples only for unstable or surprising failure areas.
 
 ## Metrics
 

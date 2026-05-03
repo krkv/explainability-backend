@@ -134,6 +134,7 @@ def compute_missing_needs(
         "no_tool_needed",
         "multi_tool_request",
         "conflicting_context",
+        "irrelevant_context",
     ]:
         missing = min_cross_tool_cases - result.scenario_counts[scenario]
         if missing > 0:
@@ -316,6 +317,23 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "expected_behavior": "no_call_clarify",
             "expected_function_calls": [],
             "target_tools": ["feature_importance_patient"],
+        }
+
+    if scenario == "irrelevant_context":
+        return {
+            "id": row_id,
+            "usecase": "heart",
+            "scenario": scenario,
+            "user_input": "",
+            "conversation_history": [
+                {
+                    "turn": 1,
+                    "user_input": "",
+                    "function_calls": [],
+                },
+            ],
+            "expected_behavior": "tool_call",
+            "expected_function_calls": [],
         }
 
     raise ValueError(f"Unsupported cross-tool scenario: {scenario}")
