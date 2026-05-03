@@ -54,6 +54,13 @@ REQUIRED_CASE_FIELDS: Set[str] = {
     "expected_function_calls",
 }
 
+OPTIONAL_CASE_FIELDS: Set[str] = {
+    "target_tools",
+    "accepted_function_call_sets",
+}
+
+ALLOWED_CASE_FIELDS: Set[str] = REQUIRED_CASE_FIELDS | OPTIONAL_CASE_FIELDS
+
 PATIENT_ENTITY_TOOLS: Set[str] = {
     "show_one",
     "predict",
@@ -150,6 +157,12 @@ def validate_dataset(
                 f"{case_label}: missing required fields: {sorted(missing_fields)}"
             )
             continue
+
+        unknown_fields = set(row) - ALLOWED_CASE_FIELDS
+        if unknown_fields:
+            result.errors.append(
+                f"{case_label}: unknown fields are not allowed: {sorted(unknown_fields)}"
+            )
 
         case_id = row["id"]
         if not isinstance(case_id, str) or not case_id.strip():

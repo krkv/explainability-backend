@@ -141,7 +141,9 @@ The readiness checker validates this shape before enrichment.
   "expected_function_calls": [
     "predict(patient_id=42)"
   ],
-  "notes": "Direct patient prediction request"
+  "target_tools": [
+    "predict"
+  ]
 }
 ```
 

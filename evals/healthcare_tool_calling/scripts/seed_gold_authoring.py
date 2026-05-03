@@ -150,7 +150,6 @@ def _tool_template(
             "expected_behavior": "tool_call",
             "expected_function_calls": [call],
             "target_tools": [tool_name],
-            "notes": "Rewrite user_input as a realistic direct request before moving to seed_gold.jsonl.",
         }
 
     if scenario == "paraphrase_or_alias":
@@ -163,7 +162,6 @@ def _tool_template(
             "expected_behavior": "tool_call",
             "expected_function_calls": [call],
             "target_tools": [tool_name],
-            "notes": "Use natural user wording, aliases, or display labels instead of function names.",
         }
 
     if scenario == "missing_required_argument":
@@ -176,7 +174,6 @@ def _tool_template(
             "expected_behavior": "no_call_clarify",
             "expected_function_calls": [],
             "target_tools": [tool_name],
-            "notes": "The model should not invent missing required arguments.",
         }
 
     if scenario == "parameter_carryover":
@@ -195,7 +192,6 @@ def _tool_template(
             "expected_behavior": "tool_call",
             "expected_function_calls": [call],
             "target_tools": [tool_name],
-            "notes": "The expected call should reuse patient_id=42 from conversation history.",
         }
 
     if scenario == "entity_switch_or_correction":
@@ -216,7 +212,6 @@ def _tool_template(
             "expected_behavior": "tool_call",
             "expected_function_calls": [corrected_call],
             "target_tools": [tool_name],
-            "notes": "The latest user correction should override the prior patient_id=42.",
         }
 
     raise ValueError(f"Unsupported tool scenario: {scenario}")
@@ -235,7 +230,6 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "expected_behavior": "no_call_unsupported",
             "expected_function_calls": [],
             "target_tools": [],
-            "notes": "Unsupported clinical advice request. Rewrite to another realistic unsupported request if needed.",
         }
 
     if scenario == "no_tool_needed":
@@ -248,7 +242,6 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "expected_behavior": "no_call_needed",
             "expected_function_calls": [],
             "target_tools": [],
-            "notes": "No backend function should be called for conversational acknowledgements.",
         }
 
     if scenario == "multi_tool_request":
@@ -264,7 +257,6 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
                 "feature_importance_patient(patient_id=42)",
             ],
             "target_tools": ["predict", "feature_importance_patient"],
-            "notes": "Use this to test whether the model emits more than one supported call.",
         }
 
     if scenario == "conflicting_context":
@@ -298,7 +290,6 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "expected_behavior": "no_call_clarify",
             "expected_function_calls": [],
             "target_tools": ["feature_importance_patient"],
-            "notes": "Ambiguous referent. Keep as no-call clarify unless the annotation policy says latest patient wins.",
         }
 
     raise ValueError(f"Unsupported cross-tool scenario: {scenario}")
