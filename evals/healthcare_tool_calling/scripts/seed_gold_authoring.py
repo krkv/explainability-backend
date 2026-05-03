@@ -187,12 +187,8 @@ def _tool_template(
             "user_input": _carryover_prompt_hint(tool_name),
             "conversation_history": [
                 {
-                    "role": "user",
-                    "content": "Show me patient 42.",
-                },
-                {
-                    "role": "assistant",
-                    "content": "I will retrieve patient 42.",
+                    "turn": 1,
+                    "user_input": "Show me patient 42.",
                     "function_calls": ["show_one(patient_id=42)"],
                 },
             ],
@@ -212,12 +208,8 @@ def _tool_template(
             "user_input": _correction_prompt_hint(tool_name),
             "conversation_history": [
                 {
-                    "role": "user",
-                    "content": _direct_prompt_hint(tool_name),
-                },
-                {
-                    "role": "assistant",
-                    "content": "I will use patient 42.",
+                    "turn": 1,
+                    "user_input": _direct_prompt_hint(tool_name),
                     "function_calls": [previous_call],
                 },
             ],
@@ -283,21 +275,23 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "user_input": "Explain that patient's prediction.",
             "conversation_history": [
                 {
-                    "role": "user",
-                    "content": "Show me patient 42.",
+                    "turn": 1,
+                    "user_input": "What can you help me analyze?",
+                    "function_calls": ["available_functions()"],
                 },
                 {
-                    "role": "assistant",
-                    "content": "I will retrieve patient 42.",
+                    "turn": 2,
+                    "user_input": "Thanks, that helps.",
+                    "function_calls": [],
+                },
+                {
+                    "turn": 3,
+                    "user_input": "Show me patient 42.",
                     "function_calls": ["show_one(patient_id=42)"],
                 },
                 {
-                    "role": "user",
-                    "content": "Now show me patient 51.",
-                },
-                {
-                    "role": "assistant",
-                    "content": "I will retrieve patient 51.",
+                    "turn": 4,
+                    "user_input": "Now show me patient 51.",
                     "function_calls": ["show_one(patient_id=51)"],
                 },
             ],

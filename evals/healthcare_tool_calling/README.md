@@ -80,8 +80,10 @@ evals/healthcare_tool_calling/datasets/seed_gold.jsonl
 The most important fields to manually review are:
 
 - `user_input`: make this a realistic user message, not a mechanical prompt.
-- `conversation_history`: make sure prior turns actually establish the intended
-  context.
+- `conversation_history`: use compact prior turns matching the healthcare
+  prompt context. Each prior turn has `turn`, `user_input`, and
+  `function_calls`. Include prior turns even when no functions were called by
+  setting `function_calls` to `[]`.
 - `expected_function_calls`: verify the selected tools and arguments are the
   intended gold parse.
 - `expected_behavior`: use `tool_call`, `no_call_clarify`,
@@ -140,6 +142,46 @@ The readiness checker validates this shape before enrichment.
     "predict(patient_id=42)"
   ],
   "notes": "Direct patient prediction request"
+}
+```
+
+For context-dependent cases, `conversation_history` should match the compact
+history shape used in the healthcare prompt, not the frontend chat-message
+transport shape:
+
+```json
+{
+  "id": "heart_prediction_outcome_patient_carryover_001",
+  "usecase": "heart",
+  "scenario": "parameter_carryover",
+  "user_input": "Was the model right for that same patient?",
+  "conversation_history": [
+    {
+      "turn": 1,
+      "user_input": "Show me patient 42.",
+      "function_calls": [
+        "show_one(patient_id=42)"
+      ]
+    }
+  ],
+  "expected_behavior": "tool_call",
+  "expected_function_calls": [
+    "prediction_outcome_patient(patient_id=42)"
+  ],
+  "target_tools": [
+    "prediction_outcome_patient"
+  ]
+}
+```
+
+Turns where no functions were called should still be included when they are part
+of the prior conversation:
+
+```json
+{
+  "turn": 2,
+  "user_input": "Thanks, that helps.",
+  "function_calls": []
 }
 ```
 

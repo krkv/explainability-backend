@@ -316,37 +316,43 @@ def _validate_conversation_history(
         result.errors.append(f"{case_label}: conversation_history must be a list")
         return
 
-    for message_index, message in enumerate(conversation_history):
-        if not isinstance(message, dict):
+    previous_turn = 0
+    for turn_index, turn in enumerate(conversation_history):
+        if not isinstance(turn, dict):
             result.errors.append(
-                f"{case_label}: conversation_history[{message_index}] must be an object"
+                f"{case_label}: conversation_history[{turn_index}] must be an object"
             )
             continue
-        role = message.get("role")
-        content = message.get("content")
-        if role not in {"user", "assistant", "system"}:
+
+        turn_number = turn.get("turn")
+        if not isinstance(turn_number, int) or isinstance(turn_number, bool):
             result.errors.append(
-                f"{case_label}: conversation_history[{message_index}].role is invalid"
+                f"{case_label}: conversation_history[{turn_index}].turn must be an integer"
             )
-        if not isinstance(content, str):
+        elif turn_number <= previous_turn:
             result.errors.append(
-                f"{case_label}: conversation_history[{message_index}].content must be a string"
+                f"{case_label}: conversation_history[{turn_index}].turn must increase monotonically"
             )
-        if "function_calls" in message and role != "assistant":
+        else:
+            previous_turn = turn_number
+
+        user_input = turn.get("user_input")
+        if not isinstance(user_input, str) or not user_input.strip():
             result.errors.append(
-                f"{case_label}: conversation_history[{message_index}].function_calls "
-                "is only allowed on assistant messages"
+                f"{case_label}: conversation_history[{turn_index}].user_input must be a non-empty string"
             )
-        if "function_calls" in message and not _is_call_string_list(message["function_calls"]):
+
+        function_calls = turn.get("function_calls")
+        if not _is_call_string_list(function_calls):
             result.errors.append(
-                f"{case_label}: conversation_history[{message_index}].function_calls must be a list of strings"
+                f"{case_label}: conversation_history[{turn_index}].function_calls must be a list of strings"
             )
-        elif "function_calls" in message:
-            for call in message["function_calls"]:
+        else:
+            for call in function_calls:
                 _validate_function_call(
                     call,
                     function_catalog,
-                    f"{case_label} conversation_history[{message_index}]",
+                    f"{case_label} conversation_history[{turn_index}]",
                     result,
                 )
 
