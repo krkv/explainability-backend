@@ -63,14 +63,22 @@ Generate editable JSONL templates for the missing cases:
 python3 evals/healthcare_tool_calling/scripts/seed_gold_authoring.py templates
 ```
 
-The template command writes JSONL skeleton rows to stdout. It intentionally does
-not prefill `user_input` or `expected_function_calls`; those fields must be
-manually authored so generated text does not leak into the reviewed seed set.
-Copy the rows you want into a draft file such as:
+The template command writes the next 10 missing JSONL skeleton rows to stdout.
+It intentionally does not prefill `user_input` or `expected_function_calls`;
+those fields must be manually authored so generated text does not leak into the
+reviewed seed set. Copy the rows you want into a draft file such as:
 
 ```text
 evals/healthcare_tool_calling/datasets/seed_gold_draft.jsonl
 ```
+
+Use a different batch size when needed:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/seed_gold_authoring.py templates --limit 5
+```
+
+Use `--limit 0` to print all currently missing templates.
 
 Then manually fill and review the rows before moving them into:
 

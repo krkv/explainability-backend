@@ -33,6 +33,7 @@ class MissingNeed:
     scenario: str
     count: int
     tool: Optional[str] = None
+    start_index: int = 1
 
     @property
     def label(self) -> str:
@@ -61,12 +62,22 @@ def compute_missing_needs(
             (function_name, "direct_single_turn")
         ]
         if missing > 0:
-            needs.append(MissingNeed("direct_single_turn", missing, function_name))
+            start_index = result.tool_scenario_counts[
+                (function_name, "direct_single_turn")
+            ] + 1
+            needs.append(
+                MissingNeed("direct_single_turn", missing, function_name, start_index)
+            )
 
     for function_name in sorted(ALIAS_TOOLS & function_catalog.keys()):
         missing = 1 - result.tool_scenario_counts[(function_name, "paraphrase_or_alias")]
         if missing > 0:
-            needs.append(MissingNeed("paraphrase_or_alias", missing, function_name))
+            start_index = result.tool_scenario_counts[
+                (function_name, "paraphrase_or_alias")
+            ] + 1
+            needs.append(
+                MissingNeed("paraphrase_or_alias", missing, function_name, start_index)
+            )
 
     required_arg_tools = {
         name
@@ -78,21 +89,44 @@ def compute_missing_needs(
             (function_name, "missing_required_argument")
         ]
         if missing > 0:
-            needs.append(MissingNeed("missing_required_argument", missing, function_name))
+            start_index = result.tool_scenario_counts[
+                (function_name, "missing_required_argument")
+            ] + 1
+            needs.append(
+                MissingNeed(
+                    "missing_required_argument",
+                    missing,
+                    function_name,
+                    start_index,
+                )
+            )
 
     for function_name in sorted(PATIENT_ENTITY_TOOLS & function_catalog.keys()):
         missing = 1 - result.tool_scenario_counts[
             (function_name, "parameter_carryover")
         ]
         if missing > 0:
-            needs.append(MissingNeed("parameter_carryover", missing, function_name))
+            start_index = result.tool_scenario_counts[
+                (function_name, "parameter_carryover")
+            ] + 1
+            needs.append(
+                MissingNeed("parameter_carryover", missing, function_name, start_index)
+            )
 
         missing = 1 - result.tool_scenario_counts[
             (function_name, "entity_switch_or_correction")
         ]
         if missing > 0:
+            start_index = result.tool_scenario_counts[
+                (function_name, "entity_switch_or_correction")
+            ] + 1
             needs.append(
-                MissingNeed("entity_switch_or_correction", missing, function_name)
+                MissingNeed(
+                    "entity_switch_or_correction",
+                    missing,
+                    function_name,
+                    start_index,
+                )
             )
 
     for scenario in [
@@ -103,7 +137,8 @@ def compute_missing_needs(
     ]:
         missing = min_cross_tool_cases - result.scenario_counts[scenario]
         if missing > 0:
-            needs.append(MissingNeed(scenario, missing))
+            start_index = result.scenario_counts[scenario] + 1
+            needs.append(MissingNeed(scenario, missing, start_index=start_index))
 
     return needs
 
@@ -111,11 +146,15 @@ def compute_missing_needs(
 def build_template_rows(
     needs: Sequence[MissingNeed],
     function_catalog: Mapping[str, Dict[str, Any]],
+    *,
+    limit: Optional[int] = 10,
 ) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
 
     for need in needs:
-        for index in range(1, need.count + 1):
+        for index in range(need.start_index, need.start_index + need.count):
+            if limit is not None and len(rows) >= limit:
+                return rows
             rows.append(_template_for_need(need, function_catalog, index))
 
     return rows
@@ -352,9 +391,15 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("coverage", help="Show missing seed-gold coverage.")
-    subparsers.add_parser(
+    templates_parser = subparsers.add_parser(
         "templates",
-        help="Print JSONL template rows for missing seed-gold coverage.",
+        help="Print JSONL template rows for missing seed-gold coverage. Defaults to 10 rows.",
+    )
+    templates_parser.add_argument(
+        "--limit",
+        type=int,
+        default=10,
+        help="Maximum number of template rows to print. Use 0 for no limit.",
     )
 
     return parser.parse_args(argv)
@@ -376,7 +421,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     if args.command == "templates":
-        print_templates(build_template_rows(needs, catalog))
+        limit = None if args.limit == 0 else args.limit
+        print_templates(build_template_rows(needs, catalog, limit=limit))
         return 0
 
     raise ValueError(f"Unsupported command: {args.command}")
