@@ -183,9 +183,23 @@ def validate_dataset(
         else:
             result.scenario_counts[scenario] += 1
 
+        expected_behavior = row["expected_behavior"]
+        if expected_behavior not in EXPECTED_BEHAVIORS:
+            result.errors.append(
+                f"{case_label}: expected_behavior must be one of {sorted(EXPECTED_BEHAVIORS)}"
+            )
+
+        has_target_tools = "target_tools" in row
         target_tools = row.get("target_tools", [])
         if target_tools is None:
             target_tools = []
+        if has_target_tools and scenario not in {
+            "missing_required_argument",
+            "conflicting_context",
+        }:
+            result.errors.append(
+                f"{case_label}: target_tools is only allowed for no-call cases with a supported target intent"
+            )
         if not _is_call_string_list(target_tools):
             result.errors.append(f"{case_label}: target_tools must be a list of strings")
             target_tools = []
@@ -198,12 +212,6 @@ def validate_dataset(
             for target_tool in target_tools:
                 if scenario in SCENARIOS and target_tool in function_catalog:
                     result.tool_scenario_counts[(target_tool, scenario)] += 1
-
-        expected_behavior = row["expected_behavior"]
-        if expected_behavior not in EXPECTED_BEHAVIORS:
-            result.errors.append(
-                f"{case_label}: expected_behavior must be one of {sorted(EXPECTED_BEHAVIORS)}"
-            )
 
         if not isinstance(row["user_input"], str) or not row["user_input"].strip():
             result.errors.append(f"{case_label}: user_input must be a non-empty string")

@@ -63,21 +63,22 @@ Generate editable JSONL templates for the missing cases:
 python3 evals/healthcare_tool_calling/scripts/seed_gold_authoring.py templates
 ```
 
-The template command writes JSONL rows to stdout. Copy the rows you want into a
-draft file such as:
+The template command writes JSONL skeleton rows to stdout. It intentionally does
+not prefill `user_input` or `expected_function_calls`; those fields must be
+manually authored so generated text does not leak into the reviewed seed set.
+Copy the rows you want into a draft file such as:
 
 ```text
 evals/healthcare_tool_calling/datasets/seed_gold_draft.jsonl
 ```
 
-Then manually review and rewrite the human-facing fields before moving rows
-into:
+Then manually fill and review the rows before moving them into:
 
 ```text
 evals/healthcare_tool_calling/datasets/seed_gold.jsonl
 ```
 
-The most important fields to manually review are:
+The most important fields to manually author are:
 
 - `user_input`: make this a realistic user message, not a mechanical prompt.
 - `conversation_history`: use compact prior turns matching the healthcare
@@ -88,8 +89,9 @@ The most important fields to manually review are:
   intended gold parse.
 - `expected_behavior`: use `tool_call`, `no_call_clarify`,
   `no_call_unsupported`, or `no_call_needed`.
-- `target_tools`: identify the tool intent for no-call cases where
-  `expected_function_calls` is empty.
+- `target_tools`: include this only for no-call cases where the intended
+  supported tool cannot be recovered from `expected_function_calls`, such as
+  `missing_required_argument`.
 
 Recommended loop:
 
@@ -140,9 +142,6 @@ The readiness checker validates this shape before enrichment.
   "expected_behavior": "tool_call",
   "expected_function_calls": [
     "predict(patient_id=42)"
-  ],
-  "target_tools": [
-    "predict"
   ]
 }
 ```
@@ -169,9 +168,6 @@ transport shape:
   "expected_behavior": "tool_call",
   "expected_function_calls": [
     "prediction_outcome_patient(patient_id=42)"
-  ],
-  "target_tools": [
-    "prediction_outcome_patient"
   ]
 }
 ```
@@ -221,10 +217,6 @@ teacher-preferred label.
     "predict(patient_id=42)",
     "feature_importance_patient(patient_id=42)"
   ],
-  "target_tools": [
-    "predict",
-    "feature_importance_patient"
-  ],
   "accepted_function_call_sets": [
     [
       "predict(patient_id=42)"
@@ -233,10 +225,12 @@ teacher-preferred label.
 }
 ```
 
-Use `target_tools` when the scenario is about a tool intent even though no tool
-call is expected. This is required for `missing_required_argument` cases because
-the checker cannot infer the intended tool from an empty
-`expected_function_calls` list.
+Use `target_tools` only when the scenario is about a supported tool intent even
+though no tool call is expected. This is required for
+`missing_required_argument` cases because the checker cannot infer the intended
+tool from an empty `expected_function_calls` list. Do not include
+`target_tools` for ordinary `tool_call` rows; the tools are already encoded in
+`expected_function_calls`.
 
 ## Scenario Taxonomy
 

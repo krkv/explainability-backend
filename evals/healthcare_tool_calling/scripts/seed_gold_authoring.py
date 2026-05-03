@@ -134,22 +134,20 @@ def _template_for_need(
 def _tool_template(
     tool_name: str,
     scenario: str,
-    function_catalog: Mapping[str, Dict[str, Any]],
+    _function_catalog: Mapping[str, Dict[str, Any]],
     index: int,
 ) -> Dict[str, Any]:
-    call = _sample_call(tool_name, function_catalog[tool_name], patient_id=42)
-    row_id = f"heart_{tool_name}_{scenario}_todo_{index:03d}"
+    row_id = f"heart_{tool_name}_{scenario}_{index:03d}"
 
     if scenario == "direct_single_turn":
         return {
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": _direct_prompt_hint(tool_name),
+            "user_input": "",
             "conversation_history": [],
             "expected_behavior": "tool_call",
-            "expected_function_calls": [call],
-            "target_tools": [tool_name],
+            "expected_function_calls": [],
         }
 
     if scenario == "paraphrase_or_alias":
@@ -157,11 +155,10 @@ def _tool_template(
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": _alias_prompt_hint(tool_name),
+            "user_input": "",
             "conversation_history": [],
             "expected_behavior": "tool_call",
-            "expected_function_calls": [call],
-            "target_tools": [tool_name],
+            "expected_function_calls": [],
         }
 
     if scenario == "missing_required_argument":
@@ -169,7 +166,7 @@ def _tool_template(
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": _missing_arg_prompt_hint(tool_name),
+            "user_input": "",
             "conversation_history": [],
             "expected_behavior": "no_call_clarify",
             "expected_function_calls": [],
@@ -181,55 +178,50 @@ def _tool_template(
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": _carryover_prompt_hint(tool_name),
+            "user_input": "",
             "conversation_history": [
                 {
                     "turn": 1,
-                    "user_input": "Show me patient 42.",
-                    "function_calls": ["show_one(patient_id=42)"],
+                    "user_input": "",
+                    "function_calls": [],
                 },
             ],
             "expected_behavior": "tool_call",
-            "expected_function_calls": [call],
-            "target_tools": [tool_name],
+            "expected_function_calls": [],
         }
 
     if scenario == "entity_switch_or_correction":
-        previous_call = _sample_call(tool_name, function_catalog[tool_name], patient_id=42)
-        corrected_call = _sample_call(tool_name, function_catalog[tool_name], patient_id=51)
         return {
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": _correction_prompt_hint(tool_name),
+            "user_input": "",
             "conversation_history": [
                 {
                     "turn": 1,
-                    "user_input": _direct_prompt_hint(tool_name),
-                    "function_calls": [previous_call],
+                    "user_input": "",
+                    "function_calls": [],
                 },
             ],
             "expected_behavior": "tool_call",
-            "expected_function_calls": [corrected_call],
-            "target_tools": [tool_name],
+            "expected_function_calls": [],
         }
 
     raise ValueError(f"Unsupported tool scenario: {scenario}")
 
 
 def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
-    row_id = f"heart_{scenario}_todo_{index:03d}"
+    row_id = f"heart_{scenario}_{index:03d}"
 
     if scenario == "unsupported_intent":
         return {
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": "Should this patient start medication?",
+            "user_input": "",
             "conversation_history": [],
             "expected_behavior": "no_call_unsupported",
             "expected_function_calls": [],
-            "target_tools": [],
         }
 
     if scenario == "no_tool_needed":
@@ -237,11 +229,10 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": "Thanks, that helps.",
+            "user_input": "",
             "conversation_history": [],
             "expected_behavior": "no_call_needed",
             "expected_function_calls": [],
-            "target_tools": [],
         }
 
     if scenario == "multi_tool_request":
@@ -249,14 +240,10 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": "Predict patient 42 and explain the main factors.",
+            "user_input": "",
             "conversation_history": [],
             "expected_behavior": "tool_call",
-            "expected_function_calls": [
-                "predict(patient_id=42)",
-                "feature_importance_patient(patient_id=42)",
-            ],
-            "target_tools": ["predict", "feature_importance_patient"],
+            "expected_function_calls": [],
         }
 
     if scenario == "conflicting_context":
@@ -264,27 +251,27 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
             "id": row_id,
             "usecase": "heart",
             "scenario": scenario,
-            "user_input": "Explain that patient's prediction.",
+            "user_input": "",
             "conversation_history": [
                 {
                     "turn": 1,
-                    "user_input": "What can you help me analyze?",
-                    "function_calls": ["available_functions()"],
+                    "user_input": "",
+                    "function_calls": [],
                 },
                 {
                     "turn": 2,
-                    "user_input": "Thanks, that helps.",
+                    "user_input": "",
                     "function_calls": [],
                 },
                 {
                     "turn": 3,
-                    "user_input": "Show me patient 42.",
-                    "function_calls": ["show_one(patient_id=42)"],
+                    "user_input": "",
+                    "function_calls": [],
                 },
                 {
                     "turn": 4,
-                    "user_input": "Now show me patient 51.",
-                    "function_calls": ["show_one(patient_id=51)"],
+                    "user_input": "",
+                    "function_calls": [],
                 },
             ],
             "expected_behavior": "no_call_clarify",
@@ -293,156 +280,6 @@ def _cross_tool_template(scenario: str, index: int) -> Dict[str, Any]:
         }
 
     raise ValueError(f"Unsupported cross-tool scenario: {scenario}")
-
-
-def _sample_call(
-    tool_name: str,
-    function: Mapping[str, Any],
-    *,
-    patient_id: int,
-) -> str:
-    parameters = function.get("parameters") or {}
-    properties = parameters.get("properties") or {}
-    argument_names = set(_required_args(function))
-    argument_names.update(_intentional_optional_args(tool_name))
-    args = {
-        arg_name: _sample_value(arg_name, schema, patient_id=patient_id)
-        for arg_name, schema in properties.items()
-        if arg_name in argument_names
-    }
-
-    if not args:
-        return f"{tool_name}()"
-
-    rendered_args = ", ".join(
-        f"{arg_name}={_render_literal(value)}" for arg_name, value in args.items()
-    )
-    return f"{tool_name}({rendered_args})"
-
-
-def _intentional_optional_args(tool_name: str) -> List[str]:
-    optional_args_by_tool = {
-        "count_patients": ["count_type"],
-        "performance_metrics": ["metrics"],
-    }
-    return optional_args_by_tool.get(tool_name, [])
-
-
-def _sample_value(arg_name: str, schema: Mapping[str, Any], *, patient_id: int) -> Any:
-    if arg_name == "patient_id":
-        return patient_id
-    if arg_name == "feature":
-        enum = schema.get("enum") or []
-        if "trestbps" in enum:
-            return "trestbps"
-        return enum[0] if enum else "trestbps"
-    if arg_name == "value_change":
-        return -15
-    if arg_name == "count_type":
-        return "positive_predicted"
-    if arg_name == "metrics":
-        return ["accuracy"]
-
-    enum = schema.get("enum") or []
-    if enum:
-        return enum[0]
-
-    if "anyOf" in schema:
-        return _sample_value(arg_name, schema["anyOf"][0], patient_id=patient_id)
-
-    schema_type = schema.get("type")
-    if schema_type == "integer":
-        return 42
-    if schema_type == "number":
-        return 1.0
-    if schema_type == "string":
-        return "example"
-    if schema_type == "array":
-        item_schema = schema.get("items") or {"type": "string"}
-        return [_sample_value(arg_name, item_schema, patient_id=patient_id)]
-    if schema_type == "boolean":
-        return True
-    if schema_type == "object":
-        return {}
-
-    return "example"
-
-
-def _render_literal(value: Any) -> str:
-    return repr(value)
-
-
-def _direct_prompt_hint(tool_name: str) -> str:
-    hints = {
-        "available_functions": "What can you help me analyze?",
-        "age_group_performance": "How does the model perform across age groups?",
-        "count_patients": "How many patients are predicted to have heart disease?",
-        "show_ids": "Show me the available patient IDs.",
-        "show_one": "Show me patient 42.",
-        "confusion_matrix_stats": "Show the confusion matrix statistics.",
-        "counterfactual": "What changes would flip the prediction for patient 42?",
-        "dataset_summary": "Show a summary of the dataset.",
-        "define_feature": "What does resting blood pressure mean?",
-        "feature_importance_patient": "Why did the model make its prediction for patient 42?",
-        "feature_importance_global": "Which features matter most overall?",
-        "feature_interactions": "Which features are most correlated with each other?",
-        "get_dataset_description": "Describe the heart disease dataset.",
-        "get_model_description": "What kind of model is being used?",
-        "get_model_parameters": "What are the model hyperparameters?",
-        "misclassified_cases": "Show me the common patterns in misclassified cases.",
-        "performance_metrics": "What are the model accuracy and precision?",
-        "predict": "Predict the outcome for patient 42.",
-        "prediction_outcome_patient": "Was the model's prediction for patient 42 correct?",
-        "what_if": "What if patient 42 had blood pressure 15 points lower?",
-    }
-    return hints.get(tool_name, f"Ask a direct user question for {tool_name}.")
-
-
-def _alias_prompt_hint(tool_name: str) -> str:
-    hints = {
-        "count_patients": "How many people does the model think have heart disease?",
-        "define_feature": "What does blood pressure mean in this dataset?",
-        "performance_metrics": "How accurate is this model?",
-        "what_if": "Would patient 42 look less risky if their blood pressure was lower?",
-    }
-    return hints.get(tool_name, f"Ask for {tool_name} using natural language aliases.")
-
-
-def _missing_arg_prompt_hint(tool_name: str) -> str:
-    hints = {
-        "counterfactual": "What changes would flip this patient's prediction?",
-        "define_feature": "What does this feature mean?",
-        "feature_importance_patient": "Why did the model make this prediction?",
-        "predict": "Can you predict this patient?",
-        "prediction_outcome_patient": "Was the model right for this patient?",
-        "show_one": "Show me that patient.",
-        "what_if": "What if their blood pressure was lower?",
-    }
-    return hints.get(tool_name, f"Ask for {tool_name} while omitting required details.")
-
-
-def _carryover_prompt_hint(tool_name: str) -> str:
-    hints = {
-        "counterfactual": "What changes would flip that patient's prediction?",
-        "feature_importance_patient": "Why did the model make that prediction?",
-        "predict": "Can you predict that same patient?",
-        "prediction_outcome_patient": "Was the model right for that same patient?",
-        "show_one": "Show me that patient again.",
-        "what_if": "What if that patient's blood pressure was 15 lower?",
-    }
-    return hints.get(tool_name, f"Ask for {tool_name} using the same patient.")
-
-
-def _correction_prompt_hint(tool_name: str) -> str:
-    hints = {
-        "counterfactual": "Wait, not that one. Show counterfactuals for patient 51.",
-        "feature_importance_patient": "Wait, explain patient 51 instead.",
-        "predict": "Wait, predict patient 51 instead.",
-        "prediction_outcome_patient": "Wait, check whether the prediction was correct for patient 51 instead.",
-        "show_one": "Wait, show patient 51 instead.",
-        "what_if": "Wait, use patient 51 for that what-if instead.",
-    }
-    return hints.get(tool_name, f"Correct the prior request to patient 51 for {tool_name}.")
 
 
 def print_coverage(
