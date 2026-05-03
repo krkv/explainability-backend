@@ -23,6 +23,7 @@ from src.services.parser.ast_parser import ASTParser  # noqa: E402
 EVAL_ROOT = REPO_ROOT / "evals" / "healthcare_tool_calling"
 DEFAULT_DATASET = EVAL_ROOT / "datasets" / "seed_gold.jsonl"
 DEFAULT_CATALOG = REPO_ROOT / "instances" / "heart" / "functions.json"
+DEFAULT_FEATURE_METADATA = REPO_ROOT / "instances" / "heart" / "data" / "feature_metadata.json"
 
 SCENARIOS: Set[str] = {
     "direct_single_turn",
@@ -77,6 +78,11 @@ ALIAS_TOOLS: Set[str] = {
     "performance_metrics",
 }
 
+FEATURE_ALIAS_FUNCTIONS: Set[str] = {
+    "define_feature",
+    "what_if",
+}
+
 
 @dataclass
 class ValidationResult:
@@ -103,6 +109,27 @@ def load_function_catalog(path: Path) -> Dict[str, Dict[str, Any]]:
         if isinstance(name, str):
             catalog[name] = function
     return catalog
+
+
+def load_feature_alias_lookup(path: Path) -> Dict[str, str]:
+    with path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    lookup: Dict[str, str] = {}
+    for feature_name, feature_metadata in metadata.items():
+        if not isinstance(feature_name, str) or not isinstance(feature_metadata, dict):
+            continue
+
+        candidates = [feature_name, feature_metadata.get("display_name", feature_name)]
+        aliases = feature_metadata.get("aliases", [])
+        if isinstance(aliases, list):
+            candidates.extend(aliases)
+
+        for candidate in candidates:
+            if isinstance(candidate, str) and candidate.strip():
+                lookup[candidate.lower()] = feature_name
+
+    return lookup
 
 
 def read_jsonl(path: Path) -> Tuple[List[Dict[str, Any]], List[str]]:
@@ -136,11 +163,13 @@ def read_jsonl(path: Path) -> Tuple[List[Dict[str, Any]], List[str]]:
 def validate_dataset(
     rows: Sequence[Dict[str, Any]],
     function_catalog: Mapping[str, Dict[str, Any]],
+    feature_alias_lookup: Optional[Mapping[str, str]] = None,
     *,
     min_direct_per_tool: int = 2,
     min_cross_tool_cases: int = 2,
 ) -> ValidationResult:
     result = ValidationResult(case_count=len(rows))
+    feature_alias_lookup = feature_alias_lookup or {}
     seen_ids: Set[str] = set()
     direct_counts_by_tool: Counter[str] = Counter()
     required_arg_tools = {
@@ -219,6 +248,7 @@ def validate_dataset(
         _validate_conversation_history(
             row["conversation_history"],
             function_catalog,
+            feature_alias_lookup,
             case_label,
             result,
         )
@@ -266,7 +296,13 @@ def validate_dataset(
 
         for call_set in call_sets:
             for call in call_set:
-                parsed = _validate_function_call(call, function_catalog, case_label, result)
+                parsed = _validate_function_call(
+                    call,
+                    function_catalog,
+                    feature_alias_lookup,
+                    case_label,
+                    result,
+                )
                 if parsed is None:
                     continue
                 function_name, _kwargs = parsed
@@ -330,6 +366,7 @@ def _case_label(row: Mapping[str, Any], index: int) -> str:
 def _validate_conversation_history(
     conversation_history: Any,
     function_catalog: Mapping[str, Dict[str, Any]],
+    feature_alias_lookup: Mapping[str, str],
     case_label: str,
     result: ValidationResult,
 ) -> None:
@@ -373,6 +410,7 @@ def _validate_conversation_history(
                 _validate_function_call(
                     call,
                     function_catalog,
+                    feature_alias_lookup,
                     f"{case_label} conversation_history[{turn_index}]",
                     result,
                 )
@@ -389,6 +427,7 @@ def _is_call_string_list(value: Any) -> bool:
 def _validate_function_call(
     call: Any,
     function_catalog: Mapping[str, Dict[str, Any]],
+    feature_alias_lookup: Mapping[str, str],
     case_label: str,
     result: ValidationResult,
 ) -> Optional[Tuple[str, Dict[str, Any]]]:
@@ -427,7 +466,16 @@ def _validate_function_call(
     for arg_name, value in kwargs.items():
         schema = properties.get(arg_name)
         if schema is not None:
-            _validate_arg_value(call, arg_name, value, schema, case_label, result)
+            _validate_arg_value(
+                call,
+                function_name,
+                arg_name,
+                value,
+                schema,
+                feature_alias_lookup,
+                case_label,
+                result,
+            )
 
     return function_name, kwargs
 
@@ -442,12 +490,26 @@ def _required_args(function: Mapping[str, Any]) -> List[str]:
 
 def _validate_arg_value(
     call: str,
+    function_name: str,
     arg_name: str,
     value: Any,
     schema: Mapping[str, Any],
+    feature_alias_lookup: Mapping[str, str],
     case_label: str,
     result: ValidationResult,
 ) -> None:
+    if (
+        function_name in FEATURE_ALIAS_FUNCTIONS
+        and arg_name == "feature"
+        and isinstance(value, str)
+    ):
+        if value.lower() in feature_alias_lookup:
+            return
+        result.errors.append(
+            f"{case_label}: call '{call}' arg 'feature' is not a supported feature name, display name, or alias"
+        )
+        return
+
     if "enum" in schema and value not in schema["enum"]:
         result.errors.append(
             f"{case_label}: call '{call}' arg '{arg_name}' must be one of {schema['enum']}"
@@ -553,6 +615,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help=f"Path to heart function catalog. Default: {DEFAULT_CATALOG}",
     )
     parser.add_argument(
+        "--feature-metadata",
+        type=Path,
+        default=DEFAULT_FEATURE_METADATA,
+        help=f"Path to heart feature metadata. Default: {DEFAULT_FEATURE_METADATA}",
+    )
+    parser.add_argument(
         "--min-direct-per-tool",
         type=int,
         default=2,
@@ -570,6 +638,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     catalog = load_function_catalog(args.catalog)
+    feature_alias_lookup = load_feature_alias_lookup(args.feature_metadata)
     rows, read_errors = read_jsonl(args.dataset)
 
     if read_errors:
@@ -578,6 +647,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         result = validate_dataset(
             rows,
             catalog,
+            feature_alias_lookup,
             min_direct_per_tool=args.min_direct_per_tool,
             min_cross_tool_cases=args.min_cross_tool_cases,
         )
