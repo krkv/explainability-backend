@@ -1,0 +1,79 @@
+{
+  "summary": "Reviewed 50 candidate rows in batch 006. JSONL shape, scenarios, expected behaviors, function names, keyword args, feature aliases (e.g. 'st depression', 'gender', 'max heart rate', 'heart disease'), categorical labels (e.g. '3 vessels', 'Normal'), numeric deltas, and patient IDs (all within 0-59) are valid throughout. No blocking issues. Notably, 0010 'Which features impact predictions overall?' anchors with 'overall' and correctly maps to feature_importance_global() — a clean foil to the recurring missing-anchor defect in batches 001/004. Warnings cover a fourth repetition of the conflicting_context two-define_feature → what_if template (0048), a recurring no-history standalone acknowledgment (0039), a borderline unsupported_intent vs no_tool_needed call (0036), and a slightly ambiguous show_ids paraphrase (0014).",
+  "blocking_issues": [],
+  "warnings": [
+    {
+      "id": "heart_teacher_candidate_batch_006_0048",
+      "warning": "Fourth instance of the conflicting_context template 'two define_feature priors → ambiguous what_if follow-up' (seed heart_conflicting_context_002, batch_002_0047, batch_003_0048, now batch_006_0048). Template saturation reduces diagnostic value across the benchmark.",
+      "suggested_fix": "Diversify the conflict source. E.g. prior turn what_if(patient_id=4, feature='age', value_change=10) + what_if(patient_id=4, feature='oldpeak', value_change=0.5) followed by 'And if we doubled it?' to make the ambiguous referent be a numeric delta on the same patient across two features."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_006_0039",
+      "warning": "'yeah' with empty conversation_history has no referent — same standalone-acknowledgment pattern flagged on batch_002_0039 ('perfect'), batch_003_0039 ('great'), batch_005_0039 ('sounds good'). Recurring teacher tic that should be diversified.",
+      "suggested_fix": "Add a benign prior turn so 'yeah' has something to acknowledge, e.g. {turn:1, user_input:'How many patients total?', function_calls:['count_patients(count_type=\"total\")']}, or replace the acknowledgment with a self-contained chit-chat phrase."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_006_0036",
+      "warning": "'Why isn't dietary information available in this dataset?' is a meta-question about dataset scope. The assistant can answer it conversationally without tools, which makes it closer to no_tool_needed than to unsupported_intent (which seed reserves for clinically-loaded asks like treatment recommendations).",
+      "suggested_fix": "Either retag scenario='no_tool_needed', expected_behavior='no_call_needed', or replace with an out-of-scope clinical/analytical ask such as 'Generate dietary recommendations for these patients' to keep the unsupported_intent label."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_006_0014",
+      "warning": "'All dataset rows please' is ambiguous: 'rows' suggests full records (no such tool exists; closest would be show_one for each ID), while the intended target is show_ids() (returns only IDs). The mapping is plausible but not unambiguous from the wording alone.",
+      "suggested_fix": "Replace with an unambiguous show_ids paraphrase, e.g. 'List all patient IDs in the dataset' or 'Which IDs are available?'."
+    }
+  ],
+  "recommended_accept_ids": [
+    "heart_teacher_candidate_batch_006_0001",
+    "heart_teacher_candidate_batch_006_0002",
+    "heart_teacher_candidate_batch_006_0003",
+    "heart_teacher_candidate_batch_006_0004",
+    "heart_teacher_candidate_batch_006_0005",
+    "heart_teacher_candidate_batch_006_0006",
+    "heart_teacher_candidate_batch_006_0007",
+    "heart_teacher_candidate_batch_006_0008",
+    "heart_teacher_candidate_batch_006_0009",
+    "heart_teacher_candidate_batch_006_0010",
+    "heart_teacher_candidate_batch_006_0011",
+    "heart_teacher_candidate_batch_006_0012",
+    "heart_teacher_candidate_batch_006_0013",
+    "heart_teacher_candidate_batch_006_0014",
+    "heart_teacher_candidate_batch_006_0015",
+    "heart_teacher_candidate_batch_006_0016",
+    "heart_teacher_candidate_batch_006_0017",
+    "heart_teacher_candidate_batch_006_0018",
+    "heart_teacher_candidate_batch_006_0019",
+    "heart_teacher_candidate_batch_006_0020",
+    "heart_teacher_candidate_batch_006_0021",
+    "heart_teacher_candidate_batch_006_0022",
+    "heart_teacher_candidate_batch_006_0023",
+    "heart_teacher_candidate_batch_006_0024",
+    "heart_teacher_candidate_batch_006_0025",
+    "heart_teacher_candidate_batch_006_0026",
+    "heart_teacher_candidate_batch_006_0027",
+    "heart_teacher_candidate_batch_006_0028",
+    "heart_teacher_candidate_batch_006_0029",
+    "heart_teacher_candidate_batch_006_0030",
+    "heart_teacher_candidate_batch_006_0031",
+    "heart_teacher_candidate_batch_006_0032",
+    "heart_teacher_candidate_batch_006_0033",
+    "heart_teacher_candidate_batch_006_0034",
+    "heart_teacher_candidate_batch_006_0035",
+    "heart_teacher_candidate_batch_006_0036",
+    "heart_teacher_candidate_batch_006_0037",
+    "heart_teacher_candidate_batch_006_0038",
+    "heart_teacher_candidate_batch_006_0039",
+    "heart_teacher_candidate_batch_006_0040",
+    "heart_teacher_candidate_batch_006_0041",
+    "heart_teacher_candidate_batch_006_0042",
+    "heart_teacher_candidate_batch_006_0043",
+    "heart_teacher_candidate_batch_006_0044",
+    "heart_teacher_candidate_batch_006_0045",
+    "heart_teacher_candidate_batch_006_0046",
+    "heart_teacher_candidate_batch_006_0047",
+    "heart_teacher_candidate_batch_006_0048",
+    "heart_teacher_candidate_batch_006_0049",
+    "heart_teacher_candidate_batch_006_0050"
+  ],
+  "recommended_reject_ids": []
+}
