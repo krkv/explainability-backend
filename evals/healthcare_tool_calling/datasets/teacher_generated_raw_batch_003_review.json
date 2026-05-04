@@ -1,0 +1,91 @@
+{
+  "summary": "Reviewed 50 candidate rows in batch 003. JSONL shape, scenarios, expected behaviors, function names, keyword args, feature aliases (e.g. 'max heart rate', 'blood pressure'), categorical labels (e.g. 'No' for exang), numeric deltas, and patient IDs (all within 0-59) are valid throughout. One blocking issue: 0033 'Explain it to me' is too ambiguous to map to define_feature. Several warnings cover an awkward history line (0041), a template near-duplicate of the seed/batch-002 conflicting_context what_if pattern (0048), a standalone acknowledgment without context (0039), and a near-duplicate of an existing seed paraphrase (0001).",
+  "blocking_issues": [
+    {
+      "id": "heart_teacher_candidate_batch_003_0033",
+      "issue": "User input 'Explain it to me' contains no signal that the request is about a feature definition — the pronoun 'it' could refer to a prediction, the model, the dataset, or anything else. Tagging target_tools=['define_feature'] presumes an intent the input does not convey, so the row does not validate the missing-required-argument behavior for define_feature.",
+      "suggested_fix": "Replace with wording that clearly anchors to a feature, e.g. 'Explain this column' or 'What does that variable represent?', mirroring the seed pattern 'Explain this feature'."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "heart_teacher_candidate_batch_003_0041",
+      "warning": "conversation_history turn 1 has user_input='Want me to keep going?', which reads as an assistant prompt rather than a user message. Even though the schema fields are all present, this misrepresents who said what and risks polluting history with assistant-flavored content.",
+      "suggested_fix": "Either drop the prior turn (standalone 'no thanks' is fine as no_call_needed), or replace the prior turn with a real user query plus its function_calls, e.g. {turn:1, user_input:'Predict 8', function_calls:['predict(patient_id=8)']}."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_003_0048",
+      "warning": "Template-level near-duplicate of seed heart_conflicting_context_002 and candidate batch_002_0047: two define_feature calls in history followed by a vague 'what if it / value …' question, target_tools=['what_if']. Three near-identical instances reduces diagnostic value.",
+      "suggested_fix": "Vary the conflict source, e.g. prior turn what_if(patient_id=4, feature='chol', value_change=20) + what_if(patient_id=4, feature='thalch', value_change=10) followed by 'And if we doubled it?' to make the ambiguous referent be a numeric delta rather than a feature."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_003_0039",
+      "warning": "'great' with empty conversation_history has no referent, so the no_call_needed signal is weak — same issue flagged for batch_002_0039 ('perfect').",
+      "suggested_fix": "Add a benign prior turn (e.g. show_ids() or feature_importance_global()) so 'great' has something to acknowledge, or replace with a phrase that stands alone such as 'good morning'."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_003_0001",
+      "warning": "Near-duplicate of seed heart_confusion_matrix_stats_direct_single_turn_002 ('What is the true positive rate?') — same call, similar surface form.",
+      "suggested_fix": "Replace with a paraphrase that exercises a different concept routed to the same function, e.g. 'Break down predictions into TP/FP/TN/FN' or move to scenario='paraphrase_or_alias' with a clearly aliased phrasing."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_003_0035",
+      "warning": "'Have these results been published?' is a meta-question about external publication. It is borderline between unsupported_intent (out-of-scope w.r.t. the model/dataset tools) and no_tool_needed (chit-chat). Either tag is defensible, but the row mixes signals from both buckets.",
+      "suggested_fix": "If keeping unsupported_intent, sharpen toward an out-of-scope analytical ask (e.g. 'Run a t-test on these features'). If switching to no_tool_needed, retag scenario and expected_behavior accordingly."
+    }
+  ],
+  "recommended_accept_ids": [
+    "heart_teacher_candidate_batch_003_0001",
+    "heart_teacher_candidate_batch_003_0002",
+    "heart_teacher_candidate_batch_003_0003",
+    "heart_teacher_candidate_batch_003_0004",
+    "heart_teacher_candidate_batch_003_0005",
+    "heart_teacher_candidate_batch_003_0006",
+    "heart_teacher_candidate_batch_003_0007",
+    "heart_teacher_candidate_batch_003_0008",
+    "heart_teacher_candidate_batch_003_0009",
+    "heart_teacher_candidate_batch_003_0010",
+    "heart_teacher_candidate_batch_003_0011",
+    "heart_teacher_candidate_batch_003_0012",
+    "heart_teacher_candidate_batch_003_0013",
+    "heart_teacher_candidate_batch_003_0014",
+    "heart_teacher_candidate_batch_003_0015",
+    "heart_teacher_candidate_batch_003_0016",
+    "heart_teacher_candidate_batch_003_0017",
+    "heart_teacher_candidate_batch_003_0018",
+    "heart_teacher_candidate_batch_003_0019",
+    "heart_teacher_candidate_batch_003_0020",
+    "heart_teacher_candidate_batch_003_0021",
+    "heart_teacher_candidate_batch_003_0022",
+    "heart_teacher_candidate_batch_003_0023",
+    "heart_teacher_candidate_batch_003_0024",
+    "heart_teacher_candidate_batch_003_0025",
+    "heart_teacher_candidate_batch_003_0026",
+    "heart_teacher_candidate_batch_003_0027",
+    "heart_teacher_candidate_batch_003_0028",
+    "heart_teacher_candidate_batch_003_0029",
+    "heart_teacher_candidate_batch_003_0030",
+    "heart_teacher_candidate_batch_003_0031",
+    "heart_teacher_candidate_batch_003_0032",
+    "heart_teacher_candidate_batch_003_0034",
+    "heart_teacher_candidate_batch_003_0035",
+    "heart_teacher_candidate_batch_003_0036",
+    "heart_teacher_candidate_batch_003_0037",
+    "heart_teacher_candidate_batch_003_0038",
+    "heart_teacher_candidate_batch_003_0039",
+    "heart_teacher_candidate_batch_003_0040",
+    "heart_teacher_candidate_batch_003_0041",
+    "heart_teacher_candidate_batch_003_0042",
+    "heart_teacher_candidate_batch_003_0043",
+    "heart_teacher_candidate_batch_003_0044",
+    "heart_teacher_candidate_batch_003_0045",
+    "heart_teacher_candidate_batch_003_0046",
+    "heart_teacher_candidate_batch_003_0047",
+    "heart_teacher_candidate_batch_003_0048",
+    "heart_teacher_candidate_batch_003_0049",
+    "heart_teacher_candidate_batch_003_0050"
+  ],
+  "recommended_reject_ids": [
+    "heart_teacher_candidate_batch_003_0033"
+  ]
+}
