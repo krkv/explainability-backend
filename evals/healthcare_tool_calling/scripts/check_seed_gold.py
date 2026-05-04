@@ -166,6 +166,7 @@ def validate_dataset(
     function_catalog: Mapping[str, Dict[str, Any]],
     feature_alias_lookup: Optional[Mapping[str, str]] = None,
     *,
+    enforce_coverage: bool = True,
     min_direct_per_tool: int = 2,
     min_cross_tool_cases: int = 2,
 ) -> ValidationResult:
@@ -318,6 +319,28 @@ def validate_dataset(
                     if scenario == "direct_single_turn":
                         direct_counts_by_tool[function_name] += 1
 
+    if enforce_coverage:
+        _validate_coverage(
+            result,
+            function_catalog,
+            required_arg_tools,
+            direct_counts_by_tool,
+            min_direct_per_tool=min_direct_per_tool,
+            min_cross_tool_cases=min_cross_tool_cases,
+        )
+
+    return result
+
+
+def _validate_coverage(
+    result: ValidationResult,
+    function_catalog: Mapping[str, Dict[str, Any]],
+    required_arg_tools: Set[str],
+    direct_counts_by_tool: Counter[str],
+    *,
+    min_direct_per_tool: int,
+    min_cross_tool_cases: int,
+) -> None:
     for function_name in sorted(function_catalog):
         if direct_counts_by_tool[function_name] < min_direct_per_tool:
             result.errors.append(
@@ -359,8 +382,6 @@ def validate_dataset(
                 f"Coverage: scenario '{scenario}' has {result.scenario_counts[scenario]} cases; "
                 f"required minimum is {min_cross_tool_cases}"
             )
-
-    return result
 
 
 def _case_label(row: Mapping[str, Any], index: int) -> str:
@@ -572,25 +593,36 @@ def _matches_schema_type(value: Any, schema: Mapping[str, Any]) -> bool:
     return True
 
 
-def print_report(result: ValidationResult, dataset_path: Path, catalog_path: Path) -> None:
+def print_report(
+    result: ValidationResult,
+    dataset_path: Path,
+    catalog_path: Path,
+    *,
+    show_coverage: bool = True,
+) -> None:
     status = "READY" if result.ready else "NOT READY"
-    print(f"Seed-gold readiness: {status}")
+    if show_coverage:
+        print(f"Seed-gold readiness: {status}")
+    else:
+        validation_status = "VALID" if result.ready else "INVALID"
+        print(f"Dataset validation: {validation_status}")
     print(f"Dataset: {dataset_path}")
     print(f"Function catalog: {catalog_path}")
     print(f"Cases: {result.case_count}")
     print()
 
-    print("Scenario coverage:")
-    for scenario in sorted(SCENARIOS):
-        print(f"  {scenario}: {result.scenario_counts[scenario]}")
-    print()
+    if show_coverage:
+        print("Scenario coverage:")
+        for scenario in sorted(SCENARIOS):
+            print(f"  {scenario}: {result.scenario_counts[scenario]}")
+        print()
 
-    print("Tool coverage:")
-    for tool_name in sorted(result.tool_counts):
-        print(f"  {tool_name}: {result.tool_counts[tool_name]}")
-    if not result.tool_counts:
-        print("  none")
-    print()
+        print("Tool coverage:")
+        for tool_name in sorted(result.tool_counts):
+            print(f"  {tool_name}: {result.tool_counts[tool_name]}")
+        if not result.tool_counts:
+            print("  none")
+        print()
 
     if result.errors:
         print("Blocking issues:")
@@ -639,6 +671,14 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         default=2,
         help="Minimum cases required for each cross-tool stress scenario.",
     )
+    parser.add_argument(
+        "--skip-coverage",
+        action="store_true",
+        help=(
+            "Validate JSONL shape, function names, and arguments only. "
+            "Do not enforce or print seed-gold coverage requirements."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -655,11 +695,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             rows,
             catalog,
             feature_alias_lookup,
+            enforce_coverage=not args.skip_coverage,
             min_direct_per_tool=args.min_direct_per_tool,
             min_cross_tool_cases=args.min_cross_tool_cases,
         )
 
-    print_report(result, args.dataset, args.catalog)
+    print_report(result, args.dataset, args.catalog, show_coverage=not args.skip_coverage)
     return 0 if result.ready else 1
 
 

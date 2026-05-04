@@ -135,6 +135,20 @@ python3 evals/healthcare_tool_calling/scripts/check_seed_gold.py \
   --catalog instances/heart/functions.json
 ```
 
+For teacher-generated batches, use the same checker without seed coverage
+requirements:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/check_seed_gold.py \
+  --dataset evals/healthcare_tool_calling/datasets/teacher_generated_batch_003.jsonl \
+  --skip-coverage
+```
+
+`--skip-coverage` validates JSONL structure, allowed fields, function names,
+argument names, argument types, feature aliases, and conversation-history call
+shape. It does not enforce or print seed-gold coverage targets, because a single
+teacher batch is not expected to satisfy the full manual seed contract.
+
 ## Case Shape
 
 Each dataset row should be a JSON object stored as one line in a JSONL file.
