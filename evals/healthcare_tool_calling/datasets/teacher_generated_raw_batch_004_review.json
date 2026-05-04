@@ -1,0 +1,81 @@
+{
+  "summary": "Reviewed 50 candidate rows in batch 004. JSONL shape, scenarios, expected behaviors, function names, keyword args, feature aliases (e.g. 'patient age', 'cholesterol'), categorical labels (e.g. 'Typical angina'), numeric deltas, and patient IDs (all within 0-59) are valid throughout. One blocking issue: 0031 'Which features were the most important?' is essentially identical to the seed direct_single_turn examples that map to feature_importance_global(); tagging it as a missing-arg case for feature_importance_patient is incorrect (same defect previously flagged in batch_001_0030). Warnings cover an alias-convention slip in 0049 (uses internal 'trestbps' rather than the user-facing 'resting blood pressure'), and two scenario-tag judgment calls (0035 reads as off-topic chit-chat, 0040 is ambiguous between a meta acknowledgment and a question about model confidence).",
+  "blocking_issues": [
+    {
+      "id": "heart_teacher_candidate_batch_004_0031",
+      "issue": "User input 'Which features were the most important?' has no patient anchor and is the same shape as seed direct_single_turn examples that map to feature_importance_global() ('What features are most important?', 'What feature contributed most'). Labeling it as missing-required-argument for feature_importance_patient is wrong: a correct model would issue feature_importance_global(), not ask for clarification. This is the same issue flagged on batch_001_0030.",
+      "suggested_fix": "Either (a) reclassify as scenario='direct_single_turn', expected_behavior='tool_call', expected_function_calls=['feature_importance_global()'], removing target_tools; or (b) keep the missing-arg intent but anchor to a single (unspecified) patient, e.g. 'Which features were the most important for that patient?' with target_tools=['feature_importance_patient']."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "heart_teacher_candidate_batch_004_0049",
+      "warning": "User said 'resting blood pressure' but the call uses the internal code 'trestbps'. Seed convention is to pass the alias closest to the user's wording (e.g. 'chest pain' for cp, 'exercise angina' for exang) rather than the internal feature key.",
+      "suggested_fix": "Replace with define_feature(feature='Resting Blood Pressure') (display name, in enum) or define_feature(feature='resting bp')/'blood pressure' (aliases). All three are user-aligned per feature_metadata.json."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_004_0035",
+      "warning": "'Tell me a joke about heart disease' is off-topic chit-chat that fits no_tool_needed more naturally than unsupported_intent (which seed reserves for clinically-loaded asks like treatment recommendations).",
+      "suggested_fix": "Either retag scenario='no_tool_needed', expected_behavior='no_call_needed', or replace with an out-of-scope dataset/model ask such as 'Run a Cox regression on these features' to keep unsupported_intent."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_004_0040",
+      "warning": "'are you certain?' after a performance_metrics() call is ambiguous: it could be a chit-chat acknowledgment (no_call_needed) or a follow-up that justifies revisiting model performance (e.g. another performance_metrics or confusion_matrix_stats call).",
+      "suggested_fix": "Sharpen the meta-acknowledgment reading, e.g. 'thanks, that's helpful' or 'good to know', to avoid the confidence-question interpretation."
+    }
+  ],
+  "recommended_accept_ids": [
+    "heart_teacher_candidate_batch_004_0001",
+    "heart_teacher_candidate_batch_004_0002",
+    "heart_teacher_candidate_batch_004_0003",
+    "heart_teacher_candidate_batch_004_0004",
+    "heart_teacher_candidate_batch_004_0005",
+    "heart_teacher_candidate_batch_004_0006",
+    "heart_teacher_candidate_batch_004_0007",
+    "heart_teacher_candidate_batch_004_0008",
+    "heart_teacher_candidate_batch_004_0009",
+    "heart_teacher_candidate_batch_004_0010",
+    "heart_teacher_candidate_batch_004_0011",
+    "heart_teacher_candidate_batch_004_0012",
+    "heart_teacher_candidate_batch_004_0013",
+    "heart_teacher_candidate_batch_004_0014",
+    "heart_teacher_candidate_batch_004_0015",
+    "heart_teacher_candidate_batch_004_0016",
+    "heart_teacher_candidate_batch_004_0017",
+    "heart_teacher_candidate_batch_004_0018",
+    "heart_teacher_candidate_batch_004_0019",
+    "heart_teacher_candidate_batch_004_0020",
+    "heart_teacher_candidate_batch_004_0021",
+    "heart_teacher_candidate_batch_004_0022",
+    "heart_teacher_candidate_batch_004_0023",
+    "heart_teacher_candidate_batch_004_0024",
+    "heart_teacher_candidate_batch_004_0025",
+    "heart_teacher_candidate_batch_004_0026",
+    "heart_teacher_candidate_batch_004_0027",
+    "heart_teacher_candidate_batch_004_0028",
+    "heart_teacher_candidate_batch_004_0029",
+    "heart_teacher_candidate_batch_004_0030",
+    "heart_teacher_candidate_batch_004_0032",
+    "heart_teacher_candidate_batch_004_0033",
+    "heart_teacher_candidate_batch_004_0034",
+    "heart_teacher_candidate_batch_004_0035",
+    "heart_teacher_candidate_batch_004_0036",
+    "heart_teacher_candidate_batch_004_0037",
+    "heart_teacher_candidate_batch_004_0038",
+    "heart_teacher_candidate_batch_004_0039",
+    "heart_teacher_candidate_batch_004_0040",
+    "heart_teacher_candidate_batch_004_0041",
+    "heart_teacher_candidate_batch_004_0042",
+    "heart_teacher_candidate_batch_004_0043",
+    "heart_teacher_candidate_batch_004_0044",
+    "heart_teacher_candidate_batch_004_0045",
+    "heart_teacher_candidate_batch_004_0046",
+    "heart_teacher_candidate_batch_004_0047",
+    "heart_teacher_candidate_batch_004_0048",
+    "heart_teacher_candidate_batch_004_0049",
+    "heart_teacher_candidate_batch_004_0050"
+  ],
+  "recommended_reject_ids": [
+    "heart_teacher_candidate_batch_004_0031"
+  ]
+}
