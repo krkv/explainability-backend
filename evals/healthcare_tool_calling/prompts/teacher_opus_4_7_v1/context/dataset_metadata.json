@@ -1,0 +1,6 @@
+{
+  "name": "UCI Heart Disease Cleveland",
+  "description": "Structured patient records from the published UCI Cleveland heart disease dataset used to evaluate a binary heart disease prediction model.",
+  "source": "UCI Machine Learning Repository Heart Disease dataset (Cleveland subset)",
+  "instance_unit": "patient"
+}

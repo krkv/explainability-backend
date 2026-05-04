@@ -1,0 +1,265 @@
+{
+  "age": {
+    "display_name": "Age",
+    "description": "Age of the patient in years.",
+    "unit": "years",
+    "kind": "continuous",
+    "aliases": [
+      "patient age"
+    ],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "sex": {
+    "display_name": "Sex",
+    "description": "Sex of the patient.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [
+      "gender"
+    ],
+    "categories": {
+      "0": {
+        "label": "Female"
+      },
+      "1": {
+        "label": "Male"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "cp": {
+    "display_name": "Chest Pain Type",
+    "description": "Chest pain type from the published Cleveland processed dataset.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [
+      "chest pain"
+    ],
+    "categories": {
+      "1": {
+        "label": "Typical angina"
+      },
+      "2": {
+        "label": "Atypical angina"
+      },
+      "3": {
+        "label": "Non-anginal pain"
+      },
+      "4": {
+        "label": "Asymptomatic"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "trestbps": {
+    "display_name": "Resting Blood Pressure",
+    "description": "Resting blood pressure on admission to the hospital.",
+    "unit": "mm Hg",
+    "kind": "continuous",
+    "aliases": [
+      "blood pressure",
+      "resting bp"
+    ],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "chol": {
+    "display_name": "Serum Cholesterol",
+    "description": "Serum cholesterol level.",
+    "unit": "mg/dl",
+    "kind": "continuous",
+    "aliases": [
+      "cholesterol"
+    ],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "fbs": {
+    "display_name": "Fasting Blood Sugar > 120 mg/dl",
+    "description": "Whether fasting blood sugar is greater than 120 mg/dl.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [
+      "fasting blood sugar"
+    ],
+    "categories": {
+      "0": {
+        "label": "No"
+      },
+      "1": {
+        "label": "Yes"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "restecg": {
+    "display_name": "Resting ECG",
+    "description": "Resting electrocardiographic result.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [
+      "ecg",
+      "rest ecg"
+    ],
+    "categories": {
+      "0": {
+        "label": "Normal"
+      },
+      "1": {
+        "label": "ST-T wave abnormality"
+      },
+      "2": {
+        "label": "Left ventricular hypertrophy"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "thalch": {
+    "display_name": "Maximum Heart Rate",
+    "description": "Maximum heart rate achieved during exercise.",
+    "unit": "bpm",
+    "kind": "continuous",
+    "aliases": [
+      "max heart rate"
+    ],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "exang": {
+    "display_name": "Exercise Induced Angina",
+    "description": "Whether exercise induced angina is present.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [
+      "exercise angina"
+    ],
+    "categories": {
+      "0": {
+        "label": "No"
+      },
+      "1": {
+        "label": "Yes"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "oldpeak": {
+    "display_name": "Oldpeak",
+    "description": "ST depression induced by exercise relative to rest.",
+    "unit": null,
+    "kind": "continuous",
+    "aliases": [
+      "st depression"
+    ],
+    "categories": {},
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "slope": {
+    "display_name": "ST Segment Slope",
+    "description": "Slope of the peak exercise ST segment.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {
+      "1": {
+        "label": "Upsloping"
+      },
+      "2": {
+        "label": "Flat"
+      },
+      "3": {
+        "label": "Downsloping"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "ca": {
+    "display_name": "Major Vessels",
+    "description": "Number of major vessels colored by fluoroscopy.",
+    "unit": "count",
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {
+      "0": {
+        "label": "0 vessels"
+      },
+      "1": {
+        "label": "1 vessel"
+      },
+      "2": {
+        "label": "2 vessels"
+      },
+      "3": {
+        "label": "3 vessels"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "thal": {
+    "display_name": "Thalassemia",
+    "description": "Thalassemia status in the published Cleveland processed dataset.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [],
+    "categories": {
+      "3": {
+        "label": "Normal"
+      },
+      "6": {
+        "label": "Fixed defect"
+      },
+      "7": {
+        "label": "Reversible defect"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  },
+  "num": {
+    "display_name": "Heart Disease",
+    "description": "Binary heart disease target derived from the original UCI diagnosis label.",
+    "unit": null,
+    "kind": "categorical",
+    "aliases": [
+      "target",
+      "heart disease"
+    ],
+    "categories": {
+      "0": {
+        "label": "No heart disease"
+      },
+      "1": {
+        "label": "Heart disease present"
+      }
+    },
+    "transform": {
+      "type": "identity"
+    }
+  }
+}

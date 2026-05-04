@@ -1,0 +1,357 @@
+[
+    {
+        "type": "function",
+        "function": {
+            "name": "available_functions",
+            "description": "Get a formatted list of all available heart use case functions."
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "age_group_performance",
+            "description": "Return performance metrics for different age groups in the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "count_patients",
+            "description": "Count patients in the heart dataset. Can be used to see how many patients there are in total, how many patients are predicted to have heart disease, or how many patients are predicted to not have heart disease.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "count_type": {
+                        "type": "string",
+                        "description": "Which patient count to return. Use \"total\" for all patients in the dataset, \"positive_predicted\" for patients the model predicts as heart disease present, or \"negative_predicted\" for patients the model predicts as no heart disease.",
+                        "enum": [
+                            "total",
+                            "positive_predicted",
+                            "negative_predicted"
+                        ],
+                        "default": "total"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_ids",
+            "description": "Show the IDs of all data samples in the dataset. Can be used to list IDs of all data samples in the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_one",
+            "description": "Show a data sample identified by an ID. Presents the original data points. Can be used to display a sample from the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The id of the single data sample requested"
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "confusion_matrix_stats",
+            "description": "Return the confusion matrix for the model predictions, including true positives, false positives, etc.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "counterfactual",
+            "description": "Generate counterfactual examples for a patient that flip the prediction to a desired class.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient to explain."
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dataset_summary",
+            "description": "Return one table with overall dataset statistics for each feature, similar to a dataset describe view, and optionally include one patient's feature values.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "Optional. ID (row index) of the patient to show alongside the overall dataset statistics."
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "define_feature",
+            "description": "Return the definition of a dataset feature from metadata, including description, unit, aliases, and categorical options.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "feature": {
+                        "type": "string",
+                        "description": "Feature to define. Choose one of the supported heart dataset features from this enum.",
+                        "enum": [
+                            "age",
+                            "Age",
+                            "sex",
+                            "Sex",
+                            "cp",
+                            "Chest Pain Type",
+                            "trestbps",
+                            "Resting Blood Pressure",
+                            "chol",
+                            "Serum Cholesterol",
+                            "fbs",
+                            "Fasting Blood Sugar > 120 mg/dl",
+                            "restecg",
+                            "Resting ECG",
+                            "thalch",
+                            "Maximum Heart Rate",
+                            "exang",
+                            "Exercise Induced Angina",
+                            "oldpeak",
+                            "Oldpeak",
+                            "slope",
+                            "ST Segment Slope",
+                            "ca",
+                            "Major Vessels",
+                            "thal",
+                            "Thalassemia",
+                            "num",
+                            "Heart Disease"
+                        ]
+                    }
+                },
+                "required": [
+                    "feature"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "feature_importance_patient",
+            "description": "Compute SHAP-based feature importance for a specific patient.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "Required ID of the patient to compute feature importance for."
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "feature_importance_global",
+            "description": "Compute SHAP-based feature importance globally for the entire dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "feature_interactions",
+            "description": "Return the top correlated feature pairs in the dataset.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_dataset_description",
+            "description": "Return a concise description of the dataset, including metadata, dataset size, number of features, target variable, and class balance in the loaded split.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_model_description",
+            "description": "Returns a general description of the model architecture and its purpose.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_model_parameters",
+            "description": "Returns the exact training hyperparameters of the model such as max_depth, criterion, and others.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "misclassified_cases",
+            "description": "Return statistics about misclassified samples and their common feature patterns.",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "performance_metrics",
+            "description": "Returns selected performance metrics such as model accuracy precision, recall, F1-score, and AUC-ROC. If no parameters are provided, returns all available metrics.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "accuracy",
+                                "precision",
+                                "recall",
+                                "f1_score",
+                                "auc_roc"
+                            ]
+                        },
+                        "description": "List of metrics to return. Available options: accuracy, precision, recall, f1_score, auc_roc."
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "prediction_outcome_patient",
+            "description": "Compare the model prediction for a patient with the known actual class and report whether it was correct, including TP/TN/FP/FN outcome.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient whose prediction outcome should be checked."
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "predict",
+            "description": "Predict the class and probability scores for a specific patient using their ID.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient to predict."
+                    }
+                },
+                "required": [
+                    "patient_id"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "what_if",
+            "description": "Simulate how changing a specific feature value would affect the prediction for a patient.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "patient_id": {
+                        "type": "integer",
+                        "description": "The ID of the patient to simulate."
+                    },
+                    "feature": {
+                        "type": "string",
+                        "description": "The feature to modify. You may use the internal feature name, display name, or a user-facing alias such as \"Chest Pain Type\" or \"chest pain\"."
+                    },
+                    "value_change": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ],
+                        "description": "For continuous features, the numeric value to add or subtract. For categorical features, the desired category label or code as a string, for example \"Typical angina\" or \"1\"."
+                    }
+                },
+                "required": [
+                    "patient_id",
+                    "feature",
+                    "value_change"
+                ]
+            }
+        }
+    }
+]
