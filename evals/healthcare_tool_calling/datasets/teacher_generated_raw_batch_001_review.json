@@ -1,0 +1,101 @@
+{
+  "summary": "Reviewed 50 candidate rows. JSONL shape, scenario, expected_behavior, function names, keyword args, feature aliases, categorical labels, and patient IDs (all within 0-59) are valid across the batch. One blocking label-mismatch issue (0030 maps to feature_importance_global, not a missing-arg case for feature_importance_patient). Several warnings cover near-duplicate seed templates (0001, 0011, 0043, 0046, 0047), an ambiguous user input (0015), and a scenario-tag mismatch (0048 fits missing_required_argument rather than conflicting_context). 49 of 50 rows are acceptable; 1 should be reworked before inclusion.",
+  "blocking_issues": [
+    {
+      "id": "heart_teacher_candidate_batch_001_0030",
+      "issue": "User input 'What features mattered most?' has no patient context and naturally maps to feature_importance_global(); labeling it as a missing-required-argument case for feature_importance_patient is incorrect. A correct model would issue feature_importance_global() rather than ask to clarify a patient ID.",
+      "suggested_fix": "Either (a) reclassify as scenario='direct_single_turn', expected_behavior='tool_call', expected_function_calls=['feature_importance_global()'], removing target_tools; or (b) keep the missing_required_argument intent but rephrase the user input to anchor it to a single patient with the ID elided, e.g., 'Which features mattered most for that patient?' (still no_call_clarify, target_tools=['feature_importance_patient'])."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "heart_teacher_candidate_batch_001_0001",
+      "warning": "Near-duplicate of seed heart_count_patients_direct_single_turn_001 ('How many in the dataset') — same call count_patients(count_type='total'), trivial paraphrase, low diagnostic value.",
+      "suggested_fix": "Replace with a less generic phrasing that still maps to count_type='total', e.g., 'How big is the cohort?' or 'How many records do we have in total?'."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_001_0011",
+      "warning": "Near-duplicate of seed heart_count_patients_paraphrase_or_alias_001 ('How many are healthy?') — same negative_predicted call, very similar paraphrase pattern.",
+      "suggested_fix": "Swap with a phrasing that exercises a different alias, e.g., 'How many were predicted negative for heart disease?' or move to a multi_tool_request combining positive and negative counts (which 0044 already covers — drop this row)."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_001_0015",
+      "warning": "User input 'List the available cases' is ambiguous: 'available' suggests available_functions(), while 'cases' suggests show_ids(). The intended mapping to show_ids() is not unambiguous from the wording alone.",
+      "suggested_fix": "Replace with an unambiguous show_ids paraphrase, e.g., 'List all patient IDs' or 'Which patient IDs are in the dataset?'."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_001_0043",
+      "warning": "Near-duplicate of seed heart_irrelevant_context_002 prior turn ('Tell me about the model and the data' → get_dataset_description()+get_model_description()). Same two-call pattern, almost identical wording.",
+      "suggested_fix": "Vary either the calls or the surface form, e.g., 'Give me both the dataset description and the model parameters' → [get_dataset_description(), get_model_parameters()]."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_001_0046",
+      "warning": "Template near-duplicate of seed heart_conflicting_context_001 ('Why is he predicted positive?' with two show_one calls, target_tools=['feature_importance_patient']). Only the IDs and tense differ.",
+      "suggested_fix": "Vary the prior-turn calls, e.g., use predict(patient_id=4)+predict(patient_id=18) in history, or change the ambiguous referent to a different tool target (e.g., counterfactual)."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_001_0047",
+      "warning": "Template near-duplicate of seed heart_conflicting_context_002 ('What if the value was lower?' with two define_feature calls, target_tools=['what_if']). Same structure, slightly reworded user input and different feature names.",
+      "suggested_fix": "Diversify the conflicting setup, e.g., prior turn show_one(patient_id=22) followed by show_one(patient_id=8), then 'What if their cholesterol was lower?' — keeps target_tools=['what_if'] but introduces patient-level ambiguity instead of feature-level."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_001_0048",
+      "warning": "Scenario tag is 'conflicting_context' but the prior turn (feature_importance_global) supplies no candidate patient at all — this is closer to a missing_required_argument case than conflicting context (where multiple candidate entities compete).",
+      "suggested_fix": "Either retag as scenario='missing_required_argument' (keep target_tools=['counterfactual'], expected_behavior='no_call_clarify'), or rewrite the prior turn so it actually introduces multiple competing patient IDs, e.g., predict(patient_id=4)+predict(patient_id=11)."
+    }
+  ],
+  "recommended_accept_ids": [
+    "heart_teacher_candidate_batch_001_0001",
+    "heart_teacher_candidate_batch_001_0002",
+    "heart_teacher_candidate_batch_001_0003",
+    "heart_teacher_candidate_batch_001_0004",
+    "heart_teacher_candidate_batch_001_0005",
+    "heart_teacher_candidate_batch_001_0006",
+    "heart_teacher_candidate_batch_001_0007",
+    "heart_teacher_candidate_batch_001_0008",
+    "heart_teacher_candidate_batch_001_0009",
+    "heart_teacher_candidate_batch_001_0010",
+    "heart_teacher_candidate_batch_001_0011",
+    "heart_teacher_candidate_batch_001_0012",
+    "heart_teacher_candidate_batch_001_0013",
+    "heart_teacher_candidate_batch_001_0014",
+    "heart_teacher_candidate_batch_001_0015",
+    "heart_teacher_candidate_batch_001_0016",
+    "heart_teacher_candidate_batch_001_0017",
+    "heart_teacher_candidate_batch_001_0018",
+    "heart_teacher_candidate_batch_001_0019",
+    "heart_teacher_candidate_batch_001_0020",
+    "heart_teacher_candidate_batch_001_0021",
+    "heart_teacher_candidate_batch_001_0022",
+    "heart_teacher_candidate_batch_001_0023",
+    "heart_teacher_candidate_batch_001_0024",
+    "heart_teacher_candidate_batch_001_0025",
+    "heart_teacher_candidate_batch_001_0026",
+    "heart_teacher_candidate_batch_001_0027",
+    "heart_teacher_candidate_batch_001_0028",
+    "heart_teacher_candidate_batch_001_0029",
+    "heart_teacher_candidate_batch_001_0031",
+    "heart_teacher_candidate_batch_001_0032",
+    "heart_teacher_candidate_batch_001_0033",
+    "heart_teacher_candidate_batch_001_0034",
+    "heart_teacher_candidate_batch_001_0035",
+    "heart_teacher_candidate_batch_001_0036",
+    "heart_teacher_candidate_batch_001_0037",
+    "heart_teacher_candidate_batch_001_0038",
+    "heart_teacher_candidate_batch_001_0039",
+    "heart_teacher_candidate_batch_001_0040",
+    "heart_teacher_candidate_batch_001_0041",
+    "heart_teacher_candidate_batch_001_0042",
+    "heart_teacher_candidate_batch_001_0043",
+    "heart_teacher_candidate_batch_001_0044",
+    "heart_teacher_candidate_batch_001_0045",
+    "heart_teacher_candidate_batch_001_0046",
+    "heart_teacher_candidate_batch_001_0047",
+    "heart_teacher_candidate_batch_001_0048",
+    "heart_teacher_candidate_batch_001_0049",
+    "heart_teacher_candidate_batch_001_0050"
+  ],
+  "recommended_reject_ids": [
+    "heart_teacher_candidate_batch_001_0030"
+  ]
+}

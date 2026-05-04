@@ -22,7 +22,7 @@ Use these attached files as the complete review context:
 4. `seed_gold.jsonl`
    - The reviewed manual seed dataset and annotation style reference.
 
-5. `teacher_generated_raw.jsonl`
+5. `teacher_generated_raw_batch_001.jsonl`
    - The candidate rows to review.
 
 Do not assume repository code or hidden variables.
@@ -53,7 +53,21 @@ Check every candidate row for:
 
 ## Output Format
 
-Output a JSON object with exactly these top-level keys:
+Create a file named:
+
+```text
+teacher_generated_raw_batch_001_review.json
+```
+
+Write the review result into that file as one JSON object. If your interface
+does not support file creation, output only the JSON object so the user can save
+it under that filename.
+
+For later review batches, the user may change `001` to `002`, `003`, and so on
+before running the prompt. Use the same batch number as the candidate JSONL file
+being reviewed.
+
+The JSON object must have exactly these top-level keys:
 
 ```json
 {

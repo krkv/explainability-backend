@@ -39,14 +39,25 @@ Use patient IDs from `0` through `59` when a row needs a valid patient ID.
 
 ## Output Format
 
-Output exactly 50 JSONL rows.
+Create a file named:
+
+```text
+teacher_generated_raw_batch_001.jsonl
+```
+
+Write exactly 50 JSONL rows into that file. If your interface does not support
+file creation, output only the file contents as plain JSONL so the user can save
+it under that filename.
+
+For later generation batches, the user may change `001` to `002`, `003`, and so
+on before running the prompt. Use the same batch number in generated row IDs.
 
 Each output line must be one compact JSON object. Do not pretty-print multi-line JSON. Do not wrap output in Markdown fences. Do not include commentary before or after the JSONL.
 
 Every row must have exactly these fields unless `target_tools` is needed:
 
 ```json
-{"id":"heart_teacher_candidate_0001","usecase":"heart","scenario":"direct_single_turn","user_input":"Predict patient 42","conversation_history":[],"expected_behavior":"tool_call","expected_function_calls":["predict(patient_id=42)"]}
+{"id":"heart_teacher_candidate_batch_001_0001","usecase":"heart","scenario":"direct_single_turn","user_input":"Predict patient 42","conversation_history":[],"expected_behavior":"tool_call","expected_function_calls":["predict(patient_id=42)"]}
 ```
 
 Allowed fields:
@@ -234,4 +245,3 @@ Avoid near-duplicates of the attached `seed_gold.jsonl`. Do not copy seed rows w
 A row is good only if a careful human reviewer can agree that the expected function call set follows from the user input and compact history.
 
 Do not generate intentionally invalid function calls. Do not invent functions. Do not invent unsupported feature names. Do not hallucinate unsupported patient IDs. Do not produce rows where the right answer depends on information not present in the row or attached files.
-

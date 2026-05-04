@@ -48,11 +48,10 @@ This keeps generated data traceable to the exact prompt and context used.
 SHA-256 checksums for this prompt pack:
 
 ```text
-511cf49c19e66cf8c128b7b04b537d65dffa3d35fd3ca96a72b1d5c6fbc34da2  generation_prompt.md
-88e87c93528b49b18e3c1456b37fd7b25d872319d0ff3fe23fffec133da61693  review_prompt.md
+c89d4b5d8226d7a5bf6356527880d090dda3a17c831f25fe66396d186dae72cd  generation_prompt.md
+3ea520fdd911855ddbdf6fcc38109171043f655ec3cf1f7f3697963a4186ea4c  review_prompt.md
 c72fdb7bbfcb6f3b8dc432cb86abff8d37cc96c25805b32397413f14b25045a7  context/functions.json
 998b7f9354ec00ef9eecf10b8da7cf933b79cba7a79100fbbf0f1ab11438db9f  context/feature_metadata.json
 9e786d945083e6db8120566c631f9425b1093cc3641c22b4ec224f0f33d8885d  context/dataset_metadata.json
 3b40bfbf01f70101ce4942e3a3494ad32649848f7c054f007ab10ad554573f76  context/seed_gold.jsonl
 ```
-
