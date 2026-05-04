@@ -1,0 +1,91 @@
+{
+  "summary": "Reviewed 50 candidate rows in batch 005. JSONL shape, scenarios, expected behaviors, function names, keyword args, feature aliases (e.g. 'chest pain', 'fasting blood sugar', 'cholesterol'), categorical labels (e.g. 'No', 'Non-anginal pain', 'Male'), numeric deltas including a decimal oldpeak (-1.5), and patient IDs (all within 0-59) are valid throughout. One blocking issue: 0033 'What is this' is too ambiguous to anchor target_tools=['define_feature']. Warnings cover a multi_tool_request scenario mismatch (0043), two conflicting_context template repeats (0046, 0048), a very close near-duplicate of a seed paraphrase (0009), and the recurring no-history 'sounds good' acknowledgment pattern (0039).",
+  "blocking_issues": [
+    {
+      "id": "heart_teacher_candidate_batch_005_0033",
+      "issue": "User input 'What is this' has no signal that the request is about a feature definition — 'this' could refer to the dataset, the model, a prediction, or any UI element. Tagging target_tools=['define_feature'] presumes intent the input does not convey, so the row does not validate the missing-required-argument behavior for define_feature. Same defect previously flagged on batch_003_0033 ('Explain it to me').",
+      "suggested_fix": "Replace with wording that anchors to a feature, e.g. 'What does this column represent?' or 'Tell me about this variable', mirroring the seed pattern 'Explain this feature'."
+    }
+  ],
+  "warnings": [
+    {
+      "id": "heart_teacher_candidate_batch_005_0043",
+      "warning": "Tagged as multi_tool_request but expected_function_calls contains a single performance_metrics(...) call with three metrics in one list. Seed multi_tool_request rows always emit two or more distinct function calls. Same defect as batch_002_0042.",
+      "suggested_fix": "Either retag as scenario='paraphrase_or_alias' (single call returning the metrics), or rewrite to genuinely require multiple calls, e.g. 'Show me the AUC and the misclassified case patterns' → [performance_metrics(metrics=['auc_roc']), misclassified_cases()]."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_005_0046",
+      "warning": "Template-level near-duplicate of batch_002_0046 ('Predict him' with two show_one calls in history, target_tools=['predict']). Three near-identical conflicting_context predict-rows across batches dilutes diagnostic value.",
+      "suggested_fix": "Vary the prior turn or the ambiguous tool, e.g. prior turn predict(patient_id=9)+predict(patient_id=27) followed by 'Now flip his prediction' → target_tools=['counterfactual']."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_005_0048",
+      "warning": "Template-level near-duplicate of batch_003_0046 ('Show their data' with two predict calls in history, target_tools=['show_one'] / similar). Repeats the show_one ambiguous-pronoun pattern without adding a new failure mode.",
+      "suggested_fix": "Use a different tool target or prior shape, e.g. prior turn what_if(patient_id=4, feature='chol', value_change=-30)+what_if(patient_id=17, feature='trestbps', value_change=20) followed by 'Was that the right call?' → target_tools=['prediction_outcome_patient']."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_005_0009",
+      "warning": "Very close paraphrase of seed heart_count_patients_direct_single_turn_001 ('How many in the dataset') — same call count_patients(count_type='total'), trivial wording delta.",
+      "suggested_fix": "Replace with a more distinct phrasing that exercises a different cue, e.g. 'How many records do we have?' or move to scenario='paraphrase_or_alias' with a less seed-shaped surface form."
+    },
+    {
+      "id": "heart_teacher_candidate_batch_005_0039",
+      "warning": "'sounds good' with empty conversation_history has no referent — same standalone-acknowledgment pattern flagged on batch_002_0039 ('perfect') and batch_003_0039 ('great'). Recurring teacher tic worth diversifying.",
+      "suggested_fix": "Add a benign prior turn (e.g. count_patients(count_type='total')) so 'sounds good' has something to acknowledge, or replace with a phrase that stands alone such as 'good morning'."
+    }
+  ],
+  "recommended_accept_ids": [
+    "heart_teacher_candidate_batch_005_0001",
+    "heart_teacher_candidate_batch_005_0002",
+    "heart_teacher_candidate_batch_005_0003",
+    "heart_teacher_candidate_batch_005_0004",
+    "heart_teacher_candidate_batch_005_0005",
+    "heart_teacher_candidate_batch_005_0006",
+    "heart_teacher_candidate_batch_005_0007",
+    "heart_teacher_candidate_batch_005_0008",
+    "heart_teacher_candidate_batch_005_0009",
+    "heart_teacher_candidate_batch_005_0010",
+    "heart_teacher_candidate_batch_005_0011",
+    "heart_teacher_candidate_batch_005_0012",
+    "heart_teacher_candidate_batch_005_0013",
+    "heart_teacher_candidate_batch_005_0014",
+    "heart_teacher_candidate_batch_005_0015",
+    "heart_teacher_candidate_batch_005_0016",
+    "heart_teacher_candidate_batch_005_0017",
+    "heart_teacher_candidate_batch_005_0018",
+    "heart_teacher_candidate_batch_005_0019",
+    "heart_teacher_candidate_batch_005_0020",
+    "heart_teacher_candidate_batch_005_0021",
+    "heart_teacher_candidate_batch_005_0022",
+    "heart_teacher_candidate_batch_005_0023",
+    "heart_teacher_candidate_batch_005_0024",
+    "heart_teacher_candidate_batch_005_0025",
+    "heart_teacher_candidate_batch_005_0026",
+    "heart_teacher_candidate_batch_005_0027",
+    "heart_teacher_candidate_batch_005_0028",
+    "heart_teacher_candidate_batch_005_0029",
+    "heart_teacher_candidate_batch_005_0030",
+    "heart_teacher_candidate_batch_005_0031",
+    "heart_teacher_candidate_batch_005_0032",
+    "heart_teacher_candidate_batch_005_0034",
+    "heart_teacher_candidate_batch_005_0035",
+    "heart_teacher_candidate_batch_005_0036",
+    "heart_teacher_candidate_batch_005_0037",
+    "heart_teacher_candidate_batch_005_0038",
+    "heart_teacher_candidate_batch_005_0039",
+    "heart_teacher_candidate_batch_005_0040",
+    "heart_teacher_candidate_batch_005_0041",
+    "heart_teacher_candidate_batch_005_0042",
+    "heart_teacher_candidate_batch_005_0043",
+    "heart_teacher_candidate_batch_005_0044",
+    "heart_teacher_candidate_batch_005_0045",
+    "heart_teacher_candidate_batch_005_0046",
+    "heart_teacher_candidate_batch_005_0047",
+    "heart_teacher_candidate_batch_005_0048",
+    "heart_teacher_candidate_batch_005_0049",
+    "heart_teacher_candidate_batch_005_0050"
+  ],
+  "recommended_reject_ids": [
+    "heart_teacher_candidate_batch_005_0033"
+  ]
+}
