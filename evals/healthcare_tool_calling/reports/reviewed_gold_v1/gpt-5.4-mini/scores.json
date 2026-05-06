@@ -1,0 +1,273 @@
+{
+  "by_scenario": {
+    "conflicting_context": {
+      "cases": 15,
+      "intent_accuracy": 0.6,
+      "joint_goal_accuracy": 0.6,
+      "overcall_rate": 0.4,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "direct_single_turn": {
+      "cases": 98,
+      "intent_accuracy": 0.8877551020408163,
+      "joint_goal_accuracy": 0.8877551020408163,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.01020408163265306
+    },
+    "entity_switch_or_correction": {
+      "cases": 38,
+      "intent_accuracy": 0.9736842105263158,
+      "joint_goal_accuracy": 0.8947368421052632,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.02631578947368421
+    },
+    "irrelevant_context": {
+      "cases": 14,
+      "intent_accuracy": 0.9285714285714286,
+      "joint_goal_accuracy": 0.9285714285714286,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "missing_required_argument": {
+      "cases": 34,
+      "intent_accuracy": 0.5294117647058824,
+      "joint_goal_accuracy": 0.5,
+      "overcall_rate": 0.5,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "multi_tool_request": {
+      "cases": 25,
+      "intent_accuracy": 0.84,
+      "joint_goal_accuracy": 0.84,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "no_tool_needed": {
+      "cases": 23,
+      "intent_accuracy": 0.9130434782608695,
+      "joint_goal_accuracy": 0.9130434782608695,
+      "overcall_rate": 0.08695652173913043,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "parameter_carryover": {
+      "cases": 38,
+      "intent_accuracy": 0.6052631578947368,
+      "joint_goal_accuracy": 0.6052631578947368,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.2631578947368421
+    },
+    "paraphrase_or_alias": {
+      "cases": 33,
+      "intent_accuracy": 0.8181818181818182,
+      "joint_goal_accuracy": 0.8181818181818182,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.030303030303030304
+    },
+    "unsupported_intent": {
+      "cases": 25,
+      "intent_accuracy": 0.76,
+      "joint_goal_accuracy": 0.76,
+      "overcall_rate": 0.24,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    }
+  },
+  "by_tool": {
+    "age_group_performance": {
+      "cases": 6,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "available_functions": {
+      "cases": 2,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "confusion_matrix_stats": {
+      "cases": 11,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "count_patients": {
+      "cases": 14,
+      "intent_accuracy": 0.7142857142857143,
+      "joint_goal_accuracy": 0.7142857142857143,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "counterfactual": {
+      "cases": 32,
+      "intent_accuracy": 0.78125,
+      "joint_goal_accuracy": 0.78125,
+      "overcall_rate": 0.125,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0625
+    },
+    "dataset_summary": {
+      "cases": 6,
+      "intent_accuracy": 0.8333333333333334,
+      "joint_goal_accuracy": 0.8333333333333334,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "define_feature": {
+      "cases": 24,
+      "intent_accuracy": 0.875,
+      "joint_goal_accuracy": 0.8333333333333334,
+      "overcall_rate": 0.16666666666666666,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "feature_importance_global": {
+      "cases": 9,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "feature_importance_patient": {
+      "cases": 34,
+      "intent_accuracy": 0.5588235294117647,
+      "joint_goal_accuracy": 0.5588235294117647,
+      "overcall_rate": 0.11764705882352941,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.08823529411764706
+    },
+    "feature_interactions": {
+      "cases": 4,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "get_dataset_description": {
+      "cases": 5,
+      "intent_accuracy": 0.8,
+      "joint_goal_accuracy": 0.8,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "get_model_description": {
+      "cases": 4,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "get_model_parameters": {
+      "cases": 5,
+      "intent_accuracy": 0.8,
+      "joint_goal_accuracy": 0.8,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "misclassified_cases": {
+      "cases": 5,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "performance_metrics": {
+      "cases": 15,
+      "intent_accuracy": 0.8,
+      "joint_goal_accuracy": 0.8,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.06666666666666667
+    },
+    "predict": {
+      "cases": 39,
+      "intent_accuracy": 0.7692307692307693,
+      "joint_goal_accuracy": 0.7692307692307693,
+      "overcall_rate": 0.02564102564102564,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.07692307692307693
+    },
+    "prediction_outcome_patient": {
+      "cases": 14,
+      "intent_accuracy": 0.7857142857142857,
+      "joint_goal_accuracy": 0.7857142857142857,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.07142857142857142
+    },
+    "show_ids": {
+      "cases": 7,
+      "intent_accuracy": 0.8571428571428571,
+      "joint_goal_accuracy": 0.8571428571428571,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "show_one": {
+      "cases": 35,
+      "intent_accuracy": 0.8,
+      "joint_goal_accuracy": 0.8,
+      "overcall_rate": 0.14285714285714285,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.05714285714285714
+    },
+    "what_if": {
+      "cases": 45,
+      "intent_accuracy": 0.8222222222222222,
+      "joint_goal_accuracy": 0.7555555555555555,
+      "overcall_rate": 0.1111111111111111,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.022222222222222223
+    }
+  },
+  "cases": 343,
+  "counts": {
+    "argument_slots": 283,
+    "argument_slots_correct": 242,
+    "cases": 343,
+    "hallucinated_tool": 7,
+    "intent_correct": 275,
+    "joint_goal_correct": 271,
+    "no_call_cases": 97,
+    "no_call_correct": 66,
+    "overcall": 31,
+    "predicted_calls_parse_valid": 336,
+    "response_valid": 343,
+    "undercall": 13
+  },
+  "metrics": {
+    "argument_accuracy": 0.8551236749116607,
+    "function_call_string_validity": 0.9795918367346939,
+    "hallucinated_tool_rate": 0.02040816326530612,
+    "intent_accuracy": 0.8017492711370262,
+    "joint_goal_accuracy": 0.7900874635568513,
+    "no_call_accuracy": 0.6804123711340206,
+    "overcall_rate": 0.09037900874635568,
+    "response_schema_validity": 1.0,
+    "undercall_rate": 0.037900874635568516
+  },
+  "predictions": "evals/healthcare_tool_calling/reports/reviewed_gold_v1/gpt-5.4-mini/predictions.jsonl"
+}
