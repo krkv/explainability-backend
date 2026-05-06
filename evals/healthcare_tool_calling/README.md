@@ -117,12 +117,16 @@ python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --limi
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model kimi-k2.5 --limit 10 --overwrite
 ```
 
-For slow or rate-limited providers, retry only failed provider/schema responses
-without deleting successful rows:
+For slow or rate-limited providers, retry only provider-level failures without
+deleting successful rows:
 
 ```bash
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --retry-errors
 ```
+
+Malformed model outputs, such as non-JSON text or JSON wrapped in Markdown code
+fences, are not retried. They remain in `predictions.jsonl` and are scored as
+model output-contract failures.
 
 After any retry or append run, rerun `score_predictions.py` because stale score
 artifacts are removed when predictions change.

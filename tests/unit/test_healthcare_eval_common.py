@@ -15,9 +15,9 @@ from evals.healthcare_tool_calling.scripts.eval_common import (
     write_jsonl,
 )
 from evals.healthcare_tool_calling.scripts.run_eval import (
-    _failed_response_case_ids,
     _remove_case_ids_from_jsonl,
     _remove_stale_score_artifacts,
+    _retryable_provider_error_case_ids,
 )
 from src.core.constants import Model
 
@@ -276,21 +276,51 @@ def test_resolve_eval_provider_rejects_malformed_openrouter_config():
         resolve_eval_provider("gemma-4", config)
 
 
-def test_failed_response_case_ids_selects_provider_and_schema_errors(tmp_path):
+def test_retryable_provider_error_case_ids_excludes_model_format_errors(tmp_path):
     predictions_path = tmp_path / "predictions.jsonl"
+    raw_generations_path = tmp_path / "raw_generations.jsonl"
     write_jsonl(
         predictions_path,
         [
             {"case_id": "ok", "response_valid": True, "error": None},
-            {"case_id": "provider_error", "response_valid": False, "error": "429"},
-            {"case_id": "schema_error", "response_valid": False, "error": None},
+            {
+                "case_id": "provider_error",
+                "response_valid": False,
+                "error": "UpstreamRateLimitException: rate limit",
+            },
+            {
+                "case_id": "empty_provider_response",
+                "response_valid": False,
+                "error": "LLMProviderException: Empty response content",
+            },
+            {
+                "case_id": "model_format_error",
+                "response_valid": False,
+                "error": "invalid_json: Expecting value",
+            },
             {"case_id": "model_mismatch", "response_valid": True, "error": None},
         ],
     )
+    write_jsonl(
+        raw_generations_path,
+        [
+            {"case_id": "ok", "provider_error": None},
+            {"case_id": "provider_error", "provider_error": "UpstreamRateLimitException"},
+            {
+                "case_id": "empty_provider_response",
+                "provider_error": "LLMProviderException",
+            },
+            {"case_id": "model_format_error", "provider_error": None},
+            {"case_id": "model_mismatch", "provider_error": None},
+        ],
+    )
 
-    assert _failed_response_case_ids(predictions_path) == {
+    assert _retryable_provider_error_case_ids(
+        predictions_path,
+        raw_generations_path,
+    ) == {
         "provider_error",
-        "schema_error",
+        "empty_provider_response",
     }
 
 

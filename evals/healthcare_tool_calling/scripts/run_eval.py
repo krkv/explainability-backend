@@ -75,7 +75,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         "--retry-errors",
         action="store_true",
         help=(
-            "Retry only existing rows with provider/schema errors. Removes only those "
+            "Retry only existing rows with provider errors. Removes only those "
             "case IDs from raw/prediction logs before rerunning them."
         ),
     )
@@ -92,17 +92,28 @@ def _existing_case_ids(path: Path) -> Set[str]:
     }
 
 
-def _failed_response_case_ids(path: Path) -> Set[str]:
-    if not path.exists():
-        return set()
-    failed_case_ids: Set[str] = set()
-    for row in read_jsonl(path):
-        case_id = row.get("case_id")
-        if case_id is None:
-            continue
-        if row.get("error") or row.get("response_valid") is False:
-            failed_case_ids.add(str(case_id))
-    return failed_case_ids
+def _retryable_provider_error_case_ids(
+    predictions_path: Path,
+    raw_generations_path: Path,
+) -> Set[str]:
+    retryable_case_ids: Set[str] = set()
+
+    if raw_generations_path.exists():
+        for row in read_jsonl(raw_generations_path):
+            case_id = row.get("case_id")
+            if case_id is not None and row.get("provider_error"):
+                retryable_case_ids.add(str(case_id))
+
+    if predictions_path.exists():
+        for row in read_jsonl(predictions_path):
+            case_id = row.get("case_id")
+            error = row.get("error")
+            if case_id is None or not isinstance(error, str):
+                continue
+            if error.startswith(("LLMProviderException:", "UpstreamRateLimitException:")):
+                retryable_case_ids.add(str(case_id))
+
+    return retryable_case_ids
 
 
 def _remove_case_ids_from_jsonl(path: Path, case_ids: Set[str]) -> None:
@@ -147,7 +158,10 @@ async def run_eval(args: argparse.Namespace) -> Path:
 
     retry_case_ids: Optional[Set[str]] = None
     if args.retry_errors:
-        retry_case_ids = _failed_response_case_ids(predictions_path)
+        retry_case_ids = _retryable_provider_error_case_ids(
+            predictions_path,
+            raw_generations_path,
+        )
         if not retry_case_ids:
             return predictions_path
         _remove_case_ids_from_jsonl(predictions_path, retry_case_ids)
