@@ -81,6 +81,9 @@ Processed predictions are then written to:
 reports/reviewed_gold_v1/<model_id>/predictions.jsonl
 ```
 
+Each prediction row includes the parsed response, expected calls, predicted
+calls, response validity, provider model id, scenario, and `latency_ms`.
+
 Score a prediction file:
 
 ```bash
@@ -108,9 +111,15 @@ Configured student targets live in:
 configs/model_configs.json
 ```
 
-Gemini and GPT are runnable through the current backend providers. Gemma 4,
-Kimi K2.5, Qwen3.6 Flash, and DeepSeek V4 Flash are runnable through OpenRouter when
-`OPENROUTER_API_KEY` is configured:
+Gemini and GPT are runnable through the current backend providers. These
+OpenRouter model ids are configured when `OPENROUTER_API_KEY` is available:
+
+- `gemma-4`
+- `kimi-k2.5`
+- `qwen3.6-flash`
+- `deepseek-v4-flash`
+
+Smoke-test examples:
 
 ```bash
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --limit 10 --overwrite
@@ -118,6 +127,11 @@ python3 evals/healthcare_tool_calling/scripts/run_eval.py --model kimi-k2.5 --li
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model qwen3.6-flash --limit 10 --overwrite
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model deepseek-v4-flash --limit 10 --overwrite
 ```
+
+`qwen3.6-flash` is runnable, but its first 10-case smoke test failed the
+required response contract in 7 / 10 rows by returning the JSON schema, a
+schema-shaped object, or `{}` instead of a valid assistant response. Do not use
+it in full comparison reports unless it is deliberately retested.
 
 For slow or rate-limited providers, retry only provider-level failures without
 deleting successful rows:
@@ -132,6 +146,21 @@ model output-contract failures.
 
 After any retry or append run, rerun `score_predictions.py` because stale score
 artifacts are removed when predictions change.
+
+## Current Reports
+
+The current model comparison is:
+
+```text
+reports/reviewed_gold_v1/model_comparison_all_models_v3.md
+```
+
+Earlier reports are retained for history:
+
+- `reports/reviewed_gold_v1/model_comparison_gemini_vs_gpt54mini.md`: initial
+  two-model comparison.
+- `reports/reviewed_gold_v1/model_comparison_all_models_v2.md`: superseded
+  four-model comparison before DeepSeek was added.
 
 ## Manual Authoring Workflow
 
