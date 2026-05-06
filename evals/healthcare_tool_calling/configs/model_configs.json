@@ -1,0 +1,22 @@
+{
+  "gemini-3.1-flash-lite-preview": {
+    "provider": "backend_model_enum",
+    "model_enum": "gemini-3.1-flash-lite-preview",
+    "status": "runnable"
+  },
+  "gpt-5.4-mini": {
+    "provider": "backend_model_enum",
+    "model_enum": "gpt-5.4-mini",
+    "status": "runnable"
+  },
+  "gemma-4": {
+    "provider": "pending",
+    "status": "pending",
+    "notes": "Provider access is not configured yet."
+  },
+  "kimi": {
+    "provider": "pending",
+    "status": "pending",
+    "notes": "Provider access is not configured yet."
+  }
+}

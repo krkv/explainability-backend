@@ -12,8 +12,9 @@ for valid tools is the heart function catalog:
 instances/heart/functions.json
 ```
 
-This scaffold is intentionally minimal. It does not include teacher generation
-scripts, student model runners, scoring scripts, or model adapters yet.
+This scaffold includes the reviewed dataset, seed authoring helpers, a
+coverage/readiness checker, and a minimal student-model runner/scorer for
+tool-call evaluation. Teacher generation remains external to the repository.
 
 ## Dataset Lifecycle
 
@@ -47,6 +48,68 @@ datasets/reviewed_gold_v1.jsonl
 Future schema definitions should live in `schemas/`.
 
 Future evaluation outputs should live in `reports/`.
+
+## Student Model Evaluation
+
+The frozen reviewed dataset is:
+
+```text
+datasets/reviewed_gold_v1.jsonl
+```
+
+Run one configured model at a time:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/run_eval.py \
+  --dataset evals/healthcare_tool_calling/datasets/reviewed_gold_v1.jsonl \
+  --dataset-version reviewed_gold_v1 \
+  --model gpt-5.4-mini
+```
+
+Raw model I/O is written first, before response parsing:
+
+```text
+reports/reviewed_gold_v1/<model_id>/raw_generations.jsonl
+```
+
+Each raw row includes the live-style conversation, generated system prompt,
+response schema, exact raw model response, provider error if any, and latency.
+
+Processed predictions are then written to:
+
+```text
+reports/reviewed_gold_v1/<model_id>/predictions.jsonl
+```
+
+Score a prediction file:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/score_predictions.py \
+  --predictions evals/healthcare_tool_calling/reports/reviewed_gold_v1/gpt-5.4-mini/predictions.jsonl
+```
+
+Scores are written next to predictions as `scores.json`; failed cases are
+written as `errors.jsonl`.
+
+Scoring canonicalizes backend-equivalent argument aliases before comparison.
+For example, feature aliases such as `cholesterol` and `chol`, categorical
+labels/codes in `what_if`, metric aliases such as `auc` and `auc_roc`, and
+patient-count aliases such as `all` and `total` are compared by their canonical
+backend meaning rather than by raw string equality.
+
+The runner uses the live heart assistant prompt path and response schema. Native
+provider tool calling is not used. The model must return JSON with
+`function_calls` and `freeform_response`; the scorer evaluates only
+`function_calls` for now and saves `freeform_response` for later evaluation.
+
+Configured student targets live in:
+
+```text
+configs/model_configs.json
+```
+
+Gemini and GPT are runnable through the current backend providers. Gemma and
+Kimi are included as pending config entries until provider access is configured.
 
 ## Manual Authoring Workflow
 
