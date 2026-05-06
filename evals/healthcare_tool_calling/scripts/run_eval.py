@@ -18,6 +18,7 @@ try:
         read_jsonl,
         read_model_response,
         resolve_eval_provider,
+        write_jsonl,
     )
 except ModuleNotFoundError:
     from evals.healthcare_tool_calling.scripts.eval_common import (
@@ -28,6 +29,7 @@ except ModuleNotFoundError:
         read_jsonl,
         read_model_response,
         resolve_eval_provider,
+        write_jsonl,
     )
 from src.core.constants import UseCase
 from src.domain.interfaces.llm_provider import AgentRole
@@ -69,6 +71,14 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Overwrite an existing predictions file instead of resuming.",
     )
+    parser.add_argument(
+        "--retry-errors",
+        action="store_true",
+        help=(
+            "Retry only existing rows with provider/schema errors. Removes only those "
+            "case IDs from raw/prediction logs before rerunning them."
+        ),
+    )
     return parser.parse_args(argv)
 
 
@@ -82,7 +92,41 @@ def _existing_case_ids(path: Path) -> Set[str]:
     }
 
 
+def _failed_response_case_ids(path: Path) -> Set[str]:
+    if not path.exists():
+        return set()
+    failed_case_ids: Set[str] = set()
+    for row in read_jsonl(path):
+        case_id = row.get("case_id")
+        if case_id is None:
+            continue
+        if row.get("error") or row.get("response_valid") is False:
+            failed_case_ids.add(str(case_id))
+    return failed_case_ids
+
+
+def _remove_case_ids_from_jsonl(path: Path, case_ids: Set[str]) -> None:
+    if not path.exists() or not case_ids:
+        return
+    rows = [
+        row
+        for row in read_jsonl(path)
+        if str(row.get("case_id")) not in case_ids
+    ]
+    write_jsonl(path, rows)
+
+
+def _remove_stale_score_artifacts(output_dir: Path) -> None:
+    for filename in ["scores.json", "errors.jsonl"]:
+        path = output_dir / filename
+        if path.exists():
+            path.unlink()
+
+
 async def run_eval(args: argparse.Namespace) -> Path:
+    if args.overwrite and args.retry_errors:
+        raise ValueError("--overwrite and --retry-errors cannot be used together")
+
     model_configs = load_model_configs(args.model_configs)
     if args.model not in model_configs:
         raise ValueError(f"Unknown model '{args.model}'. Check {args.model_configs}")
@@ -99,6 +143,16 @@ async def run_eval(args: argparse.Namespace) -> Path:
         for path in [predictions_path, raw_generations_path]:
             if path.exists():
                 path.unlink()
+        _remove_stale_score_artifacts(output_dir)
+
+    retry_case_ids: Optional[Set[str]] = None
+    if args.retry_errors:
+        retry_case_ids = _failed_response_case_ids(predictions_path)
+        if not retry_case_ids:
+            return predictions_path
+        _remove_case_ids_from_jsonl(predictions_path, retry_case_ids)
+        _remove_case_ids_from_jsonl(raw_generations_path, retry_case_ids)
+        _remove_stale_score_artifacts(output_dir)
 
     completed_case_ids = _existing_case_ids(predictions_path)
     if args.offset < 0:
@@ -111,6 +165,10 @@ async def run_eval(args: argparse.Namespace) -> Path:
         dataset_rows = dataset_rows[args.offset :]
     if args.limit is not None:
         dataset_rows = dataset_rows[: args.limit]
+    if retry_case_ids is not None:
+        dataset_rows = [
+            row for row in read_jsonl(args.dataset) if str(row["id"]) in retry_case_ids
+        ]
 
     for row in dataset_rows:
         case_id = str(row["id"])

@@ -9,8 +9,15 @@ from evals.healthcare_tool_calling.scripts.eval_common import (
     calls_exact_match,
     load_function_catalog,
     parse_calls,
+    read_jsonl,
     read_model_response,
     resolve_eval_provider,
+    write_jsonl,
+)
+from evals.healthcare_tool_calling.scripts.run_eval import (
+    _failed_response_case_ids,
+    _remove_case_ids_from_jsonl,
+    _remove_stale_score_artifacts,
 )
 from src.core.constants import Model
 
@@ -267,3 +274,51 @@ def test_resolve_eval_provider_rejects_malformed_openrouter_config():
 
     with pytest.raises(ValueError, match="openrouter_model"):
         resolve_eval_provider("gemma-4", config)
+
+
+def test_failed_response_case_ids_selects_provider_and_schema_errors(tmp_path):
+    predictions_path = tmp_path / "predictions.jsonl"
+    write_jsonl(
+        predictions_path,
+        [
+            {"case_id": "ok", "response_valid": True, "error": None},
+            {"case_id": "provider_error", "response_valid": False, "error": "429"},
+            {"case_id": "schema_error", "response_valid": False, "error": None},
+            {"case_id": "model_mismatch", "response_valid": True, "error": None},
+        ],
+    )
+
+    assert _failed_response_case_ids(predictions_path) == {
+        "provider_error",
+        "schema_error",
+    }
+
+
+def test_remove_case_ids_from_jsonl_preserves_other_rows(tmp_path):
+    path = tmp_path / "raw_generations.jsonl"
+    write_jsonl(
+        path,
+        [
+            {"case_id": "keep_1", "raw_response": "a"},
+            {"case_id": "remove", "raw_response": ""},
+            {"case_id": "keep_2", "raw_response": "b"},
+        ],
+    )
+
+    _remove_case_ids_from_jsonl(path, {"remove"})
+
+    assert [row["case_id"] for row in read_jsonl(path)] == ["keep_1", "keep_2"]
+
+
+def test_remove_stale_score_artifacts_removes_scores_and_errors(tmp_path):
+    output_dir = tmp_path / "reports"
+    output_dir.mkdir()
+    (output_dir / "scores.json").write_text("{}", encoding="utf-8")
+    (output_dir / "errors.jsonl").write_text("", encoding="utf-8")
+    (output_dir / "predictions.jsonl").write_text("", encoding="utf-8")
+
+    _remove_stale_score_artifacts(output_dir)
+
+    assert not (output_dir / "scores.json").exists()
+    assert not (output_dir / "errors.jsonl").exists()
+    assert (output_dir / "predictions.jsonl").exists()

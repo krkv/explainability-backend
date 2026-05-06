@@ -117,6 +117,16 @@ python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --limi
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model kimi-k2.5 --limit 10 --overwrite
 ```
 
+For slow or rate-limited providers, retry only failed provider/schema responses
+without deleting successful rows:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --retry-errors
+```
+
+After any retry or append run, rerun `score_predictions.py` because stale score
+artifacts are removed when predictions change.
+
 ## Manual Authoring Workflow
 
 Do not write every JSON object from scratch. Use the authoring helper to see
