@@ -72,6 +72,12 @@ class ResponseReadResult:
     error: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class EvalProviderResolution:
+    provider: Any
+    provider_model_id: str
+
+
 def read_jsonl(path: Path) -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as f:
@@ -153,6 +159,42 @@ def resolve_backend_model(model_id: str, config: Mapping[str, Any]) -> Model:
     if config.get("provider") != "backend_model_enum":
         raise ValueError(f"Model '{model_id}' provider is not supported by this runner")
     return Model(str(config.get("model_enum") or model_id))
+
+
+def resolve_eval_provider(
+    model_id: str,
+    config: Mapping[str, Any],
+) -> EvalProviderResolution:
+    if config.get("status") != "runnable":
+        notes = config.get("notes") or "Provider access is not configured yet."
+        raise ValueError(f"Model '{model_id}' is not runnable: {notes}")
+
+    provider_type = config.get("provider")
+    if provider_type == "backend_model_enum":
+        from src.services.llm.llm_factory import get_llm_provider
+
+        backend_model = resolve_backend_model(model_id, config)
+        provider = get_llm_provider(backend_model)
+        return EvalProviderResolution(
+            provider=provider,
+            provider_model_id=provider.get_model_name(),
+        )
+
+    if provider_type == "openrouter":
+        from src.services.llm.llm_factory import get_openrouter_provider
+
+        openrouter_model = config.get("openrouter_model") or config.get("model")
+        if not isinstance(openrouter_model, str) or not openrouter_model.strip():
+            raise ValueError(
+                f"Model '{model_id}' OpenRouter config must include openrouter_model"
+            )
+        provider = get_openrouter_provider(openrouter_model)
+        return EvalProviderResolution(
+            provider=provider,
+            provider_model_id=provider.get_model_name(),
+        )
+
+    raise ValueError(f"Model '{model_id}' provider is not supported by this runner")
 
 
 def build_live_conversation(case: Mapping[str, Any]) -> List[Dict[str, Any]]:

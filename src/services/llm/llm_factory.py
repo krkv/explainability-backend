@@ -6,6 +6,7 @@ from src.core.constants import Model
 from src.core.logging_config import get_logger
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 from src.services.llm.openai_provider import OpenAIProvider
+from src.services.llm.openrouter_provider import OpenRouterProvider
 
 logger = get_logger(__name__)
 
@@ -70,6 +71,30 @@ def get_google_gemini_provider(
         model_name=model_name,
         project_id=GOOGLE_PROJECT_ID,
         location=resolved_location,
+    )
+    _providers[cache_key] = provider
+    return provider
+
+
+def get_openrouter_provider(model_name: str) -> OpenRouterProvider:
+    """
+    Get or create an OpenRouter provider instance for a raw OpenRouter model name.
+
+    Args:
+        model_name: Exact OpenRouter model id
+
+    Returns:
+        OpenRouterProvider instance
+    """
+    cache_key = f"openrouter:{model_name}"
+    if cache_key in _providers:
+        return _providers[cache_key]
+
+    provider = OpenRouterProvider(
+        model_name=model_name,
+        api_key=settings.openrouter_api_key,
+        http_referer=settings.openrouter_http_referer,
+        app_title=settings.openrouter_app_title,
     )
     _providers[cache_key] = provider
     return provider

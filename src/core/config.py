@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # LLM Configuration
     hf_token: Optional[str] = None
     openai_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
+    openrouter_http_referer: Optional[str] = None
+    openrouter_app_title: Optional[str] = None
     
     # Paths
     instances_path: str = "instances"

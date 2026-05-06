@@ -11,9 +11,14 @@ from src.domain.interfaces.llm_provider import (
 from src.core.config import settings
 from src.services.llm.google_gemini_provider import GoogleGeminiProvider
 from src.services.llm.openai_provider import OpenAIProvider
+from src.services.llm.openrouter_provider import OpenRouterProvider
 from src.core.constants import UseCase
 from src.core.exceptions import LLMProviderException, UpstreamRateLimitException
-from src.services.llm.llm_factory import get_llm_provider, clear_providers
+from src.services.llm.llm_factory import (
+    get_llm_provider,
+    get_openrouter_provider,
+    clear_providers,
+)
 
 
 class TestGoogleGeminiProvider:
@@ -295,6 +300,148 @@ class TestOpenAIProvider:
         assert extracted == '{"function_calls": [], "freeform_response": "First"}'
 
 
+class TestOpenRouterProvider:
+    """Test cases for OpenRouterProvider."""
+
+    @pytest.fixture
+    def provider(self):
+        """Create an OpenRouterProvider instance."""
+        mock_client = Mock()
+        mock_client.chat.completions.create = Mock(
+            return_value=Mock(
+                choices=[
+                    Mock(
+                        message=Mock(
+                            content='{"function_calls": [], "freeform_response": "Response"}'
+                        )
+                    )
+                ],
+                usage=None,
+            )
+        )
+        mock_module = Mock()
+        mock_module.OpenAI = Mock(return_value=mock_client)
+        mock_module.RateLimitError = type("RateLimitError", (Exception,), {})
+
+        with patch("src.services.llm.openrouter_provider.import_module", return_value=mock_module):
+            provider = OpenRouterProvider(
+                model_name="google/gemma-4-31b-it",
+                api_key="test-key",
+                http_referer="https://example.test",
+                app_title="Eval Harness",
+            )
+            provider._client = mock_client
+            provider._openai_module = mock_module
+            return provider
+
+    def test_initializes_openai_sdk_with_openrouter_base_url_and_headers(self):
+        """Test OpenRouter initializes the OpenAI SDK with base URL and attribution headers."""
+        mock_client = Mock()
+        mock_module = Mock()
+        mock_module.OpenAI = Mock(return_value=mock_client)
+
+        with patch("src.services.llm.openrouter_provider.import_module", return_value=mock_module):
+            OpenRouterProvider(
+                model_name="moonshotai/kimi-k2.5",
+                api_key="test-key",
+                http_referer="https://example.test",
+                app_title="Eval Harness",
+            )
+
+        mock_module.OpenAI.assert_called_once_with(
+            api_key="test-key",
+            base_url="https://openrouter.ai/api/v1",
+            default_headers={
+                "HTTP-Referer": "https://example.test",
+                "X-OpenRouter-Title": "Eval Harness",
+            },
+            timeout=30,
+        )
+
+    def test_is_unavailable_without_api_key(self):
+        """Test OpenRouter provider is unavailable when no API key is configured."""
+        with patch.dict("os.environ", {}, clear=True):
+            provider = OpenRouterProvider(model_name="google/gemma-4-31b-it")
+
+        assert provider.is_available() is False
+
+    @pytest.mark.asyncio
+    async def test_generate_response_success(self, provider):
+        """Test successful OpenRouter response generation."""
+        provider._generate_openrouter_response = AsyncMock(
+            return_value='{"function_calls": [], "freeform_response": "Test response"}'
+        )
+
+        response = await provider.generate_response(
+            [{"role": "user", "content": "Hello"}],
+            UseCase.HEART,
+        )
+
+        assert isinstance(response, str)
+        assert "function_calls" in response
+        assert "freeform_response" in response
+
+    @pytest.mark.asyncio
+    async def test_generate_response_rate_limit_raises_upstream_exception(self, provider):
+        """Test OpenRouter rate limits map to explicit upstream errors."""
+        provider._generate_openrouter_response = AsyncMock(
+            side_effect=Exception("429 rate limit exceeded")
+        )
+
+        with pytest.raises(UpstreamRateLimitException):
+            await provider.generate_response(
+                [{"role": "user", "content": "Hello"}],
+                UseCase.HEART,
+            )
+
+    @pytest.mark.asyncio
+    async def test_generate_openrouter_response_uses_structured_outputs(self, provider):
+        """Test OpenRouter requests use strict JSON schema outputs."""
+        response = await provider._generate_openrouter_response(
+            conversation=[{"role": "user", "content": "Hello"}],
+            usecase=UseCase.HEART.value,
+            generation_config=StructuredGenerationConfig(
+                system_prompt="Answer in JSON.",
+                response_schema=build_response_schema(AgentRole.ASSISTANT),
+            ),
+        )
+
+        create_kwargs = provider._client.chat.completions.create.call_args.kwargs
+        assert '"freeform_response"' in response
+        assert create_kwargs["model"] == "google/gemma-4-31b-it"
+        assert create_kwargs["messages"] == [
+            {"role": "system", "content": "Answer in JSON."},
+            {"role": "user", "content": "Hello"},
+        ]
+        assert create_kwargs["response_format"]["type"] == "json_schema"
+        json_schema = create_kwargs["response_format"]["json_schema"]
+        assert json_schema["strict"] is True
+        assert json_schema["schema"]["additionalProperties"] is False
+        assert (
+            json_schema["schema"]["properties"]["function_calls"]["items"]["type"]
+            == "string"
+        )
+        assert create_kwargs["extra_body"] == {
+            "provider": {"require_parameters": True}
+        }
+
+    def test_extract_response_text_reads_first_choice_message_content(self, provider):
+        """Test provider reads Chat Completions assistant content."""
+        response = Mock(
+            choices=[
+                Mock(
+                    message=Mock(
+                        content='{"function_calls": [], "freeform_response": "First"}'
+                    )
+                )
+            ]
+        )
+
+        extracted = provider._extract_response_text(response)
+
+        assert extracted == '{"function_calls": [], "freeform_response": "First"}'
+
+
 class TestLLMFactory:
     """Test cases for the LLM factory."""
 
@@ -321,4 +468,16 @@ class TestLLMFactory:
         mock_provider_class.assert_called_once_with(
             model_name="gpt-5.4-mini",
             api_key=settings.openai_api_key,
+        )
+
+    def test_get_openrouter_provider_uses_openrouter_settings(self):
+        """Test raw OpenRouter models are routed through OpenRouterProvider."""
+        with patch('src.services.llm.llm_factory.OpenRouterProvider') as mock_provider_class:
+            get_openrouter_provider("google/gemma-4-31b-it")
+
+        mock_provider_class.assert_called_once_with(
+            model_name="google/gemma-4-31b-it",
+            api_key=settings.openrouter_api_key,
+            http_referer=settings.openrouter_http_referer,
+            app_title=settings.openrouter_app_title,
         )

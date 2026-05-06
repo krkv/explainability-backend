@@ -108,8 +108,14 @@ Configured student targets live in:
 configs/model_configs.json
 ```
 
-Gemini and GPT are runnable through the current backend providers. Gemma and
-Kimi are included as pending config entries until provider access is configured.
+Gemini and GPT are runnable through the current backend providers. Gemma 4 and
+Kimi K2.5 are runnable through OpenRouter when `OPENROUTER_API_KEY` is
+configured:
+
+```bash
+python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --limit 10 --overwrite
+python3 evals/healthcare_tool_calling/scripts/run_eval.py --model kimi-k2.5 --limit 10 --overwrite
+```
 
 ## Manual Authoring Workflow
 

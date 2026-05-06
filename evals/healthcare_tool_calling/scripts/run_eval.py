@@ -17,7 +17,7 @@ try:
         load_model_configs,
         read_jsonl,
         read_model_response,
-        resolve_backend_model,
+        resolve_eval_provider,
     )
 except ModuleNotFoundError:
     from evals.healthcare_tool_calling.scripts.eval_common import (
@@ -27,7 +27,7 @@ except ModuleNotFoundError:
         load_model_configs,
         read_jsonl,
         read_model_response,
-        resolve_backend_model,
+        resolve_eval_provider,
     )
 from src.core.constants import UseCase
 from src.domain.interfaces.llm_provider import AgentRole
@@ -87,10 +87,8 @@ async def run_eval(args: argparse.Namespace) -> Path:
     if args.model not in model_configs:
         raise ValueError(f"Unknown model '{args.model}'. Check {args.model_configs}")
 
-    backend_model = resolve_backend_model(args.model, model_configs[args.model])
-    from src.services.llm.llm_factory import get_llm_provider
-
-    provider = get_llm_provider(backend_model)
+    provider_resolution = resolve_eval_provider(args.model, model_configs[args.model])
+    provider = provider_resolution.provider
     if not provider.is_available():
         raise RuntimeError(f"Provider for '{args.model}' is not available")
 
@@ -141,6 +139,7 @@ async def run_eval(args: argparse.Namespace) -> Path:
         raw_generation: Dict[str, Any] = {
             "case_id": case_id,
             "model_id": args.model,
+            "provider_model_id": provider_resolution.provider_model_id,
             "dataset_version": args.dataset_version,
             "scenario": row["scenario"],
             "request": {
@@ -160,6 +159,7 @@ async def run_eval(args: argparse.Namespace) -> Path:
         prediction: Dict[str, Any] = {
             "case_id": case_id,
             "model_id": args.model,
+            "provider_model_id": provider_resolution.provider_model_id,
             "dataset_version": args.dataset_version,
             "scenario": row["scenario"],
             "expected_behavior": row["expected_behavior"],

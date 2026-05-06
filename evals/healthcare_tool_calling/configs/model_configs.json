@@ -10,13 +10,13 @@
     "status": "runnable"
   },
   "gemma-4": {
-    "provider": "pending",
-    "status": "pending",
-    "notes": "Provider access is not configured yet."
+    "provider": "openrouter",
+    "openrouter_model": "google/gemma-4-31b-it",
+    "status": "runnable"
   },
-  "kimi": {
-    "provider": "pending",
-    "status": "pending",
-    "notes": "Provider access is not configured yet."
+  "kimi-k2.5": {
+    "provider": "openrouter",
+    "openrouter_model": "moonshotai/kimi-k2.5",
+    "status": "runnable"
   }
 }

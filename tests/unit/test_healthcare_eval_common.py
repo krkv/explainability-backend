@@ -1,12 +1,18 @@
 """Tests for healthcare tool-calling eval helpers."""
 
+from unittest.mock import patch
+
+import pytest
+
 from evals.healthcare_tool_calling.scripts.eval_common import (
     build_live_conversation,
     calls_exact_match,
     load_function_catalog,
     parse_calls,
     read_model_response,
+    resolve_eval_provider,
 )
+from src.core.constants import Model
 
 
 def test_build_live_conversation_includes_function_call_history():
@@ -198,3 +204,66 @@ def test_call_parse_rejects_unknown_feature_alias():
 
     assert parsed == []
     assert errors
+
+
+def test_resolve_eval_provider_supports_backend_model_enum():
+    config = {
+        "provider": "backend_model_enum",
+        "model_enum": "gpt-5.4-mini",
+        "status": "runnable",
+    }
+
+    class FakeProvider:
+        def get_model_name(self):
+            return "gpt-5.4-mini"
+
+    with patch(
+        "src.services.llm.llm_factory.get_llm_provider",
+        return_value=FakeProvider(),
+    ) as mock_get_provider:
+        resolution = resolve_eval_provider("gpt-5.4-mini", config)
+
+    mock_get_provider.assert_called_once_with(Model.GPT_5_4_MINI)
+    assert resolution.provider_model_id == "gpt-5.4-mini"
+
+
+def test_resolve_eval_provider_supports_openrouter_models():
+    config = {
+        "provider": "openrouter",
+        "openrouter_model": "google/gemma-4-31b-it",
+        "status": "runnable",
+    }
+
+    class FakeProvider:
+        def get_model_name(self):
+            return "google/gemma-4-31b-it"
+
+    with patch(
+        "src.services.llm.llm_factory.get_openrouter_provider",
+        return_value=FakeProvider(),
+    ) as mock_get_provider:
+        resolution = resolve_eval_provider("gemma-4", config)
+
+    mock_get_provider.assert_called_once_with("google/gemma-4-31b-it")
+    assert resolution.provider_model_id == "google/gemma-4-31b-it"
+
+
+def test_resolve_eval_provider_rejects_pending_models():
+    config = {
+        "provider": "openrouter",
+        "openrouter_model": "google/gemma-4-31b-it",
+        "status": "pending",
+    }
+
+    with pytest.raises(ValueError, match="not runnable"):
+        resolve_eval_provider("gemma-4", config)
+
+
+def test_resolve_eval_provider_rejects_malformed_openrouter_config():
+    config = {
+        "provider": "openrouter",
+        "status": "runnable",
+    }
+
+    with pytest.raises(ValueError, match="openrouter_model"):
+        resolve_eval_provider("gemma-4", config)
