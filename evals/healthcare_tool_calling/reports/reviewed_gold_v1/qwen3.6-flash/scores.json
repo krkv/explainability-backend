@@ -1,0 +1,81 @@
+{
+  "by_scenario": {
+    "direct_single_turn": {
+      "cases": 10,
+      "intent_accuracy": 0.3,
+      "joint_goal_accuracy": 0.3,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 0.3,
+      "undercall_rate": 0.7
+    }
+  },
+  "by_tool": {
+    "age_group_performance": {
+      "cases": 2,
+      "intent_accuracy": 0.5,
+      "joint_goal_accuracy": 0.5,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 0.5,
+      "undercall_rate": 0.5
+    },
+    "available_functions": {
+      "cases": 2,
+      "intent_accuracy": 0.0,
+      "joint_goal_accuracy": 0.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 0.0,
+      "undercall_rate": 1.0
+    },
+    "confusion_matrix_stats": {
+      "cases": 2,
+      "intent_accuracy": 0.5,
+      "joint_goal_accuracy": 0.5,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 0.5,
+      "undercall_rate": 0.5
+    },
+    "count_patients": {
+      "cases": 2,
+      "intent_accuracy": 0.0,
+      "joint_goal_accuracy": 0.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 0.0,
+      "undercall_rate": 1.0
+    },
+    "counterfactual": {
+      "cases": 2,
+      "intent_accuracy": 0.5,
+      "joint_goal_accuracy": 0.5,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 0.5,
+      "undercall_rate": 0.5
+    }
+  },
+  "cases": 10,
+  "counts": {
+    "argument_slots": 4,
+    "argument_slots_correct": 1,
+    "cases": 10,
+    "hallucinated_tool": 0,
+    "intent_correct": 3,
+    "joint_goal_correct": 3,
+    "no_call_cases": 0,
+    "no_call_correct": 0,
+    "overcall": 0,
+    "predicted_calls_parse_valid": 3,
+    "response_valid": 3,
+    "undercall": 7
+  },
+  "metrics": {
+    "argument_accuracy": 0.25,
+    "function_call_string_validity": 0.3,
+    "hallucinated_tool_rate": 0.0,
+    "intent_accuracy": 0.3,
+    "joint_goal_accuracy": 0.3,
+    "no_call_accuracy": 0.0,
+    "overcall_rate": 0.0,
+    "response_schema_validity": 0.3,
+    "undercall_rate": 0.7
+  },
+  "predictions": "evals/healthcare_tool_calling/reports/reviewed_gold_v1/qwen3.6-flash/predictions.jsonl"
+}
