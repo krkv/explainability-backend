@@ -59,6 +59,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         help="Optional maximum number of dataset rows to run.",
     )
     parser.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Optional number of dataset rows to skip before running.",
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Overwrite an existing predictions file instead of resuming.",
@@ -97,7 +103,14 @@ async def run_eval(args: argparse.Namespace) -> Path:
                 path.unlink()
 
     completed_case_ids = _existing_case_ids(predictions_path)
+    if args.offset < 0:
+        raise ValueError("--offset must be >= 0")
+    if args.limit is not None and args.limit < 0:
+        raise ValueError("--limit must be >= 0")
+
     dataset_rows = read_jsonl(args.dataset)
+    if args.offset:
+        dataset_rows = dataset_rows[args.offset :]
     if args.limit is not None:
         dataset_rows = dataset_rows[: args.limit]
 
