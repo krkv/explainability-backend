@@ -18,5 +18,10 @@
     "provider": "openrouter",
     "openrouter_model": "moonshotai/kimi-k2.5",
     "status": "runnable"
+  },
+  "qwen3.6-flash": {
+    "provider": "openrouter",
+    "openrouter_model": "qwen/qwen3.6-flash",
+    "status": "runnable"
   }
 }

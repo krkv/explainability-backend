@@ -108,13 +108,14 @@ Configured student targets live in:
 configs/model_configs.json
 ```
 
-Gemini and GPT are runnable through the current backend providers. Gemma 4 and
-Kimi K2.5 are runnable through OpenRouter when `OPENROUTER_API_KEY` is
-configured:
+Gemini and GPT are runnable through the current backend providers. Gemma 4,
+Kimi K2.5, and Qwen3.6 Flash are runnable through OpenRouter when
+`OPENROUTER_API_KEY` is configured:
 
 ```bash
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --limit 10 --overwrite
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model kimi-k2.5 --limit 10 --overwrite
+python3 evals/healthcare_tool_calling/scripts/run_eval.py --model qwen3.6-flash --limit 10 --overwrite
 ```
 
 For slow or rate-limited providers, retry only provider-level failures without
