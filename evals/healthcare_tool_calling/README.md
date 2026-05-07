@@ -115,6 +115,7 @@ Gemini and GPT are runnable through the current backend providers. These
 OpenRouter model ids are configured when `OPENROUTER_API_KEY` is available:
 
 - `gemma-4`
+- `gemma-4-moe`
 - `kimi-k2.5`
 - `qwen3.6-flash`
 - `deepseek-v4-flash`
@@ -123,6 +124,7 @@ Smoke-test examples:
 
 ```bash
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4 --limit 10 --overwrite
+python3 evals/healthcare_tool_calling/scripts/run_eval.py --model gemma-4-moe --limit 10 --overwrite
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model kimi-k2.5 --limit 10 --overwrite
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model qwen3.6-flash --limit 10 --overwrite
 python3 evals/healthcare_tool_calling/scripts/run_eval.py --model deepseek-v4-flash --limit 10 --overwrite
@@ -152,7 +154,7 @@ artifacts are removed when predictions change.
 The current model comparison is:
 
 ```text
-reports/reviewed_gold_v1/model_comparison_all_models_v3.md
+reports/reviewed_gold_v1/model_comparison_all_models_v4.md
 ```
 
 Earlier reports are retained for history:
@@ -161,6 +163,8 @@ Earlier reports are retained for history:
   two-model comparison.
 - `reports/reviewed_gold_v1/model_comparison_all_models_v2.md`: superseded
   four-model comparison before DeepSeek was added.
+- `reports/reviewed_gold_v1/model_comparison_all_models_v3.md`: superseded
+  five-model comparison before Gemma 4 MoE was added.
 
 ## Manual Authoring Workflow
 

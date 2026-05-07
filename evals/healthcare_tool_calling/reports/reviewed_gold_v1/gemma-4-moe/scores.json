@@ -1,0 +1,273 @@
+{
+  "by_scenario": {
+    "conflicting_context": {
+      "cases": 15,
+      "intent_accuracy": 0.8666666666666667,
+      "joint_goal_accuracy": 0.8666666666666667,
+      "overcall_rate": 0.13333333333333333,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "direct_single_turn": {
+      "cases": 98,
+      "intent_accuracy": 0.9387755102040817,
+      "joint_goal_accuracy": 0.9387755102040817,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.02040816326530612
+    },
+    "entity_switch_or_correction": {
+      "cases": 38,
+      "intent_accuracy": 0.8947368421052632,
+      "joint_goal_accuracy": 0.8947368421052632,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.05263157894736842
+    },
+    "irrelevant_context": {
+      "cases": 14,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "missing_required_argument": {
+      "cases": 34,
+      "intent_accuracy": 0.9117647058823529,
+      "joint_goal_accuracy": 0.9117647058823529,
+      "overcall_rate": 0.08823529411764706,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "multi_tool_request": {
+      "cases": 25,
+      "intent_accuracy": 0.96,
+      "joint_goal_accuracy": 0.96,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "no_tool_needed": {
+      "cases": 23,
+      "intent_accuracy": 0.9565217391304348,
+      "joint_goal_accuracy": 0.9565217391304348,
+      "overcall_rate": 0.043478260869565216,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "parameter_carryover": {
+      "cases": 38,
+      "intent_accuracy": 0.7105263157894737,
+      "joint_goal_accuracy": 0.7105263157894737,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.2894736842105263
+    },
+    "paraphrase_or_alias": {
+      "cases": 33,
+      "intent_accuracy": 0.8484848484848485,
+      "joint_goal_accuracy": 0.8484848484848485,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.15151515151515152
+    },
+    "unsupported_intent": {
+      "cases": 25,
+      "intent_accuracy": 0.92,
+      "joint_goal_accuracy": 0.92,
+      "overcall_rate": 0.08,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    }
+  },
+  "by_tool": {
+    "age_group_performance": {
+      "cases": 6,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "available_functions": {
+      "cases": 2,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "confusion_matrix_stats": {
+      "cases": 11,
+      "intent_accuracy": 0.9090909090909091,
+      "joint_goal_accuracy": 0.9090909090909091,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.09090909090909091
+    },
+    "count_patients": {
+      "cases": 14,
+      "intent_accuracy": 0.9285714285714286,
+      "joint_goal_accuracy": 0.9285714285714286,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "counterfactual": {
+      "cases": 32,
+      "intent_accuracy": 0.875,
+      "joint_goal_accuracy": 0.875,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.09375
+    },
+    "dataset_summary": {
+      "cases": 6,
+      "intent_accuracy": 0.8333333333333334,
+      "joint_goal_accuracy": 0.8333333333333334,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "define_feature": {
+      "cases": 24,
+      "intent_accuracy": 0.8333333333333334,
+      "joint_goal_accuracy": 0.8333333333333334,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.16666666666666666
+    },
+    "feature_importance_global": {
+      "cases": 9,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "feature_importance_patient": {
+      "cases": 34,
+      "intent_accuracy": 0.8235294117647058,
+      "joint_goal_accuracy": 0.8235294117647058,
+      "overcall_rate": 0.029411764705882353,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.08823529411764706
+    },
+    "feature_interactions": {
+      "cases": 4,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "get_dataset_description": {
+      "cases": 5,
+      "intent_accuracy": 0.8,
+      "joint_goal_accuracy": 0.8,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "get_model_description": {
+      "cases": 4,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "get_model_parameters": {
+      "cases": 5,
+      "intent_accuracy": 0.8,
+      "joint_goal_accuracy": 0.8,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "misclassified_cases": {
+      "cases": 5,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "performance_metrics": {
+      "cases": 15,
+      "intent_accuracy": 0.9333333333333333,
+      "joint_goal_accuracy": 0.9333333333333333,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.06666666666666667
+    },
+    "predict": {
+      "cases": 39,
+      "intent_accuracy": 0.8974358974358975,
+      "joint_goal_accuracy": 0.8974358974358975,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.10256410256410256
+    },
+    "prediction_outcome_patient": {
+      "cases": 14,
+      "intent_accuracy": 0.7857142857142857,
+      "joint_goal_accuracy": 0.7857142857142857,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.21428571428571427
+    },
+    "show_ids": {
+      "cases": 7,
+      "intent_accuracy": 1.0,
+      "joint_goal_accuracy": 1.0,
+      "overcall_rate": 0.0,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "show_one": {
+      "cases": 35,
+      "intent_accuracy": 0.9142857142857143,
+      "joint_goal_accuracy": 0.9142857142857143,
+      "overcall_rate": 0.08571428571428572,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.0
+    },
+    "what_if": {
+      "cases": 45,
+      "intent_accuracy": 0.9555555555555556,
+      "joint_goal_accuracy": 0.9555555555555556,
+      "overcall_rate": 0.022222222222222223,
+      "response_schema_validity": 1.0,
+      "undercall_rate": 0.022222222222222223
+    }
+  },
+  "cases": 343,
+  "counts": {
+    "argument_slots": 283,
+    "argument_slots_correct": 257,
+    "cases": 343,
+    "hallucinated_tool": 1,
+    "intent_correct": 308,
+    "joint_goal_correct": 308,
+    "no_call_cases": 97,
+    "no_call_correct": 89,
+    "overcall": 8,
+    "predicted_calls_parse_valid": 342,
+    "response_valid": 343,
+    "undercall": 20
+  },
+  "metrics": {
+    "argument_accuracy": 0.9081272084805654,
+    "function_call_string_validity": 0.9970845481049563,
+    "hallucinated_tool_rate": 0.0029154518950437317,
+    "intent_accuracy": 0.8979591836734694,
+    "joint_goal_accuracy": 0.8979591836734694,
+    "no_call_accuracy": 0.9175257731958762,
+    "overcall_rate": 0.023323615160349854,
+    "response_schema_validity": 1.0,
+    "undercall_rate": 0.05830903790087463
+  },
+  "predictions": "evals/healthcare_tool_calling/reports/reviewed_gold_v1/gemma-4-moe/predictions.jsonl"
+}

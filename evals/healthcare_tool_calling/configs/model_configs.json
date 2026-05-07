@@ -14,6 +14,11 @@
     "openrouter_model": "google/gemma-4-31b-it",
     "status": "runnable"
   },
+  "gemma-4-moe": {
+    "provider": "openrouter",
+    "openrouter_model": "google/gemma-4-26b-a4b-it",
+    "status": "runnable"
+  },
   "kimi-k2.5": {
     "provider": "openrouter",
     "openrouter_model": "moonshotai/kimi-k2.5",
