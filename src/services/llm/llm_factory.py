@@ -29,9 +29,9 @@ def get_llm_provider(model: Model) -> Any:
     if model in _providers:
         return _providers[model]
     
-    if model == Model.GEMINI_3_1_FLASH_LITE_PREVIEW:
+    if model == Model.GEMINI_3_1_FLASH_LITE:
         provider = GoogleGeminiProvider(
-            model_name="gemini-3.1-flash-lite-preview",
+            model_name="gemini-3.1-flash-lite",
             project_id=GOOGLE_PROJECT_ID,
             location=GOOGLE_LOCATION
         )

@@ -264,7 +264,7 @@ Generate an LLM assistant response with function execution capabilities.
 ```
 
 **Supported Models**:
-- `gemini-3.1-flash-lite-preview` (Google)
+- `gemini-3.1-flash-lite` (Google)
 - `gpt-5.4-mini` (OpenAI)
 
 **Supported Use Cases**:

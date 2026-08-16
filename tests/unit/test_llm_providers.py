@@ -24,7 +24,7 @@ class TestGoogleGeminiProvider:
         """Create a GoogleGeminiProvider instance."""
         with patch('src.services.llm.google_gemini_provider.genai.Client'):
             provider = GoogleGeminiProvider(
-                model_name="gemini-3.1-flash-lite-preview",
+                model_name="gemini-3.1-flash-lite",
                 project_id="test-project",
                 location="global",
                 api_key="test-key"
@@ -305,10 +305,10 @@ class TestLLMFactory:
     def test_get_llm_provider_uses_hard_coded_google_project_and_location(self):
         """Test Gemini providers use the hard-coded project and location."""
         with patch('src.services.llm.llm_factory.GoogleGeminiProvider') as mock_provider_class:
-            get_llm_provider(Model.GEMINI_3_1_FLASH_LITE_PREVIEW)
+            get_llm_provider(Model.GEMINI_3_1_FLASH_LITE)
 
         mock_provider_class.assert_called_once_with(
-            model_name="gemini-3.1-flash-lite-preview",
+            model_name="gemini-3.1-flash-lite",
             project_id="explainability-assistant",
             location="global",
         )

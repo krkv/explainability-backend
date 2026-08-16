@@ -149,7 +149,7 @@ class TestAssistantResponseEndpoint:
         """Test assistant response with empty conversation."""
         request_data = {
             "conversation": [],
-            "model": "gemini-3.1-flash-lite-preview",
+            "model": "gemini-3.1-flash-lite",
             "usecase": "Energy Consumption"
         }
         
@@ -179,7 +179,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "gemini-3.1-flash-lite-preview",
+            "model": "gemini-3.1-flash-lite",
             "usecase": "InvalidUsecase"
         }
         
@@ -216,7 +216,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "gemini-3.1-flash-lite-preview",
+            "model": "gemini-3.1-flash-lite",
             "usecase": "Energy Consumption"
         }
         
@@ -260,7 +260,7 @@ class TestAssistantResponseEndpoint:
             "conversation": [
                 {"role": "user", "content": "Hello"}
             ],
-            "model": "gemini-3.1-flash-lite-preview",
+            "model": "gemini-3.1-flash-lite",
             "usecase": "energy consumption"  # Lowercase
         }
         
